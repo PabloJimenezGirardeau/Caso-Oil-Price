@@ -17,14 +17,16 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 |---|---|---|---|---|---|
 | D1 | 05/11/2026 | Entorno con Poetry en `.venv` dentro del repo, con Python 3.12 del sistema | Reproducible y fácil de detectar desde VS Code; evita usar el Python de otro proyecto | ✅ | `poetry.toml` |
 | D2 | 06/11/2026 | Usar el `poetry.lock` oficial del curso (pandas 3.1.0) | pandas 3.1.1 queda bloqueado por Smart App Control | ✅ | `poetry.lock` |
-| D3 | 06/11/2026 | Trabajar con el calendario real del Brent (6.501 días) y usar el último dato real como precio actual | 502 filas del CSV son festivos rellenados; las 2 últimas son copias | 🟡 | EDA §1 |
-| D4 | 06/11/2026 | Objetivo: Brent spot (EIA); el modelo predice su variación logarítmica a 5, 63 y 252 sesiones | El precio no es estacionario y la variación sí; «predecir 0» equivale al modelo ingenuo | 🟡 | EDA §3-4 |
-| D5 | 06/11/2026 | Variables de entrada: Brent, WTI, cobre, oro, índice del dólar y VIX (en variaciones), desde el 30/08/2000 | Relación con el Brent y cobertura completa; el resto es redundante o no aporta | 🟡 | EDA §6 |
-| D6 | 06/11/2026 | Ventana de entrada de 60 días | Recoge la memoria de la volatilidad (≈ 60 días) | 🟡 | EDA §5 |
+| D3 | 06/11/2026 | Trabajar con el calendario real del Brent (6.501 días) y usar el último dato real como precio actual | 502 filas del CSV son festivos rellenados y las 2 últimas son copias (comprobado contra FRED) | ✅ | EDA §1 |
+| D4 | 06/11/2026 | Objetivo: Brent spot (EIA); el modelo predice su variación logarítmica a 5, 63 y 252 sesiones y el precio se reconstruye a partir de ella | El precio no es estacionario y la variación sí; «predecir 0» equivale al modelo ingenuo | ✅ (vigilada con H4) | EDA §3-4 |
+| D5 | 06/11/2026 | Variables de entrada: Brent, WTI, cobre, oro, índice del dólar y VIX (en variaciones), desde el 30/08/2000 | Relación con el Brent y cobertura completa; el resto es redundante o no aporta | ✅ (vigilada con H2) | EDA §6 |
+| D6 | 06/11/2026 | **Ventana de entrada: se prueban 20, 60 y 120 días** en validación. La elegida (con un criterio fijado de antemano) se usa igual en las tres redes; la comparación se presenta como estudio de sensibilidad | 60 días recoge la memoria de la volatilidad y es la sugerida, pero el efecto de la ventana es una pregunta abierta. El enunciado exige la misma ventana para las tres redes en la comparativa | ✅ | EDA §5 |
 | D7 | 06/11/2026 | **Partición E:** train 2000-2017 · validación walk-forward 2018-2021 (4 pliegues anuales, con purga) · test 2022-hoy, usado una sola vez | Frente a la A, da un test más sólido en el horizonte más difícil (4 años independientes a 252 días frente a 3) e incluye las dos últimas crisis (2022 y 2026), sin perder variedad en train ni en validación | ✅ | EDA §8 |
+| D8 | 06/11/2026 | Intervalo del 80 % con los cuantiles 10-90 de los errores de validación de cada horizonte, **relativos a la volatilidad reciente** (21 días); en la app se multiplican por la volatilidad del momento | Las colas gruesas impiden suponer normalidad, y la volatilidad es predecible: la horquilla debe ensancharse en las crisis y estrecharse en calma | ✅ (vigilada con H3) | EDA §7 |
+| D9 | 06/11/2026 | Entradas recortadas entre sus percentiles 1 y 99 (calculados solo con train) y entrenamiento con **pérdida Huber**; evaluación sobre los datos reales, sin recortar | Los 8 mayores movimientos son de 2020 y dominarían el entrenamiento | ✅ | EDA §4 |
 | D10 | 06/11/2026 | Al terminar, repetir la evaluación con la partición A (train 2000-2018 · val 2019-2022 · test 2023-hoy) como prueba de robustez | Si las conclusiones se mantienen con las dos particiones, son más creíbles. Solo sirve para comprobar, no para elegir | ✅ | EDA §8 |
-| D8 | 06/11/2026 | Intervalo del 80 % con los cuantiles 10-90 de los errores de validación | Las variaciones tienen colas gruesas: no se puede suponer normalidad | 🟡 | EDA §7 |
-| D9 | 06/11/2026 | Recortar (winsorizar) las variaciones extremas o usar una pérdida robusta | Los 8 mayores movimientos son de 2020 y dominarían el entrenamiento | 🟡 | EDA §4 |
+| D11 | 06/11/2026 | Redes con **PyTorch** | La GPU de la universidad es Windows, y en Windows nativo solo PyTorch usa la GPU; también funciona en CPU en el portátil | ✅ | Diario 06/11 |
+| D12 | 06/11/2026 | `data/petroleo_dataset.csv` **se mantiene versionado** como foto de los datos del proyecto. Los experimentos usarán una fecha de corte fija, y las descargas de la app se guardarán en otro archivo | Criterio: quitarlo solo si no causa fallos. Sí los causaría: si Yahoo falla, el script sigue sin cobre, oro e índice del dólar, y cada descarga nueva cambia el test y todas las cifras | ✅ | Diario 06/11 |
 
 ### Hipótesis abiertas
 
@@ -48,7 +50,8 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 - **Hay GPU disponible en la universidad** para los entrenamientos más pesados (ajuste de hiperparámetros, reentrenamiento anual). Implicaciones:
   - el código debe funcionar igual en CPU y en GPU, eligiendo el dispositivo automáticamente;
   - el repo debe poder clonarse y ejecutarse allí con `poetry install`;
-  - antes de elegir framework, hay que confirmar el sistema operativo de esa máquina (en Windows nativo solo PyTorch usa la GPU; en Linux valen PyTorch y TensorFlow).
+  - la máquina de la universidad es **Windows** → se usa PyTorch (D11);
+  - el PyTorch que se instala por defecto en Windows desde PyPI **solo usa CPU**; para la GPU hay que instalar la versión con CUDA desde el repositorio de PyTorch, que depende del modelo de GPU y del driver (pendiente de comprobar allí con `nvidia-smi`).
 
 ---
 
@@ -131,10 +134,21 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 **Deshecho o descartado (partición)**
 - ❌ Partición A como principal (era la propuesta inicial del EDA): se sustituye por E y queda como prueba de robustez.
 
+**Cierre del EDA: validación de las decisiones**
+- Método: para cada decisión se revisa la evidencia del EDA, la alternativa y el coste de equivocarse.
+  - Las que el EDA demuestra quedan firmes.
+  - Las que solo se pueden confirmar entrenando se aprueban como punto de partida y se vigilan con una hipótesis (H#). Si los resultados las contradicen, se revisan y se anota aquí.
+- D3, D4, D5, D8 y D9 aprobadas. Si surgen imprevistos, se revisarán sobre la marcha.
+- **Corrección de D8:** con cuantiles fijos, la horquilla tendría siempre la misma anchura, lo que contradice que la volatilidad es predecible (EDA §5). Se pasa a cuantiles relativos a la volatilidad reciente.
+- **D9 concretada:** antes decía «recortar o usar pérdida robusta»; ahora es recorte de entradas en los percentiles 1-99 del train + pérdida Huber.
+- **D6 cambiada:** en lugar de fijar 60 días, se prueban 20, 60 y 120 días (preferencia de trabajo: probar varios valores de los parámetros para comparar sus efectos).
+- Principio para todo el proyecto: siempre que sea razonable, **probar alternativas y presentar la comparación** (estudio de sensibilidad), manteniendo las condiciones iguales para las tres redes.
+
 **Pendiente**
-- [ ] Revisar el EDA y validar las decisiones 🟡 (D3-D6, D8, D9).
-- [ ] Decidir si `data/petroleo_dataset.csv` se versiona o se regenera con el script.
+- [x] Revisar el EDA y validar las decisiones 🟡 (D3-D6, D8, D9).
+- [x] Decidir si `data/petroleo_dataset.csv` se versiona o se regenera con el script → se mantiene (D12).
 - [x] Commit del EDA, el diario, el README y las dependencias nuevas.
 - [ ] Commit de la elección de partición (EDA §8 y diario).
 - [ ] Documentar la causa del pico de 2026.
 - [ ] Al final del proyecto: prueba de robustez con la partición A (D10).
+- [ ] En la universidad: ejecutar `nvidia-smi` para anotar el modelo de GPU y la versión de CUDA del driver.
