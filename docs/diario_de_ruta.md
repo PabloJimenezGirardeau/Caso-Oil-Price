@@ -21,7 +21,8 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 | D4 | 06/11/2026 | Objetivo: Brent spot (EIA); el modelo predice su variación logarítmica a 5, 63 y 252 sesiones | El precio no es estacionario y la variación sí; «predecir 0» equivale al modelo ingenuo | 🟡 | EDA §3-4 |
 | D5 | 06/11/2026 | Variables de entrada: Brent, WTI, cobre, oro, índice del dólar y VIX (en variaciones), desde el 30/08/2000 | Relación con el Brent y cobertura completa; el resto es redundante o no aporta | 🟡 | EDA §6 |
 | D6 | 06/11/2026 | Ventana de entrada de 60 días | Recoge la memoria de la volatilidad (≈ 60 días) | 🟡 | EDA §5 |
-| D7 | 06/11/2026 | Particiones: train 2000-2018 · validación walk-forward 2019-2022 (4 pliegues, con purga) · test 2023-hoy | Sin mezclar fechas; validación en el tramo más difícil; el test incluye el pico de 2026 | 🟡 | EDA §8 |
+| D7 | 06/11/2026 | **Partición E:** train 2000-2017 · validación walk-forward 2018-2021 (4 pliegues anuales, con purga) · test 2022-hoy, usado una sola vez | Frente a la A, da un test más sólido en el horizonte más difícil (4 años independientes a 252 días frente a 3) e incluye las dos últimas crisis (2022 y 2026), sin perder variedad en train ni en validación | ✅ | EDA §8 |
+| D10 | 06/11/2026 | Al terminar, repetir la evaluación con la partición A (train 2000-2018 · val 2019-2022 · test 2023-hoy) como prueba de robustez | Si las conclusiones se mantienen con las dos particiones, son más creíbles. Solo sirve para comprobar, no para elegir | ✅ | EDA §8 |
 | D8 | 06/11/2026 | Intervalo del 80 % con los cuantiles 10-90 de los errores de validación | Las variaciones tienen colas gruesas: no se puede suponer normalidad | 🟡 | EDA §7 |
 | D9 | 06/11/2026 | Recortar (winsorizar) las variaciones extremas o usar una pérdida robusta | Los 8 mayores movimientos son de 2020 y dominarían el entrenamiento | 🟡 | EDA §4 |
 
@@ -33,6 +34,7 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 | H2 | La variación de ayer del WTI anticipa el Brent de hoy (correlación ≈ 0,17), probablemente porque EE. UU. cierra después que Londres | Comparar el modelo con y sin WTI a 5 días | abierta |
 | H3 | El modelo aportará más en la anchura del intervalo (riesgo) que en la dirección del precio | Cobertura y anchura de los intervalos frente a los empíricos | abierta |
 | H4 | Predecir variaciones funciona mejor que predecir niveles | Comparación opcional en validación | abierta |
+| H5 | Las conclusiones (red ganadora y horizontes en los que aporta) no dependen de la partición elegida | Prueba de robustez con la partición A (D10) | abierta |
 
 ### Limitaciones y problemas conocidos
 
@@ -42,6 +44,11 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 - Smart App Control (Windows) puede bloquear versiones recién publicadas de librerías con DLL.
 - El EDA consulta FRED para identificar los días de cotización (sin conexión usa una regla aproximada).
 - La causa del pico de 2026 (138,21 $, 07/04/2026) está sin documentar.
+- Equipo de trabajo: Samsung Galaxy Book6 (Intel Core Ultra 7 355, gráfica integrada, 16 GB), **sin GPU NVIDIA**. El problema es pequeño y en CPU se estima entre 30 s y 2 min por entrenamiento.
+- **Hay GPU disponible en la universidad** para los entrenamientos más pesados (ajuste de hiperparámetros, reentrenamiento anual). Implicaciones:
+  - el código debe funcionar igual en CPU y en GPU, eligiendo el dispositivo automáticamente;
+  - el repo debe poder clonarse y ejecutarse allí con `poetry install`;
+  - antes de elegir framework, hay que confirmar el sistema operativo de esa máquina (en Windows nativo solo PyTorch usa la GPU; en Linux valen PyTorch y TensorFlow).
 
 ---
 
@@ -105,8 +112,29 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 - Corregido en el EDA: «252 sesiones = un año natural» no es exacto (≈ 12,5 meses con el calendario del Brent).
 - Corregido en el EDA: los histogramas por horizonte recortaban los valores extremos con `clip`, lo que creaba picos falsos en los bordes. Ahora se filtran.
 
+**Elección de la partición train / validación / test**
+- El enunciado no fija fechas de corte, solo reglas: walk-forward, sin mezclar fechas, la misma partición para las tres redes y el escalador ajustado solo con train.
+- Principio acordado: la partición se elige **antes de entrenar** y con criterios fijados de antemano. No vale entrenar con varias y quedarse con la que dé mejores resultados, ni siquiera en validación: cada partición tiene un examen distinto y se acabaría eligiendo el más fácil.
+- Criterios: train con regímenes variados, validación con algún episodio de estrés, test reciente y representativo, y suficientes años independientes para evaluar el horizonte de 252 días.
+- Se compararon 6 candidatas (EDA §8.1):
+  - D (test 2024-hoy) y C (validación 2020-2022) se descartan porque dejan solo 2-3 años independientes.
+  - F (70/15/15) es casi igual que A, pero corta a mitad de año.
+  - B recorta más el train sin ganar nada frente a E.
+- Finalistas: **A** (2000-2018 · 2019-2022 · 2023-hoy) y **E** (2000-2017 · 2018-2021 · 2022-hoy). Empatan en casi todo; los separa la solidez del test a 252 días (4 años independientes en E frente a 3 en A) y que E incluye en el test las crisis de 2022 y 2026.
+- **Decisión: E** (D7). Como prueba de robustez, al final se repetirá la evaluación con A (D10, H5).
+- Detalle de E: el train tiene 4.261 días; la validación, 1.017 (volatilidad del 64 %); el test, 1.223 (971 orígenes a 252 días). En el test el precio sube solo el 32 % de las veces a 252 días, frente al 58 % del histórico: la tendencia del train no se mantiene.
+
+**Ideas apuntadas para más adelante**
+- Variante opcional: evaluar el test **reentrenando cada año** (entrenar hasta 2021 → predecir 2022, reentrenar hasta 2022 → predecir 2023…). Es más realista y conecta con el requisito de actualización dinámica de la app. Coste estimado: unos 15 entrenamientos más (15-20 min en CPU) si una sola red predice los tres horizontes.
+- Una red que prediga los tres horizontes a la vez divide por 3 el número de entrenamientos frente a una red por horizonte.
+
+**Deshecho o descartado (partición)**
+- ❌ Partición A como principal (era la propuesta inicial del EDA): se sustituye por E y queda como prueba de robustez.
+
 **Pendiente**
-- [ ] Revisar el EDA y validar las decisiones 🟡 (D3-D9).
+- [ ] Revisar el EDA y validar las decisiones 🟡 (D3-D6, D8, D9).
 - [ ] Decidir si `data/petroleo_dataset.csv` se versiona o se regenera con el script.
 - [x] Commit del EDA, el diario, el README y las dependencias nuevas.
+- [ ] Commit de la elección de partición (EDA §8 y diario).
 - [ ] Documentar la causa del pico de 2026.
+- [ ] Al final del proyecto: prueba de robustez con la partición A (D10).
