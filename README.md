@@ -8,7 +8,7 @@ Comparativa de tres redes neuronales recurrentes (RNN simple, LSTM y GRU) para p
 
 - [x] Entorno y descarga de datos
 - [x] Análisis exploratorio (EDA)
-- [ ] Preprocesamiento
+- [x] Preprocesamiento
 - [ ] Modelos (RNN, LSTM y GRU) y comparativa
 - [ ] Aplicación
 - [ ] Presentación (máximo 5 diapositivas)
@@ -18,31 +18,43 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 ## Estructura del repositorio
 
 ```
-├── data/                     Datos descargados (se generan con scripts/download_data.py)
+├── data/
+│   ├── petroleo_dataset.csv     Foto de los datos usada en el proyecto (solo lectura)
+│   └── dias_brent.csv           Días reales de cotización del Brent (desde FRED)
 ├── docs/
-│   ├── assignment/           Enunciado del caso
-│   └── diario_de_ruta.md     Registro de decisiones, problemas e hipótesis
+│   ├── assignment/              Enunciado del caso
+│   └── diario_de_ruta.md        Registro de decisiones, problemas e hipótesis
 ├── notebooks/
-│   └── 01_eda.ipynb          Análisis exploratorio
+│   ├── 01_eda.ipynb             Análisis exploratorio
+│   └── 02_preprocesamiento.ipynb  Del CSV a las fichas de entrenamiento
 ├── scripts/
-│   └── download_data.py      Descarga de datos (FRED + Yahoo Finance)
-├── pyproject.toml            Dependencias (Poetry)
-├── poetry.lock               Versiones exactas de las dependencias
-└── poetry.toml               Configuración local de Poetry (entorno en .venv)
+│   ├── download_data.py         Descarga de datos (FRED + Yahoo Finance), del curso
+│   └── generar_dias_brent.py    Genera data/dias_brent.csv
+├── src/oil_price/               Código reutilizable (notebooks y aplicación)
+│   ├── config.py                Parámetros: fechas, variables, horizontes, partición…
+│   ├── datos.py                 Carga y limpieza
+│   ├── preprocesado.py          Entradas, objetivos, recorte y escalado, fichas, particiones
+│   ├── validaciones.py          Comprobaciones automáticas (huecos, fugas de información)
+│   ├── evaluacion.py            Métricas y modelo ingenuo
+│   └── graficos.py              Estilo de los gráficos
+├── tests/                       Pruebas automáticas (pytest)
+├── pyproject.toml               Dependencias (Poetry)
+├── poetry.lock                  Versiones exactas de las dependencias
+└── poetry.toml                  Configuración local de Poetry (entorno en .venv)
 ```
 
 A medida que avance el proyecto se añadirán:
 
 | Carpeta | Contenido |
 |---|---|
-| `src/` | Código reutilizable (preparación de datos, modelos, evaluación), compartido por notebooks y aplicación |
 | `app/` | Aplicación de predicción |
 | `models/` | Modelos entrenados |
 | `reports/figures/` | Figuras para la presentación |
 
 **Convenciones**
 - Los notebooks se numeran por orden de ejecución (`01_`, `02_`…) y se guardan **ejecutados**, para que los resultados se lean directamente en GitHub.
-- El código que se use en más de un sitio se mueve a `src/` en lugar de copiarse entre notebooks.
+- El código que se usa en más de un sitio vive en `src/oil_price/`, no se copia entre notebooks.
+- Todos los parámetros están en `src/oil_price/config.py`.
 
 ## Puesta en marcha
 
@@ -51,9 +63,11 @@ A medida que avance el proyecto se añadirán:
 ```bash
 git clone https://github.com/PabloJimenezGirardeau/Caso-Oil-Price.git
 cd Caso-Oil-Price
-poetry install                                 # crea .venv e instala las dependencias
-poetry run python scripts/download_data.py     # descarga los datos en data/
+poetry install          # crea .venv, instala las dependencias y el paquete oil_price
+poetry run pytest       # comprueba que todo funciona
 ```
+
+Los datos con los que se obtuvieron los resultados ya están en `data/`, así que no hace falta descargarlos. Para descargar datos actualizados: `poetry run python scripts/download_data.py`. Esto cambia las cifras, porque el periodo llega hasta el día de la descarga.
 
 Para trabajar con los notebooks, selecciona el kernel del entorno `.venv` en VS Code o Jupyter.
 
@@ -67,6 +81,8 @@ Datos diarios desde el 1 de enero de 2000, descargados de fuentes gratuitas:
 |---|---|
 | FRED (EIA, BCE, Fed, Cboe) | Brent spot (**variable objetivo**), WTI spot, gas natural Henry Hub, tipo de depósito del BCE, USD/EUR, CNY/USD, VIX |
 | Yahoo Finance | Futuros del Brent y del WTI (OHLC y volumen), cobre, oro, índice del dólar |
+
+El proyecto usa la foto descargada el 05/11/2026 (último Brent real: 03/11/2026). El modelo trabaja con Brent, WTI, cobre, oro, índice del dólar y VIX desde el 30/08/2000; el porqué de cada elección está en el diario de ruta.
 
 ## Documentación
 
