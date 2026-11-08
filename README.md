@@ -9,7 +9,7 @@ Comparativa de tres redes neuronales recurrentes (RNN simple, LSTM y GRU) para p
 - [x] Entorno y descarga de datos
 - [x] Análisis exploratorio (EDA)
 - [x] Preprocesamiento
-- [ ] Modelos (RNN, LSTM y GRU) y comparativa
+- [ ] Modelos (RNN, LSTM y GRU) y comparativa: *en curso* (modelos y entrenamiento listos; pendientes la búsqueda de configuraciones y el examen final)
 - [ ] Aplicación
 - [ ] Presentación (máximo 5 diapositivas)
 
@@ -26,7 +26,8 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   └── diario_de_ruta.md        Registro de decisiones, problemas e hipótesis
 ├── notebooks/
 │   ├── 01_eda.ipynb             Análisis exploratorio
-│   └── 02_preprocesamiento.ipynb  Del CSV a las fichas de entrenamiento
+│   ├── 02_preprocesamiento.ipynb  Del CSV a las fichas de entrenamiento
+│   └── 03_modelado.ipynb        Entrenamiento y comparación de RNN, LSTM y GRU
 ├── scripts/
 │   ├── download_data.py         Descarga de datos (FRED + Yahoo Finance), del curso
 │   └── generar_dias_brent.py    Genera data/dias_brent.csv
@@ -35,7 +36,9 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   ├── datos.py                 Carga y limpieza
 │   ├── preprocesado.py          Entradas, objetivos, recorte y escalado, fichas, particiones
 │   ├── validaciones.py          Comprobaciones automáticas (huecos, fugas de información)
-│   ├── evaluacion.py            Métricas y modelo ingenuo
+│   ├── modelos.py               Las tres redes (misma estructura, cambia la celda) y modelo lineal
+│   ├── entrenamiento.py         Entrenamiento común: pérdida Huber, parada temprana, semillas
+│   ├── evaluacion.py            Métricas, modelo ingenuo y comparación con él
 │   └── graficos.py              Estilo de los gráficos
 ├── tests/                       Pruebas automáticas (pytest)
 ├── pyproject.toml               Dependencias (Poetry)
@@ -71,7 +74,9 @@ Los datos con los que se obtuvieron los resultados ya están en `data/`, así qu
 
 Para trabajar con los notebooks, selecciona el kernel del entorno `.venv` en VS Code o Jupyter.
 
-> **Windows:** si `poetry` no está en el PATH, se puede invocar con su ruta completa: `& "$env:APPDATA\Python\Scripts\poetry.exe" install`. Para activar el entorno en PowerShell: `.\.venv\Scripts\Activate.ps1`.
+> **Windows:** si `poetry` no está en el PATH, o si Smart App Control bloquea `poetry.exe` («Una directiva de Control de aplicaciones bloqueó este archivo»), se puede invocar a través de su Python interno: `& "$env:APPDATA\pypoetry\venv\Scripts\python.exe" -m poetry install`. Para activar el entorno en PowerShell: `.\.venv\Scripts\Activate.ps1`.
+>
+> **PyTorch:** se instala la versión para CPU. Para usar una GPU NVIDIA hay que reinstalar PyTorch con soporte CUDA (ver https://pytorch.org/get-started/locally/).
 
 ## Datos
 

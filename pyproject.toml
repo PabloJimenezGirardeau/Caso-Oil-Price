@@ -13,7 +13,8 @@ dependencies = [
     "ipykernel (>=7.4.0,<8.0.0)",
     "nbconvert (>=7.17.2,<8.0.0)",
     "matplotlib (>=3.11.2,<4.0.0)",
-    "statsmodels (>=0.15.0,<0.16.0)"
+    "statsmodels (>=0.15.0,<0.16.0)",
+    "torch (>=2.15.0,<3.0.0)"
 ]
 
 

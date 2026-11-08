@@ -1,0 +1,156 @@
+"""Entrenamiento de las redes, igual para las tres (D9, D16).
+
+- Pérdida Huber sobre objetivos escalados por horizonte (para que el largo plazo, con
+  variaciones mucho mayores, no acapare el aprendizaje). Las respuestas purgadas (NaN) se
+  ignoran.
+- Adam, recorte de gradientes y reducción automática de la velocidad de aprendizaje.
+- Parada temprana con el último trozo del train (con purga), nunca con el periodo que se
+  evalúa. Se guarda la mejor versión de la red, no la última.
+"""
+import copy
+import dataclasses
+import time
+from dataclasses import dataclass
+
+import numpy as np
+import pandas as pd
+import torch
+from torch import nn
+
+from . import config
+from .modelos import RedRecurrente, contar_parametros
+
+
+def fijar_semilla(semilla):
+    np.random.seed(semilla)
+    torch.manual_seed(semilla)
+
+
+def dispositivo_disponible():
+    """GPU si la hay (por ejemplo, en la universidad); si no, CPU."""
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+# --- División para la parada temprana ----------------------------------------------------
+
+def subconjunto(conjunto, mascara, limite_objetivo=None):
+    """Fichas seleccionadas por `mascara`. Con `limite_objetivo`, se purgan las respuestas posteriores."""
+    Y = conjunto.Y[mascara].copy()
+    fechas_obj = conjunto.fechas_objetivo[mascara].copy()
+    limite = conjunto.limite_objetivo
+    if limite_objetivo is not None:
+        limite = pd.Timestamp(limite_objetivo)
+        fuera = ~(fechas_obj <= np.datetime64(limite))   # NaT también cuenta como fuera
+        Y[fuera] = np.nan
+        fechas_obj[fuera] = np.array("NaT", dtype=fechas_obj.dtype)
+    return dataclasses.replace(
+        conjunto, X=conjunto.X[mascara], Y=Y, fechas=conjunto.fechas[mascara],
+        fechas_inicio_ventana=conjunto.fechas_inicio_ventana[mascara], fechas_objetivo=fechas_obj,
+        precio_origen=conjunto.precio_origen[mascara], limite_objetivo=limite)
+
+
+def dividir_parada_temprana(train, fraccion=config.ENTRENAMIENTO["fraccion_parada"]):
+    """Separa el último `fraccion` del train (por fechas) para decidir cuándo parar.
+
+    Las fichas de ajuste cuyas respuestas caerían en el trozo de parada se purgan.
+    """
+    corte = train.fechas[int(len(train) * (1 - fraccion))]
+    ajuste = subconjunto(train, train.fechas < corte, limite_objetivo=corte - pd.Timedelta(days=1))
+    parada = subconjunto(train, train.fechas >= corte)
+    return ajuste, parada
+
+
+# --- Pérdida y entrenamiento --------------------------------------------------------------
+
+def perdida_huber(prediccion, objetivo, delta):
+    """Huber solo sobre las respuestas válidas (las purgadas son NaN)."""
+    validas = ~torch.isnan(objetivo)
+    return nn.functional.huber_loss(prediccion[validas], objetivo[validas], delta=delta)
+
+
+@torch.no_grad()
+def _perdida_media(modelo, X, Y, delta, lote=2048):
+    modelo.eval()
+    total, n = 0.0, 0
+    for i in range(0, len(X), lote):
+        validas = int((~torch.isnan(Y[i:i + lote])).sum())
+        if validas:
+            total += perdida_huber(modelo(X[i:i + lote]), Y[i:i + lote], delta).item() * validas
+            n += validas
+    return total / max(n, 1)
+
+
+@dataclass
+class Resultado:
+    modelo: RedRecurrente
+    escala_objetivo: np.ndarray   # desviación típica de cada horizonte en el train de ajuste
+    historial: pd.DataFrame       # pérdidas por época (curvas de aprendizaje)
+    mejor_epoca: int
+    segundos: float
+    parametros: int
+    hiperparametros: dict
+
+
+def entrenar_red(celda, train, hiperparametros=None, semilla=config.SEMILLA, dispositivo=None,
+                 ajustes=None):
+    """Entrena una red con las fichas de `train` y devuelve su mejor versión."""
+    hp = {**config.HIPERPARAMETROS_BASE, **(hiperparametros or {})}
+    ent = {**config.ENTRENAMIENTO, **(ajustes or {})}
+    dispositivo = dispositivo or dispositivo_disponible()
+    fijar_semilla(semilla)
+
+    ajuste, parada = dividir_parada_temprana(train, ent["fraccion_parada"])
+    escala = np.nanstd(ajuste.Y, axis=0).astype(np.float32)
+    tensor = lambda a: torch.tensor(a, dtype=torch.float32, device=dispositivo)
+    Xa, Ya = tensor(ajuste.X), tensor(ajuste.Y / escala)
+    Xp, Yp = tensor(parada.X), tensor(parada.Y / escala)
+
+    modelo = RedRecurrente(celda, Xa.shape[2], hp["unidades"], hp["capas"], hp["dropout"],
+                           Ya.shape[1]).to(dispositivo)
+    optimizador = torch.optim.Adam(modelo.parameters(), lr=hp["lr"], weight_decay=hp["l2"])
+    planificador = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizador, factor=ent["factor_lr"], patience=ent["paciencia_lr"])
+    generador = torch.Generator().manual_seed(semilla)
+
+    mejor, mejor_estado, mejor_epoca, sin_mejora, historial = np.inf, None, 0, 0, []
+    inicio = time.perf_counter()
+    for epoca in range(1, ent["max_epocas"] + 1):
+        modelo.train()
+        for idx in torch.randperm(len(Xa), generator=generador).split(hp["lote"]):
+            idx = idx.to(dispositivo)
+            optimizador.zero_grad()
+            perdida = perdida_huber(modelo(Xa[idx]), Ya[idx], ent["delta_huber"])
+            perdida.backward()
+            nn.utils.clip_grad_norm_(modelo.parameters(), ent["recorte_gradiente"])
+            optimizador.step()
+
+        # Ambas pérdidas en modo evaluación (sin dropout), para que las curvas sean comparables
+        perdida_ajuste = _perdida_media(modelo, Xa, Ya, ent["delta_huber"])
+        perdida_parada = _perdida_media(modelo, Xp, Yp, ent["delta_huber"])
+        planificador.step(perdida_parada)
+        historial.append({"época": epoca, "pérdida train": perdida_ajuste,
+                          "pérdida parada": perdida_parada, "lr": optimizador.param_groups[0]["lr"]})
+
+        if perdida_parada < mejor - 1e-6:
+            mejor, mejor_epoca, sin_mejora = perdida_parada, epoca, 0
+            mejor_estado = copy.deepcopy(modelo.state_dict())
+        else:
+            sin_mejora += 1
+            if sin_mejora >= ent["paciencia"]:
+                break
+
+    modelo.load_state_dict(mejor_estado)
+    return Resultado(modelo=modelo, escala_objetivo=escala, historial=pd.DataFrame(historial),
+                     mejor_epoca=mejor_epoca, segundos=time.perf_counter() - inicio,
+                     parametros=contar_parametros(modelo), hiperparametros=hp)
+
+
+@torch.no_grad()
+def predecir(resultado, X, lote=2048):
+    """Variaciones logarítmicas previstas, en su escala original (muestras, horizontes)."""
+    modelo = resultado.modelo
+    modelo.eval()
+    dispositivo = next(modelo.parameters()).device
+    salidas = [modelo(torch.tensor(X[i:i + lote], dtype=torch.float32, device=dispositivo)).cpu().numpy()
+               for i in range(0, len(X), lote)]
+    return np.concatenate(salidas) * resultado.escala_objetivo

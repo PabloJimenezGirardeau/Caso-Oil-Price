@@ -41,3 +41,23 @@ PARTICION_ROBUSTEZ = {
 }
 
 SEMILLA = 42
+
+# --- Modelado (D11, D16, D17) ------------------------------------------------------------
+CELDAS = ["RNN", "LSTM", "GRU"]
+
+# Estructura base para la fase A (estudio de los datos); en la fase B cada red busca la suya
+HIPERPARAMETROS_BASE = {"unidades": 64, "capas": 1, "dropout": 0.2, "lr": 1e-3, "l2": 0.0, "lote": 64}
+
+# Igual para las tres redes
+ENTRENAMIENTO = {
+    "max_epocas": 100,
+    "paciencia": 10,            # épocas sin mejorar antes de parar
+    "paciencia_lr": 4,          # épocas sin mejorar antes de reducir la velocidad de aprendizaje
+    "factor_lr": 0.5,           # la velocidad se multiplica por este factor al reducirse
+    "recorte_gradiente": 1.0,   # norma máxima del gradiente
+    "fraccion_parada": 0.15,    # último trozo del train usado para la parada temprana
+    "delta_huber": 1.0,         # en desviaciones típicas del objetivo
+}
+
+# Modelo lineal de referencia (Ridge): fuerza de la regularización a probar en validación
+ALFAS_LINEAL = [1.0, 10.0, 100.0, 1e3, 1e4, 1e5]
