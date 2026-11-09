@@ -89,6 +89,16 @@ def test_ventana_contiene_los_dias_correctos(base):
     np.testing.assert_allclose(c.X[i], escaladas.iloc[pos - ventana + 1: pos + 1].to_numpy(), rtol=1e-6)
 
 
+def test_fichas_por_horizonte(base):
+    train, _, _ = pp.construir_particion(base, 60, (1, 99), **pp.evaluacion_final())
+    for j, horizonte in enumerate(train.horizontes):
+        solo = pp.por_horizonte(train, horizonte)
+        assert solo.Y.shape == (len(solo), 1) and solo.horizontes == [horizonte]
+        assert not np.isnan(solo.Y).any()                       # solo fichas con respuesta
+        assert len(solo) == int((~np.isnan(train.Y[:, j])).sum())
+        v.comprobar_conjunto(solo)
+
+
 def test_purga_quita_objetivos_que_cruzan_el_limite(base):
     preparador = pp.Preparador(None).ajustar(base.entradas)
     escaladas = preparador.transformar(base.entradas)

@@ -12,6 +12,7 @@ RAIZ = Path(__file__).resolve().parents[2]
 DIR_DATOS = RAIZ / "data"
 RUTA_DATASET = DIR_DATOS / "petroleo_dataset.csv"  # foto oficial de los datos (D12), solo lectura
 RUTA_DIAS_BRENT = DIR_DATOS / "dias_brent.csv"     # días reales de cotización del Brent (D13)
+DIR_RESULTADOS = RAIZ / "resultados"               # resultados de los experimentos (fases A y B)
 
 # --- Periodo de estudio --------------------------------------------------------
 FECHA_INICIO = pd.Timestamp("2000-08-30")  # primer día con oro y cobre (D5)
@@ -27,7 +28,7 @@ DIAS_MEDIA = 252        # precio frente a su media del último año (D5)
 HORIZONTES = {"corto": 5, "medio": 63, "largo": 252}
 
 # --- Estudios de sensibilidad (se eligen en validación) ----------------------------------
-VENTANAS = [20, 60, 120]                     # longitud de la ventana de entrada (D6)
+VENTANAS = [10, 20, 40, 60, 120, 252]        # longitud de la ventana de entrada, en días (D6)
 RECORTES = [None, (0.5, 99.5), (1.0, 99.0)]  # percentiles de recorte de las entradas (D9)
 
 # --- Partición E (D7) y prueba de robustez con la A (D10) --------------------------------
@@ -61,3 +62,9 @@ ENTRENAMIENTO = {
 
 # Modelo lineal de referencia (Ridge): fuerza de la regularización a probar en validación
 ALFAS_LINEAL = [1.0, 10.0, 100.0, 1e3, 1e4, 1e5]
+
+# Un pliegue solo se evalúa si tiene al menos estas respuestas (a 252 sesiones, el de 2021 tiene 1)
+MIN_FICHAS_EVALUACION = 20
+
+# Núcleos de CPU para entrenar (de 8): deja margen para que el portátil vaya más fresco
+HILOS_CPU = 6

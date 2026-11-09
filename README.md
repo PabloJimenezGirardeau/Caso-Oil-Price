@@ -28,9 +28,11 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   ├── 01_eda.ipynb             Análisis exploratorio
 │   ├── 02_preprocesamiento.ipynb  Del CSV a las fichas de entrenamiento
 │   └── 03_modelado.ipynb        Entrenamiento y comparación de RNN, LSTM y GRU
+├── resultados/                  Resultados de los experimentos (CSV versionados; los lee el notebook 03)
 ├── scripts/
 │   ├── download_data.py         Descarga de datos (FRED + Yahoo Finance), del curso
-│   └── generar_dias_brent.py    Genera data/dias_brent.csv
+│   ├── generar_dias_brent.py    Genera data/dias_brent.csv
+│   └── fase_a.py                Lanza la fase A del estudio (ventana × recorte × nivel)
 ├── src/oil_price/               Código reutilizable (notebooks y aplicación)
 │   ├── config.py                Parámetros: fechas, variables, horizontes, partición…
 │   ├── datos.py                 Carga y limpieza
@@ -38,6 +40,7 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   ├── validaciones.py          Comprobaciones automáticas (huecos, fugas de información)
 │   ├── modelos.py               Las tres redes (misma estructura, cambia la celda) y modelo lineal
 │   ├── entrenamiento.py         Entrenamiento común: pérdida Huber, parada temprana, semillas
+│   ├── experimentos.py          Búsquedas (fase A): ejecución reanudable y resumen de resultados
 │   ├── evaluacion.py            Métricas, modelo ingenuo y comparación con él
 │   └── graficos.py              Estilo de los gráficos
 ├── tests/                       Pruebas automáticas (pytest)
@@ -77,6 +80,18 @@ Para trabajar con los notebooks, selecciona el kernel del entorno `.venv` en VS 
 > **Windows:** si `poetry` no está en el PATH, o si Smart App Control bloquea `poetry.exe` («Una directiva de Control de aplicaciones bloqueó este archivo»), se puede invocar a través de su Python interno: `& "$env:APPDATA\pypoetry\venv\Scripts\python.exe" -m poetry install`. Para activar el entorno en PowerShell: `.\.venv\Scripts\Activate.ps1`.
 >
 > **PyTorch:** se instala la versión para CPU. Para usar una GPU NVIDIA hay que reinstalar PyTorch con soporte CUDA (ver https://pytorch.org/get-started/locally/).
+
+## Experimentos
+
+Los entrenamientos largos se lanzan con scripts, no desde los notebooks. Cada resultado se guarda en `resultados/` en cuanto termina; si el proceso se interrumpe, al volver a lanzarlo continúa donde se quedó.
+
+```bash
+python scripts/fase_a.py                        # fase A completa (6 núcleos de CPU)
+python scripts/fase_a.py --ventanas 10 20 40 60 # solo algunas ventanas
+python scripts/fase_a.py --help                 # todas las opciones
+```
+
+Los notebooks leen esos resultados y los analizan (`notebooks/03_modelado.ipynb`).
 
 ## Datos
 

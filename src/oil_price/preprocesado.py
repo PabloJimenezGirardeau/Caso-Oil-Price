@@ -165,6 +165,22 @@ def crear_conjunto(nombre, base, escaladas, ventana, desde, hasta, limite_objeti
                     limite_objetivo=pd.Timestamp(limite_objetivo))
 
 
+def por_horizonte(conjunto, horizonte):
+    """Fichas de un solo horizonte, para una red por horizonte (D18).
+
+    Se quedan solo las fichas con respuesta válida para ese horizonte: por ejemplo, a 252
+    sesiones se descartan las del último año de cada bloque, que no tienen respuesta.
+    """
+    j = conjunto.horizontes.index(horizonte)
+    validas = ~np.isnan(conjunto.Y[:, j])
+    return Conjunto(nombre=f"{conjunto.nombre} · {horizonte}", X=conjunto.X[validas],
+                    Y=conjunto.Y[validas, j:j + 1], fechas=conjunto.fechas[validas],
+                    fechas_inicio_ventana=conjunto.fechas_inicio_ventana[validas],
+                    fechas_objetivo=conjunto.fechas_objetivo[validas, j:j + 1],
+                    precio_origen=conjunto.precio_origen[validas], horizontes=[horizonte],
+                    variables=conjunto.variables, limite_objetivo=conjunto.limite_objetivo)
+
+
 # --- Particiones -------------------------------------------------------------------------
 
 def pliegues_walk_forward(particion=config.PARTICION):
