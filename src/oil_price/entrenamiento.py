@@ -6,6 +6,9 @@
 - Adam, recorte de gradientes y reducción automática de la velocidad de aprendizaje.
 - Parada temprana con el último trozo del train (con purga), nunca con el periodo que se
   evalúa. Se guarda la mejor versión de la red, no la última.
+- Tendencia (D20): por defecto, la red aprende también la subida media del periodo de
+  entrenamiento y la proyecta al futuro. Con `sin_tendencia`, aprende solo la variación
+  respecto a esa media y, para el futuro, supone tendencia cero, como el ingenuo.
 """
 import copy
 import dataclasses
@@ -84,6 +87,7 @@ def _perdida_media(modelo, X, Y, delta, lote=2048):
 class Resultado:
     modelo: RedRecurrente
     escala_objetivo: np.ndarray   # desviación típica de cada horizonte en el train de ajuste
+    tendencia: np.ndarray         # subida media del train de ajuste que se ha quitado (0 si se conserva)
     historial: pd.DataFrame       # pérdidas por época (curvas de aprendizaje)
     mejor_epoca: int
     segundos: float
@@ -101,9 +105,11 @@ def entrenar_red(celda, train, hiperparametros=None, semilla=config.SEMILLA, dis
 
     ajuste, parada = dividir_parada_temprana(train, ent["fraccion_parada"])
     escala = np.nanstd(ajuste.Y, axis=0).astype(np.float32)
+    n_horizontes = ajuste.Y.shape[1]
+    tendencia = (np.nanmean(ajuste.Y, axis=0) if ent["sin_tendencia"] else np.zeros(n_horizontes)).astype(np.float32)
     tensor = lambda a: torch.tensor(a, dtype=torch.float32, device=dispositivo)
-    Xa, Ya = tensor(ajuste.X), tensor(ajuste.Y / escala)
-    Xp, Yp = tensor(parada.X), tensor(parada.Y / escala)
+    Xa, Ya = tensor(ajuste.X), tensor((ajuste.Y - tendencia) / escala)
+    Xp, Yp = tensor(parada.X), tensor((parada.Y - tendencia) / escala)
 
     modelo = RedRecurrente(celda, Xa.shape[2], hp["unidades"], hp["capas"], hp["dropout"],
                            Ya.shape[1]).to(dispositivo)
@@ -140,14 +146,19 @@ def entrenar_red(celda, train, hiperparametros=None, semilla=config.SEMILLA, dis
                 break
 
     modelo.load_state_dict(mejor_estado)
-    return Resultado(modelo=modelo, escala_objetivo=escala, historial=pd.DataFrame(historial),
+    return Resultado(modelo=modelo, escala_objetivo=escala, tendencia=tendencia,
+                     historial=pd.DataFrame(historial),
                      mejor_epoca=mejor_epoca, segundos=time.perf_counter() - inicio,
                      parametros=contar_parametros(modelo), hiperparametros=hp)
 
 
 @torch.no_grad()
 def predecir(resultado, X, lote=2048):
-    """Variaciones logarítmicas previstas, en su escala original (muestras, horizontes)."""
+    """Variaciones logarítmicas previstas, en su escala original (muestras, horizontes).
+
+    Si la red se entrenó sin tendencia, la subida media del train no se vuelve a sumar: se
+    supone tendencia cero para el futuro.
+    """
     modelo = resultado.modelo
     modelo.eval()
     dispositivo = next(modelo.parameters()).device

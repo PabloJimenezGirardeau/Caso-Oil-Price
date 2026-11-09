@@ -66,3 +66,28 @@ def test_modelo_lineal_recupera_relacion_conocida():
     c = conjunto_sintetico(n=600)
     lineal = ModeloLineal(alfa=1e-3).ajustar(c)
     np.testing.assert_allclose(lineal.predecir(c.X), c.Y, atol=1e-3)
+
+
+def test_lineal_sin_tendencia_no_proyecta_la_media():
+    """Sin tendencia, los pesos son los mismos y solo desaparece la subida media del train."""
+    c = conjunto_sintetico(n=600)
+    c.Y = c.Y + np.float32(0.5)   # el train «sube» de media
+    con = ModeloLineal(alfa=1e-3).ajustar(c)
+    sin = ModeloLineal(alfa=1e-3, sin_tendencia=True).ajustar(c)
+    np.testing.assert_allclose(con.predecir(c.X) - sin.predecir(c.X), np.tile(c.Y.mean(axis=0), (len(c), 1)),
+                               atol=1e-4)
+    ficha_media = c.X.reshape(len(c), -1).mean(axis=0).reshape(1, *c.X.shape[1:])
+    np.testing.assert_allclose(sin.predecir(ficha_media), 0.0, atol=1e-5)   # ficha «media» → sin cambio
+
+
+def test_red_sin_tendencia_no_proyecta_la_media():
+    c = conjunto_sintetico()
+    c.Y = c.Y + np.float32(3.0)   # subida media muy grande frente a la señal
+    hp = {"unidades": 16, "lote": 32, "lr": 3e-3, "dropout": 0.0}
+    sin = ent.entrenar_red("GRU", c, hp, semilla=1, dispositivo=torch.device("cpu"),
+                           ajustes={"max_epocas": 15, "sin_tendencia": True})
+    ajuste, _ = ent.dividir_parada_temprana(c)
+    np.testing.assert_allclose(sin.tendencia, np.nanmean(ajuste.Y, axis=0), rtol=1e-5)
+    assert np.abs(ent.predecir(sin, c.X).mean(axis=0)).max() < 0.5   # prevé alrededor de 0, no de 3
+    con = ent.entrenar_red("GRU", c, hp, semilla=1, dispositivo=torch.device("cpu"), ajustes={"max_epocas": 1})
+    assert np.all(con.tendencia == 0)   # por defecto se conserva la tendencia (como en la fase A)

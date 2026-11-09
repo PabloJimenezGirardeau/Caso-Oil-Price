@@ -58,6 +58,7 @@ ENTRENAMIENTO = {
     "recorte_gradiente": 1.0,   # norma máxima del gradiente
     "fraccion_parada": 0.15,    # último trozo del train usado para la parada temprana
     "delta_huber": 1.0,         # en desviaciones típicas del objetivo
+    "sin_tendencia": False,     # D20: True quita la subida media del train y supone tendencia cero
 }
 
 # Modelo lineal de referencia (Ridge): fuerza de la regularización a probar en validación
@@ -65,6 +66,11 @@ ALFAS_LINEAL = [1.0, 10.0, 100.0, 1e3, 1e4, 1e5]
 
 # Un pliegue solo se evalúa si tiene al menos estas respuestas (a 252 sesiones, el de 2021 tiene 1)
 MIN_FICHAS_EVALUACION = 20
+
+# Confirmación de la fase A (D16, D19): las mejores combinaciones de cada horizonte se repiten
+# con más semillas para medir el ruido del entrenamiento (la semilla 42 ya está en la fase A)
+N_FINALISTAS = 3
+SEMILLAS_EXTRA = [43, 44]
 
 # Núcleos de CPU para entrenar (de 8): deja margen para que el portátil vaya más fresco
 HILOS_CPU = 6

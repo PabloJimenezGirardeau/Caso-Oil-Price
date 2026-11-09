@@ -33,17 +33,20 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 | D16 | 08/11/2026 | **Búsqueda de la mejor configuración de cada red en dos fases.** Fase A (común): las 18 combinaciones de ventana × recorte × nivel con una estructura base, en las 3 redes y los 4 pliegues; se elige la mejor de media. Fase B (por red): **Optuna** con el mismo espacio y **40 intentos por red** (neuronas, capas, dropout, velocidad de aprendizaje en rango continuo 0,0001-0,003, regularización L2, tamaño de lote). Fijo para las tres: Adam, Huber, parada temprana con un trozo final del train (guarda la mejor versión), reducción automática de la velocidad, recorte de gradientes. Criterio fijado de antemano: error / error del ingenuo, promediado en horizontes y pliegues; las 3 mejores configuraciones se confirman con 3 semillas; empate → la de menos parámetros. Curvas de aprendizaje de las ganadoras | El enunciado pide un presupuesto de ajuste similar, no la misma configuración: cada red compite con su mejor versión. Optuna explora mejor que una rejilla con el mismo número de intentos y dice qué parámetros importan | ✅ | Diario 08/11 |
 | D17 | 08/11/2026 | **Modelo lineal (Ridge) como referencia extra** en la comparativa, con las mismas fichas y el mismo criterio; su regularización se elige en los mismos pliegues de validación. Se prescinde de él si resultara costoso | Peldaño intermedio entre el ingenuo y las redes: responde a «¿hacía falta una red neuronal?». No lo pide el enunciado; suma credibilidad | ✅ | Diario 08/11 |
 | D18 | 08/11/2026 | **Una red por horizonte**: cada tipo de red (RNN, LSTM, GRU) se entrena y se ajusta por separado para 5, 63 y 252 sesiones, es decir, 9 modelos. El presupuesto de ajuste de D16 (fase B) se aplica a cada par red-horizonte | El enunciado no lo impide. La prueba inicial mostró que el largo plazo se comporta muy distinto (memoriza y proyecta tendencias): separado, no contamina al corto y medio plazo, y cada horizonte puede tener su propia configuración | ✅ | Diario 08/11 |
+| D19 | 09/11/2026 | **Elección de los datos de cada horizonte (cierre de la fase A).** Las 3 mejores combinaciones de cada horizonte (media de las 3 redes) se repiten con 2 semillas más (43 y 44; la 42 ya está en la fase A) y se toma la media de las 3 semillas. **Ruido:** desviación típica entre semillas (media de las finalistas del horizonte). Empatan con la mejor las finalistas a menos de un ruido de ella. Entre las empatadas gana la ventana más corta (D6) y, con la misma ventana, la más sencilla (menos recorte, sin nivel). El lineal no se repite porque no tiene azar | Con una sola semilla, muchas diferencias de la fase A son menores que el azar del propio entrenamiento. La regla se fija antes de ver los resultados para no elegir a conveniencia | ✅ | `experimentos.decidir`, Diario 09/11 |
+| D20 | 09/11/2026 | **Experimento sin tendencia, antes de la fase B.** La combinación elegida de cada horizonte (D19) se repite con las 3 semillas **sin la subida media del train**: la red aprende la variación respecto a esa media y, para el futuro, supone tendencia cero, como el ingenuo. El lineal se repite igual (sin término fijo), con todas las combinaciones y fuerzas de regularización. **Regla, fijada antes de ver los resultados:** en cada horizonte se adopta «sin tendencia» si no empeora más de un ruido (el de D19: 0,002 / 0,011 / 0,033) frente a «con tendencia», comparando la media de las 3 redes y las 3 semillas; si empeora más, se mantiene la tendencia. El lineal sigue la misma regla con su mejor versión de cada variante. Si se adopta a 3 meses o a 1 año, se propone repetir la fase A de ese horizonte sin tendencia antes de la fase B | Un modelo que no aprende nada útil proyecta la subida media del train, y a 1 año eso solo ya cuesta 1,16 veces el error del ingenuo (las redes elegidas, 1,11). Con unos 14 años de datos esa media no es fiable (margen de unos ±9 puntos), y la fase B, al regular más las redes, las acercaría a ella. Tendencia cero es lo que supone el ingenuo y lo habitual con precios de mercado; en caso de empate se prefiere por prudente. **Resultado: se adopta sin tendencia en los tres horizontes** (a 1 año, de 1,114 a 1,044; empate a 1 semana y a 3 meses) | ✅ | Diario 09/11, `scripts/tendencia.py`, notebook 03 §4 |
 
 ### Hipótesis abiertas
 
 | ID | Hipótesis | Cómo se comprobará | Estado |
 |---|---|---|---|
-| H1 | Las redes mejorarán algo al ingenuo a 5 días, pero no a 63 ni a 252 | Tabla comparativa en test | abierta · en validación (fase A) **no se cumple**: se mejora a 63 días y no a 5 |
+| H1 | Las redes mejorarán algo al ingenuo a 5 días, pero no a 63 ni a 252 | Tabla comparativa en test | abierta · en validación (fase A, confirmada con semillas) **no se cumple**: se mejora a 63 días (≈ 6 %) y apenas a 5 (≈ 1 %) |
 | H2 | La variación de ayer del WTI anticipa el Brent de hoy (correlación ≈ 0,17), probablemente porque EE. UU. cierra después que Londres | Comparar el modelo con y sin WTI a 5 días | abierta |
 | H3 | El modelo aportará más en la anchura del intervalo (riesgo) que en la dirección del precio | Cobertura y anchura de los intervalos frente a los empíricos | abierta |
 | H4 | Predecir variaciones funciona mejor que predecir niveles; una red entrenada con precios tiende a copiar el precio de ayer | Experimento de control al final (D15) | abierta |
 | H5 | Las conclusiones (red ganadora y horizontes en los que aporta) no dependen de la partición elegida | Prueba de robustez con la partición A (D10) | abierta |
 | H6 | El indicador de nivel (precio frente a su media anual) mejora sobre todo a 63 y 252 días, porque los precios muy altos o muy bajos tienden a corregir | Estudio con y sin el indicador, en validación | **no se cumple en las redes** (el indicador las empeora). La corrección sí existe a 252 días, pero el lineal la aprovecha sobre todo con la ventana de 252 días (Diario 09/11) |
+| H7 | Parte del mal resultado a 1 año se debe a la subida media del train, que redes y lineal proyectan al futuro (+3 % a +12 % al año según el pliegue). Sin ella, las redes mejoran a 1 año; a 3 meses y a 1 semana apenas cambia | Experimento sin tendencia (D20) | **se cumple**: a 1 año las redes pasan de 1,114 a 1,044; a 3 meses y a 1 semana, empate (Diario 09/11) |
 
 ### Limitaciones y problemas conocidos
 
@@ -354,6 +357,127 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 - A 1 año, el reto es que las redes dejen de empeorar al ingenuo. Las redes pequeñas y muy reguladas del espacio de búsqueda son la ocasión de corregirlo, y el lineal marca el listón.
 - A 3 meses hay margen real; a 1 semana es difícil esperar mejoras.
 
+**Preparación de la confirmación con semillas (D19)**
+- Commit `2d1bccc` con la fase A completa, la sección 2 del notebook 03 y el diario, subido a GitHub.
+- `experimentos.py`:
+  - `finalistas()`: las 3 mejores combinaciones de cada horizonte;
+  - `ejecutar_confirmacion()`: las repite con otras semillas; es reanudable y prevé el tiempo a partir de lo que tardó cada entrenamiento en la fase A;
+  - `decidir()`: la regla D19, escrita y probada **antes** de ver los resultados.
+- `scripts/fase_a_semillas.py`, con la opción `--solo-mostrar` para ver las finalistas y el tiempo previsto sin entrenar.
+- El paso «entrenar una red y medirla» pasa a una función común para la fase A y la confirmación. Comprobado: la fase A reorganizada da exactamente los mismos números.
+- **La semilla 42 es reproducible:** repetida con el nuevo lanzador, da los mismos errores y las mismas épocas que en la fase A, así que no hace falta volver a entrenarla.
+- Claves de reanudación más robustas: un número entero guardado como decimal (43.0) se reconoce igual.
+- 41 pruebas automáticas, todas correctas (5 nuevas).
+- **Finalistas:** 198 entrenamientos, ≈ 1 h en el portátil.
+
+  | Horizonte | Finalistas (ventana · recorte · nivel → fase A) |
+  |---|---|
+  | 1 semana | 252 · ninguno · sin → 0,990 · 60 · 0,5-99,5 · sin → 0,992 · 120 · 1-99 · sin → 0,993 |
+  | 3 meses | 60 · ninguno · sin → 0,926 · 20 · 1-99 · sin → 0,933 · 20 · ninguno · sin → 0,934 |
+  | 1 año | 120 · 0,5-99,5 · con → 1,124 · 40 · ninguno · sin → 1,132 · 60 · ninguno · sin → 1,137 |
+
+- **Qué esperamos ver** (apuntado antes de lanzar):
+  - el ruido entre semillas será pequeño en la media de las tres redes a 1 semana y a 3 meses (≈ 1 %), mayor en cada red por separado y mucho mayor a 1 año;
+  - las finalistas empeorarán algo con las semillas nuevas: parte de su ventaja en la fase A era suerte (al elegir la mejor de 36, se elige también la más afortunada);
+  - a 1 semana, las tres empatarán;
+  - a 3 meses, se verá si la ventaja de los 60 días es real o si empata con los 20 días (en ese caso ganan los 20 días);
+  - a 1 año, ninguna semilla bajará de 1: el fallo de las redes es sistemático, no mala suerte.
+- Lo que las semillas **no** resuelven: los años de validación son siempre los mismos. Elegir entre muchas opciones con los mismos años deja algo de optimismo, y para eso está el test, que se usa una sola vez.
+
+- Regla D19 aprobada por Pablo. **Confirmación lanzada a las 13:21** en el portátil (`python scripts/fase_a_semillas.py`, 6 núcleos).
+- Notebook 03: nueva sección 3 preparada (puntos por semilla con la zona de empate, regla aplicada, estabilidad de cada red y elección final), probada con los resultados parciales. La tabla de contenidos pasa a 5 secciones (3: cierre de la fase A; 4: fase B; 5: test).
+
+**Resultados de la confirmación con semillas (D19)**
+- Terminada en 1,04 h (13:21-14:23): 198 entrenamientos nuevos, sin duplicados ni vacíos; con la semilla 42 de la fase A, 297 en total. La GRU con 252 días tardó 124 s por entrenamiento, más que en la fase A (78 s, de noche).
+- **Datos elegidos para cada horizonte** (MAE / ingenuo, media de las 3 redes y las 3 semillas):
+
+  | Horizonte | Elegida | MAE / ingenuo | Ruido | Cómo se decide |
+  |---|---|---|---|---|
+  | 1 semana | 252 días, sin recorte, sin nivel | 0,992 | 0,002 | Gana con las 3 semillas; las otras quedan fuera del empate por 0,2-0,4 % |
+  | 3 meses | 20 días, sin recorte, sin nivel | 0,936 | 0,011 | Las 3 finalistas empatan; gana la ventana más corta y más sencilla, que además tiene la mejor media |
+  | 1 año | 120 días, recorte 0,5-99,5, con nivel | 1,114 | 0,033 | Gana con claridad (las otras dos, 1,18) |
+
+- **Lo esperado frente a lo obtenido:**
+  - ✓ El azar crece con el horizonte. Al cambiar la semilla, la media de las 3 redes varía un 0,2 % del error del ingenuo a 1 semana (menos de lo previsto), un 1,1 % a 3 meses y un 3,3 % a 1 año; cada red por separado, más (0,4-0,5 %, 1,2-2,4 % y 4,5-5,9 %).
+  - ✓ 8 de las 9 finalistas empeoran con las semillas nuevas: parte de su ventaja en la fase A era suerte. El caso más claro, la LSTM con 60 días a 3 meses: 0,902 en la fase A; 0,983 y 0,969 con las semillas nuevas.
+  - ✓ A 3 meses, la ventaja de los 60 días era suerte (de 0,926 a 0,95 con las semillas nuevas): empatan y ganan los 20 días.
+  - ✓ A 1 año, nada baja de 1 (la mejor red con la mejor semilla, 1,07): el fallo es sistemático.
+  - ✗ A 1 semana no hay empate: gana la de 252 días con las 3 semillas, aunque por un margen sin importancia práctica.
+- **Año a año, las elegidas** (media de las 3 redes):
+  - 1 semana: 0,986-0,997 todos los años; mejora al ingenuo apenas un 1 %.
+  - 3 meses: mejora al ingenuo los 4 años (0,98 en 2018, 0,97 en 2019, 0,93 en 2020 y 0,82 en 2021). La RNN es la más regular (0,92-0,96); la GRU empeora algo en 2018 (1,01) y la LSTM, en 2019 (1,06).
+  - 1 año: una apuesta (1,08 en 2018, 1,87 en 2019 y 0,55 en 2020).
+- **Estabilidad de cada red** (estructura base): la GRU es la más estable a 1 semana y a 3 meses; la RNN, a 1 año, por poco; la LSTM es la que más cambia con la semilla a 3 meses y a 1 año. Con 3 semillas, la medida es aproximada.
+- **Indicador de nivel:** que la elegida a 1 año lo lleve es un caso aislado. Con 120 días y los otros dos recortes da parecido con él y sin él, y de media empeora a las redes (1,22 con él frente a 1,18 sin él). H6 no cambia.
+- Notebook 03, sección 3 completa: figura por semilla con la zona de empate, regla aplicada, estabilidad de cada red, elección, tabla año a año de las elegidas y lectura.
+
+**Para hablar antes de la fase B**
+- A 1 semana, la ventana elegida (252 días) es la más cara: entrenar con ella cuesta 4-5 veces más que con 60 días, y la mejora sobre el ingenuo es de un 1 %. Sería el horizonte más lento de la fase B.
+
+**Diagnóstico antes de la fase B: la tendencia media** (repaso de todo lo observado con Pablo)
+- **Memorización:** existe en todos los horizontes y crece con él. En la fase A, el error de train baja un 18 % / 52 % / 64 % (1 semana / 3 meses / 1 año) y el del trozo de parada, solo un 1 % / 7 % / 20 %. La parada temprana evita lo peor, pero incluso la versión temprana de la red ya ha aprendido cosas que no se repiten.
+- **Causa de fondo a 1 año:** pocas respuestas independientes (unas 17 entre 2000 y 2017, una por año) para redes de 5.000-19.000 parámetros, y un pasado que no se repite (subida hasta 2008, desplome de 2014, COVID).
+- **Tendencia media (hallazgo):** cuando no aprenden nada útil, las redes y el lineal no prevén «sin cambio», como el ingenuo, sino la subida media del train. Es lo primero que aprende una red.
+  - A 1 año, esa media es de +11,8 % (pliegue 2018), +6,1 % (2019) y +3,1 % (2020), con la combinación elegida.
+  - Un «modelo» que solo prevé esa media da MAE / ingenuo 1,82 / 1,15 / 0,97, y **1,16 los tres juntos**. A 3 meses da 0,986; a 1 semana, 0,997 (notebook 03, sección 4.1).
+  - Las redes elegidas apenas mejoran a la media sola a 1 año (1,11 frente a 1,16): su resultado está muy cerca de «proyectar la media». A 3 meses sí la mejoran con claridad (0,936 frente a 0,986, todos los años), aunque parte de su ventaja es la tendencia. A 1 semana, casi toda su pequeña ventaja parecía la tendencia (0,992 frente a 0,997); el experimento D20 lo desmintió.
+  - No todo es la tendencia: a 1 año las redes también apuestan por la corrección, y en 2019 les sale peor que a la media sola (1,87 frente a 1,15).
+  - Parte del sesgo alcista de la primera prueba venía de aquí.
+  - **Corrección:** en la primera estimación dije «≈ 1,3» porque promedié los cocientes de cada año. Juntando los errores en dólares, como en todo el estudio, es 1,16. El año 2018 tiene un error en dólares pequeño y no debe pesar como los demás.
+- **Parada temprana a 1 año:** elige la mejor época con unas 3 respuestas independientes (10-12 a 3 meses, más de 100 a 1 semana). Es casi azar; pendiente de decidir para la fase B (por ejemplo, que Optuna busque también el número de épocas).
+- **Validación a 1 año:** cada año equivale a uno o dos resultados independientes. Con muchos intentos es fácil elegir uno afortunado; hay que buscar con prudencia y decirlo en las conclusiones.
+- **Implicación:** la fase B, al regular más las redes, las acercaría a la media del train, y a 1 año eso podría empeorar en vez de mejorar. → **D20** (experimento sin tendencia, antes de la fase B) e hipótesis **H7**.
+
+**Preparación del experimento sin tendencia (D20)**
+- Opción `sin_tendencia` en el entrenamiento (`config.ENTRENAMIENTO`, apagada por defecto) y en `ModeloLineal`. La red guarda la tendencia que se le ha quitado.
+- `experimentos.py`:
+  - `eleccion()`: reconstruye la combinación elegida de cada horizonte (D19) a partir de los resultados;
+  - `ejecutar_tendencia()`: el experimento, reanudable;
+  - el bucle de entrenamiento de redes pasa a ser común para la confirmación y este experimento.
+- `scripts/tendencia.py`, con `--solo-mostrar` y `--horizontes`.
+- Comprobado: con la opción apagada, la fase A se reproduce exactamente (red y lineal), y la confirmación no tiene nada pendiente.
+- 44 pruebas automáticas, todas correctas (3 nuevas: el lineal y la red sin tendencia no proyectan la media; la elección junta la fase A y la confirmación).
+- Previsto: 99 entrenamientos de redes (≈ 0,8 h en el portátil, sobre todo la ventana de 252 días a 1 semana) y el lineal completo (396 combinaciones × pliegues, unos minutos).
+- **Qué esperamos ver** (apuntado antes de lanzar):
+  - 1 año: las redes mejoran claramente; ganan en 2018 y 2019 (años de bajada) y pierden en 2020 (rebote).
+  - 3 meses: cambio pequeño, dentro del ruido o algo peor (2021, año de subida, se beneficiaba de la tendencia).
+  - 1 semana: sin cambio (la tendencia es de un 0,1 % por semana).
+  - Lineal a 1 año: mismo patrón por años (mejor en 2018 y 2019, peor en 2020); el resultado conjunto es incierto.
+- Mientras corría: la referencia «solo la media» (`experimentos.solo_la_media`) y la regla D20 como función (`adoptar_sin_tendencia`), con su prueba (45 pruebas en total). Notebook 03, sección 4 nueva, probada con los resultados parciales.
+- **Lanzado por Pablo a las 18:41** (con ello, regla D20 aprobada). Terminado en 1,23 h: 99 entrenamientos de redes y 2.376 del lineal, sin duplicados ni vacíos.
+
+**Resultados del experimento sin tendencia (D20)** (MAE / ingenuo; redes: media de las 3 redes y las 3 semillas)
+
+| Horizonte | Con tendencia | Sin tendencia | Diferencia | Ruido | Se adopta |
+|---|---|---|---|---|---|
+| 1 semana | 0,992 | 0,993 | +0,001 | 0,002 | sin tendencia (empate) |
+| 3 meses | 0,936 | 0,937 | +0,001 | 0,011 | sin tendencia (empate) |
+| 1 año | 1,114 | **1,044** | −0,070 | 0,033 | sin tendencia (mejora) |
+
+- **1 año:** la tendencia explicaba unas tres quintas partes de lo que las redes perdían frente al ingenuo.
+  - Mejoran las tres redes (entre 0,06 y 0,08 cada una) y con las tres semillas, aunque con la 44 apenas (1,107 → 1,100).
+  - Año a año: 2018 de 1,08 a 0,93 (ya mejor que el ingenuo), 2019 de 1,87 a 1,68, 2020 de 0,55 a 0,59.
+  - Siguen un 4 % peor que el ingenuo: queda el problema de fondo para la fase B.
+  - Aciertan la dirección más a menudo (del 55 % al 60 %).
+  - El azar entre semillas crece (1,01 / 1,03 / 1,10).
+- **3 meses:** mismo resultado, pero mejor repartido. Mejora en 2019 (de 0,97 a 0,94) y empeora en 2021, año de subida (de 0,82 a 0,89). **La ventaja de las redes a 3 meses es señal, no tendencia.**
+- **1 semana:** sin cambios. Lo dicho en el diagnóstico («a 1 semana, casi toda su pequeña ventaja es la tendencia») **no se confirma**: sin tendencia siguen en 0,993.
+- **Lineal** (misma regla → sin tendencia en los tres horizontes):
+  - 1 año: su mejor versión pasa de 0,759 a 0,714, pero con otra combinación (120 días, sin recorte, sin nivel, alfa 1, casi sin regularizar) y muy irregular (1,36 en 2018, 0,85 en 2019, 0,42 en 2020). Es la mejor de 216: hay que tomarla con cautela.
+  - Con la combinación de antes (252 días, alfa 1.000), de 0,759 a 0,743. La mediana de las 216 versiones, de 0,89 a 0,84.
+  - 3 meses: de 0,951 a 0,959; 1 semana: de 0,988 a 0,989 (empates).
+- **Lo esperado frente a lo obtenido:**
+  - ✓ Las redes cumplen todo lo esperado: mejoran con claridad a 1 año, ganando en 2018 y 2019 y perdiendo en 2020, y apenas cambian a 3 meses y a 1 semana.
+  - ✗ El lineal no cumple el patrón: con la misma combinación, en 2018 empeora (de 0,81 a 0,95), porque ya apostaba por una bajada y sin tendencia la exagera.
+- **H7 se cumple.** D20 pasa a ✅: todo lo que sigue (fase B y test) se hace sin tendencia.
+- Notebook 03, sección 4 completa y ejecutada (la sección 1 vuelve a dar los mismos números).
+
+**Para hablar antes de la fase B**
+- **Propuesta (regla D20):** repetir la fase A de 1 año sin tendencia, porque los datos de 1 año se eligieron con tendencia y quitarla cambia mucho el resultado (por ejemplo, el indicador de nivel podía estar compensándola). A 3 meses y a 1 semana el resultado no cambia, así que la elección se mantiene.
+- Pasar `sin_tendencia` a activado por defecto al preparar la fase B (la fase A seguirá reproduciéndose indicándolo de forma explícita).
+- Parada temprana a 1 año (unas 3 respuestas independientes) y coste de la ventana de 252 días a 1 semana.
+
 **Pendiente**
-- Elegir la combinación de datos de cada horizonte (D6/D16), con Pablo: confirmar las mejores con más semillas para medir el ruido y aplicar «empate → ventana más corta».
-- Fase B (Optuna), confirmación con semillas y examen final en test.
+- Decidir con Pablo los puntos anteriores.
+- Commit de la confirmación y de D20 (con el visto bueno de Pablo).
+- Fase B (Optuna) sin tendencia, confirmación con semillas y examen final en test.

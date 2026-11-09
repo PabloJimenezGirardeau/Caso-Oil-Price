@@ -9,7 +9,7 @@ Comparativa de tres redes neuronales recurrentes (RNN simple, LSTM y GRU) para p
 - [x] Entorno y descarga de datos
 - [x] Análisis exploratorio (EDA)
 - [x] Preprocesamiento
-- [ ] Modelos (RNN, LSTM y GRU) y comparativa: *en curso* (modelos y entrenamiento listos; pendientes la búsqueda de configuraciones y el examen final)
+- [ ] Modelos (RNN, LSTM y GRU) y comparativa: *en curso* (fase A cerrada: datos elegidos para cada horizonte; pendientes la fase B y el examen final)
 - [ ] Aplicación
 - [ ] Presentación (máximo 5 diapositivas)
 
@@ -32,7 +32,9 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 ├── scripts/
 │   ├── download_data.py         Descarga de datos (FRED + Yahoo Finance), del curso
 │   ├── generar_dias_brent.py    Genera data/dias_brent.csv
-│   └── fase_a.py                Lanza la fase A del estudio (ventana × recorte × nivel)
+│   ├── fase_a.py                Lanza la fase A del estudio (ventana × recorte × nivel)
+│   ├── fase_a_semillas.py       Repite las finalistas de la fase A con otras semillas
+│   └── tendencia.py             Repite las combinaciones elegidas sin la subida media del train
 ├── src/oil_price/               Código reutilizable (notebooks y aplicación)
 │   ├── config.py                Parámetros: fechas, variables, horizontes, partición…
 │   ├── datos.py                 Carga y limpieza
@@ -40,7 +42,7 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   ├── validaciones.py          Comprobaciones automáticas (huecos, fugas de información)
 │   ├── modelos.py               Las tres redes (misma estructura, cambia la celda) y modelo lineal
 │   ├── entrenamiento.py         Entrenamiento común: pérdida Huber, parada temprana, semillas
-│   ├── experimentos.py          Búsquedas (fase A): ejecución reanudable y resumen de resultados
+│   ├── experimentos.py          Búsquedas (fase A, confirmación, sin tendencia): ejecución reanudable, resumen y regla de elección
 │   ├── evaluacion.py            Métricas, modelo ingenuo y comparación con él
 │   └── graficos.py              Estilo de los gráficos
 ├── tests/                       Pruebas automáticas (pytest)
@@ -89,6 +91,12 @@ Los entrenamientos largos se lanzan con scripts, no desde los notebooks. Cada re
 python scripts/fase_a.py                        # fase A completa (6 núcleos de CPU)
 python scripts/fase_a.py --ventanas 10 20 40 60 # solo algunas ventanas
 python scripts/fase_a.py --help                 # todas las opciones
+
+python scripts/fase_a_semillas.py --solo-mostrar # finalistas de la fase A y tiempo previsto
+python scripts/fase_a_semillas.py                # las repite con las semillas 43 y 44
+
+python scripts/tendencia.py --solo-mostrar       # qué se entrena sin tendencia y tiempo previsto
+python scripts/tendencia.py                      # combinaciones elegidas sin la subida media del train
 ```
 
 Los notebooks leen esos resultados y los analizan (`notebooks/03_modelado.ipynb`).

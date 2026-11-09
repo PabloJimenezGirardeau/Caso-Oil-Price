@@ -37,10 +37,14 @@ class ModeloLineal:
     Peldaño intermedio entre el ingenuo (no aprende) y las redes (relaciones complejas):
     cada valor de la ficha suma o resta con un peso fijo. Se ajusta un modelo por horizonte,
     usando solo las fichas con respuesta válida.
+
+    Con `sin_tendencia` (D20), el término fijo es cero en lugar de la subida media del train:
+    con una ficha «media», prevé que el precio no cambia, como el ingenuo. Los pesos no cambian.
     """
 
-    def __init__(self, alfa=100.0):
+    def __init__(self, alfa=100.0, sin_tendencia=False):
         self.alfa = alfa
+        self.sin_tendencia = sin_tendencia
 
     def ajustar(self, conjunto):
         X = conjunto.X.reshape(len(conjunto), -1).astype(np.float64)
@@ -53,7 +57,7 @@ class ModeloLineal:
             coef = np.linalg.solve(Xc.T @ Xc + self.alfa * np.eye(Xc.shape[1]), Xc.T @ (yj - yj.mean()))
             self.media_x_.append(media_x)
             self.coef_.append(coef)
-            self.intercepto_.append(yj.mean())
+            self.intercepto_.append(0.0 if self.sin_tendencia else yj.mean())
         return self
 
     def predecir(self, X):
@@ -63,4 +67,4 @@ class ModeloLineal:
 
     @property
     def n_parametros(self):
-        return int(sum(c.size + 1 for c in self.coef_))
+        return int(sum(c.size + (0 if self.sin_tendencia else 1) for c in self.coef_))
