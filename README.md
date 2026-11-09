@@ -9,7 +9,7 @@ Comparativa de tres redes neuronales recurrentes (RNN simple, LSTM y GRU) para p
 - [x] Entorno y descarga de datos
 - [x] Análisis exploratorio (EDA)
 - [x] Preprocesamiento
-- [ ] Modelos (RNN, LSTM y GRU) y comparativa: *en curso* (fase A cerrada: datos elegidos para cada horizonte; pendientes la fase B y el examen final)
+- [ ] Modelos (RNN, LSTM y GRU) y comparativa: *en curso* (fase A cerrada: datos elegidos para cada horizonte, sin tendencia; pendientes la fase B y el examen final)
 - [ ] Aplicación
 - [ ] Presentación (máximo 5 diapositivas)
 
@@ -97,6 +97,9 @@ python scripts/fase_a_semillas.py                # las repite con las semillas 4
 
 python scripts/tendencia.py --solo-mostrar       # qué se entrena sin tendencia y tiempo previsto
 python scripts/tendencia.py                      # combinaciones elegidas sin la subida media del train
+
+python scripts/fase_a.py --horizontes largo --sin-tendencia           # fase A de 1 año sin tendencia
+python scripts/fase_a_semillas.py --horizontes largo --sin-tendencia  # y su confirmación con semillas
 ```
 
 Los notebooks leen esos resultados y los analizan (`notebooks/03_modelado.ipynb`).

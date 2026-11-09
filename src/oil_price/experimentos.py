@@ -151,36 +151,61 @@ def _entrenar_y_medir(comb, celda, año, train, evaluado, semilla, dispositivo, 
     return fila, curvas
 
 
+def nombre_fase_a(sin_tendencia=False):
+    """Nombre base de los archivos de la fase A: con tendencia (la original) o sin ella (D20, D21)."""
+    return "fase_a_sin_tendencia" if sin_tendencia else "fase_a"
+
+
+def _claves_fase_a(combinaciones, pliegues):
+    """Claves de los entrenamientos de redes de la fase A para esas combinaciones. A 252 sesiones
+    se descuenta el último pliegue, que se omite por no tener respuestas."""
+    ultimo_año = pliegues[-1]["hasta"].year
+    return [_clave({**_datos(c), "modelo": celda, "alfa": np.nan, "pliegue": p["hasta"].year})
+            for c in combinaciones for p in pliegues for celda in config.CELDAS
+            if not (c["horizonte"] == "largo" and p["hasta"].year == ultimo_año)]
+
+
 def ejecutar_fase_a(dir_salida=config.DIR_RESULTADOS, hilos=config.HILOS_CPU, limite=None,
-                    registrar=print, ventanas=None):
+                    registrar=print, ventanas=None, horizontes=None, sin_tendencia=False):
     """Ejecuta (o continúa) la fase A.
 
-    `ventanas`: solo esas ventanas (para repartir el trabajo, p. ej. las cortas en el portátil
-    y las largas en la GPU). `limite`: número máximo de combinaciones (para pruebas).
+    `ventanas` / `horizontes`: solo esas ventanas u horizontes (para repartir el trabajo).
+    `limite`: número máximo de combinaciones (para pruebas). `sin_tendencia` (D21): las redes
+    se entrenan sin la subida media del train y se guardan en `fase_a_sin_tendencia.csv`; el
+    lineal no se repite, porque sin tendencia ya está completo en `tendencia.csv` (D20).
     """
     torch.set_num_threads(hilos)
     dir_salida.mkdir(parents=True, exist_ok=True)
-    ruta, ruta_curvas = dir_salida / "fase_a.csv", dir_salida / "fase_a_curvas.csv"
+    nombre = nombre_fase_a(sin_tendencia)
+    ruta, ruta_curvas = dir_salida / f"{nombre}.csv", dir_salida / f"{nombre}_curvas.csv"
     hechas = _ya_hechas(ruta)
     dispositivo = ent.dispositivo_disponible()
+    ajustes = {"sin_tendencia": True} if sin_tendencia else None
 
     bases = _bases()
     pliegues = pp.pliegues_walk_forward()
     combinaciones = [c for c in combinaciones_fase_a()
-                     if ventanas is None or c["ventana"] in ventanas][:limite]
+                     if (ventanas is None or c["ventana"] in ventanas)
+                     and (horizontes is None or c["horizonte"] in horizontes)][:limite]
 
-    # Entrenamientos de redes de ESTA ejecución (las combinaciones elegidas) y cuántos ya estaban hechos.
-    # A 252 sesiones se descuenta el último pliegue, que se omite por no tener respuestas.
-    ultimo_año = pliegues[-1]["hasta"].year
-    claves = [_clave({**_datos(c), "modelo": celda, "alfa": np.nan, "pliegue": p["hasta"].year})
-              for c in combinaciones for p in pliegues for celda in config.CELDAS
-              if not (c["horizonte"] == "largo" and p["hasta"].year == ultimo_año)]
+    # Entrenamientos de redes de ESTA ejecución (las combinaciones elegidas) y cuántos ya estaban hechos
+    claves = _claves_fase_a(combinaciones, pliegues)
     total, ya_hechos = len(claves), sum(clave in hechas for clave in claves)
-    registrar(f"Fase A: {len(combinaciones)} combinaciones → {total} entrenamientos de redes "
-              f"(ya hechos: {ya_hechos}, pendientes: {total - ya_hechos}). "
-              f"Dispositivo: {dispositivo}, {hilos} hilos.")
 
-    hechos_ahora, inicio = 0, time.perf_counter()
+    # Tiempo previsto: si la fase A original ya tiene esos entrenamientos (p. ej., al repetirla sin
+    # tendencia), lo que tardaron allí; si no, la media de lo que se lleva hecho
+    original = dir_salida / "fase_a.csv"
+    previsto = _previsto(pd.read_csv(original)) if sin_tendencia and original.exists() else {}
+    pendientes_previstos = {c: previsto.get(c) for c in claves if c not in hechas}
+    con_previsto = bool(pendientes_previstos) and all(v is not None for v in pendientes_previstos.values())
+    previsto_total = sum(pendientes_previstos.values()) if con_previsto else 0.0
+    registrar(f"Fase A{' sin tendencia' if sin_tendencia else ''}: {len(combinaciones)} combinaciones → "
+              f"{total} entrenamientos de redes "
+              f"(ya hechos: {ya_hechos}, pendientes: {total - ya_hechos})"
+              + (f" · tiempo previsto ≈ {previsto_total / 3600:.1f} h" if con_previsto else "")
+              + f". Dispositivo: {dispositivo}, {hilos} hilos.")
+
+    hechos_ahora, hecho_previsto, hecho_real, inicio = 0, 0.0, 0.0, time.perf_counter()
     for i, comb in enumerate(combinaciones, start=1):
         for pliegue in pliegues:
             año = pliegue["hasta"].year
@@ -189,24 +214,31 @@ def ejecutar_fase_a(dir_salida=config.DIR_RESULTADOS, hilos=config.HILOS_CPU, li
                 continue   # p. ej., 2021 a 252 sesiones: sus respuestas caerían en el test
 
             # Modelo lineal: una fila por cada fuerza de regularización (segundos en total)
-            filas = _filas_lineal(comb, año, train, evaluado, hechas)
+            filas = [] if sin_tendencia else _filas_lineal(comb, año, train, evaluado, hechas)
             if filas:
                 _anadir(ruta, filas, COLUMNAS)
 
             # Las tres redes, con la estructura base y la misma semilla
             for celda in config.CELDAS:
-                if _clave({**_datos(comb), "modelo": celda, "alfa": np.nan, "pliegue": año}) in hechas:
+                clave = _clave({**_datos(comb), "modelo": celda, "alfa": np.nan, "pliegue": año})
+                if clave in hechas:
                     continue
-                fila, curvas = _entrenar_y_medir(comb, celda, año, train, evaluado, config.SEMILLA, dispositivo)
+                fila, curvas = _entrenar_y_medir(comb, celda, año, train, evaluado, config.SEMILLA, dispositivo,
+                                                 ajustes)
                 _anadir(ruta, [fila], COLUMNAS)
                 _anadir(ruta_curvas, curvas.to_dict("records"))
 
                 hechos_ahora += 1
-                pendientes = total - ya_hechos - hechos_ahora
-                restante = (time.perf_counter() - inicio) / hechos_ahora * max(pendientes, 0)
+                if con_previsto:   # lo previsto, corregido con el ritmo real de esta ejecución
+                    hecho_previsto += pendientes_previstos[clave]
+                    hecho_real += fila["segundos"]
+                    restante = (previsto_total - hecho_previsto) * hecho_real / max(hecho_previsto, 1e-9)
+                else:
+                    pendientes = total - ya_hechos - hechos_ahora
+                    restante = (time.perf_counter() - inicio) / hechos_ahora * max(pendientes, 0)
                 registrar(f"[{i}/{len(combinaciones)}] {_describir(comb, celda, año)} → {_medido(fila)} · "
                           f"quedan ≈ {restante / 3600:.1f} h")
-    registrar(f"Fase A terminada: {hechos_ahora} entrenamientos nuevos en "
+    registrar(f"Fase A{' sin tendencia' if sin_tendencia else ''} terminada: {hechos_ahora} entrenamientos nuevos en "
               f"{(time.perf_counter() - inicio) / 3600:.2f} h.")
 
 
@@ -225,21 +257,33 @@ def finalistas(resultados, n=config.N_FINALISTAS):
 
 def ejecutar_confirmacion(dir_salida=config.DIR_RESULTADOS, semillas=config.SEMILLAS_EXTRA,
                           n=config.N_FINALISTAS, hilos=config.HILOS_CPU, registrar=print,
-                          elegidas=None, solo_mostrar=False):
+                          elegidas=None, solo_mostrar=False, horizontes=None, sin_tendencia=False):
     """Repite las finalistas de la fase A con otras semillas (o continúa la repetición).
 
     Las finalistas son las `n` mejores de cada horizonte en `dir_salida/fase_a.csv`, salvo que se
     pasen en `elegidas`. Con `solo_mostrar`, solo las lista con el tiempo previsto, sin entrenar.
+    `horizontes`: solo esos. `sin_tendencia` (D21): usa la fase A sin tendencia y entrena igual.
     """
     torch.set_num_threads(hilos)
-    resultados_a = pd.read_csv(dir_salida / "fase_a.csv")
-    elegidas = finalistas(resultados_a, n) if elegidas is None else elegidas
-    ruta, ruta_curvas = dir_salida / "fase_a_semillas.csv", dir_salida / "fase_a_semillas_curvas.csv"
+    nombre = nombre_fase_a(sin_tendencia)
     pliegues = pp.pliegues_walk_forward()
+    if elegidas is None:
+        # Las finalistas solo son fiables con la fase A completa en esos horizontes
+        combinaciones = [c for c in combinaciones_fase_a() if horizontes is None or c["horizonte"] in horizontes]
+        faltan = set(_claves_fase_a(combinaciones, pliegues)) - _ya_hechas(dir_salida / f"{nombre}.csv")
+        if faltan:
+            registrar(f"La fase A{' sin tendencia' if sin_tendencia else ''} no está completa (faltan {len(faltan)} "
+                      f"entrenamientos de redes): termínala antes con scripts/fase_a.py. No se entrena nada.")
+            return []
+    resultados_a = pd.read_csv(dir_salida / f"{nombre}.csv")
+    elegidas = finalistas(resultados_a, n) if elegidas is None else elegidas
+    elegidas = [c for c in elegidas if horizontes is None or c["horizonte"] in horizontes]
+    ruta, ruta_curvas = dir_salida / f"{nombre}_semillas.csv", dir_salida / f"{nombre}_semillas_curvas.csv"
     pendientes = _pendientes_redes(elegidas, semillas, _ya_hechas(ruta, CLAVE_SEMILLAS),
                                    _previsto(resultados_a), pliegues)
 
-    registrar(f"Finalistas de la fase A ({n} por horizonte), con las semillas {semillas}:")
+    registrar(f"Finalistas de la fase A{' sin tendencia' if sin_tendencia else ''} ({n} por horizonte), "
+              f"con las semillas {semillas}:")
     for comb in elegidas:
         registrar(f"  {_combinacion(comb)} · fase A {comb.get('fase A', np.nan):.3f}")
     registrar(f"Entrenamientos pendientes: {len(pendientes)} · tiempo previsto ≈ "
@@ -248,7 +292,8 @@ def ejecutar_confirmacion(dir_salida=config.DIR_RESULTADOS, semillas=config.SEMI
         return elegidas
 
     inicio = time.perf_counter()
-    hechos = _entrenar_redes(elegidas, semillas, pendientes, _bases(), pliegues, ruta, ruta_curvas, registrar)
+    hechos = _entrenar_redes(elegidas, semillas, pendientes, _bases(), pliegues, ruta, ruta_curvas, registrar,
+                             ajustes={"sin_tendencia": True} if sin_tendencia else None)
     registrar(f"Confirmación terminada: {hechos} entrenamientos nuevos en "
               f"{(time.perf_counter() - inicio) / 3600:.2f} h.")
     return elegidas
@@ -317,16 +362,17 @@ def _entrenar_redes(elegidas, semillas, pendientes, bases, pliegues, ruta, ruta_
     return hechos
 
 
-def eleccion(resultados_a, confirmacion):
+def eleccion(resultados_a, confirmacion, horizontes=None):
     """Combinación de datos elegida en cada horizonte (D19): las finalistas de la fase A con todas
-    sus semillas (la 42 de la fase A y las de la confirmación), decididas con `decidir`."""
+    sus semillas (la 42 de la fase A y las de la confirmación), decididas con `decidir`.
+    `horizontes`: solo esos (p. ej., la fase A sin tendencia, que solo se repite a 1 año)."""
     fin = pd.DataFrame([_datos(f) for f in finalistas(resultados_a)])
     redes_a = resultados_a[resultados_a["modelo"] != "Lineal"].merge(fin, on=CLAVE_DATOS)
     todas = pd.concat([redes_a, confirmacion], ignore_index=True)
     media = (resumir(todas, por=["semilla"]).groupby(CLAVE_DATOS + ["semilla"])["MAE / ingenuo"].mean()
              .unstack("semilla"))
     elegidas = {}
-    for h in config.HORIZONTES:
+    for h in horizontes or config.HORIZONTES:
         tabla, _ = decidir(media.loc[h])
         v, r, n = tabla.index[tabla["elegida"].to_numpy()][0]
         elegidas[h] = {"horizonte": h, "ventana": int(v), "recorte": RECORTE_POR_NOMBRE[r], "nivel": bool(n)}

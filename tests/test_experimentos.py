@@ -112,6 +112,9 @@ def test_eleccion_junta_la_fase_a_y_la_confirmacion():
         fase_a.append({**_resultado(h, 60, "ninguno", False, "Lineal", 0.5, alfa=10.0), "semilla": np.nan})
     elegidas = ex.eleccion(pd.DataFrame(fase_a), pd.DataFrame(confirmacion))
     assert elegidas["medio"] == {"horizonte": "medio", "ventana": 20, "recorte": None, "nivel": False}
+    # con un solo horizonte (p. ej., la fase A sin tendencia, que solo se repite a 1 año)
+    solo_largo = [f for f in fase_a if f["horizonte"] == "largo"]
+    assert list(ex.eleccion(pd.DataFrame(solo_largo), pd.DataFrame(confirmacion), horizontes=["largo"])) == ["largo"]
 
 
 def test_adoptar_sin_tendencia_si_no_empeora_mas_que_el_ruido():
