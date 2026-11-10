@@ -180,7 +180,7 @@ def ejecutar_fase_a(dir_salida=config.DIR_RESULTADOS, hilos=config.HILOS_CPU, li
     ruta, ruta_curvas = dir_salida / f"{nombre}.csv", dir_salida / f"{nombre}_curvas.csv"
     hechas = _ya_hechas(ruta)
     dispositivo = ent.dispositivo_disponible()
-    ajustes = {"sin_tendencia": True} if sin_tendencia else None
+    ajustes = {"sin_tendencia": sin_tendencia}   # explícito: por defecto ya es sin tendencia (D22)
 
     bases = _bases()
     pliegues = pp.pliegues_walk_forward()
@@ -293,7 +293,7 @@ def ejecutar_confirmacion(dir_salida=config.DIR_RESULTADOS, semillas=config.SEMI
 
     inicio = time.perf_counter()
     hechos = _entrenar_redes(elegidas, semillas, pendientes, _bases(), pliegues, ruta, ruta_curvas, registrar,
-                             ajustes={"sin_tendencia": True} if sin_tendencia else None)
+                             ajustes={"sin_tendencia": sin_tendencia})
     registrar(f"Confirmación terminada: {hechos} entrenamientos nuevos en "
               f"{(time.perf_counter() - inicio) / 3600:.2f} h.")
     return elegidas
@@ -501,14 +501,15 @@ def resumir(resultados, por=()):
     """Junta los pliegues de cada combinación (cada ficha pesa igual) y calcula «MAE / ingenuo».
 
     Devuelve una fila por horizonte × ventana × recorte × nivel × modelo (× alfa en el lineal).
-    Con `por` (p. ej., ["semilla"]), separa además por esas columnas.
+    Con `por` (p. ej., ["semilla"], o ["intento", "semilla"] en la fase B), separa además por
+    esas columnas. Los resultados de la fase B no tienen alfa (solo hay redes).
     """
     r = resultados.assign(
         suma_ae=resultados["MAE"] * resultados["fichas evaluación"],
         suma_ae_ing=resultados["MAE ingenuo"] * resultados["fichas evaluación"],
         suma_se=resultados["MSE"] * resultados["fichas evaluación"],
         suma_se_ing=resultados["MSE ingenuo"] * resultados["fichas evaluación"],
-        alfa=resultados["alfa"].fillna(-1))
+        alfa=resultados["alfa"].fillna(-1) if "alfa" in resultados else -1)
     grupos = r.groupby(["horizonte", "ventana", "recorte", "nivel", "modelo", "alfa", *por], sort=False)
     resumen = grupos.agg(pliegues=("pliegue", "nunique"), fichas=("fichas evaluación", "sum"),
                          suma_ae=("suma_ae", "sum"), suma_ae_ing=("suma_ae_ing", "sum"),

@@ -9,7 +9,7 @@ Comparativa de tres redes neuronales recurrentes (RNN simple, LSTM y GRU) para p
 - [x] Entorno y descarga de datos
 - [x] Análisis exploratorio (EDA)
 - [x] Preprocesamiento
-- [ ] Modelos (RNN, LSTM y GRU) y comparativa: *en curso* (fase A cerrada: datos elegidos para cada horizonte, sin tendencia; pendientes la fase B y el examen final)
+- [ ] Modelos (RNN, LSTM y GRU) y comparativa: *en curso* (fase A cerrada: datos elegidos para cada horizonte, sin tendencia; fase B hecha a 1 año y 3 meses, falta 1 semana; pendiente el examen final)
 - [ ] Aplicación
 - [ ] Presentación (máximo 5 diapositivas)
 
@@ -34,7 +34,8 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   ├── generar_dias_brent.py    Genera data/dias_brent.csv
 │   ├── fase_a.py                Lanza la fase A del estudio (ventana × recorte × nivel)
 │   ├── fase_a_semillas.py       Repite las finalistas de la fase A con otras semillas
-│   └── tendencia.py             Repite las combinaciones elegidas sin la subida media del train
+│   ├── tendencia.py             Repite las combinaciones elegidas sin la subida media del train
+│   └── fase_b.py                Fase B: busca la mejor configuración de cada red (Optuna)
 ├── src/oil_price/               Código reutilizable (notebooks y aplicación)
 │   ├── config.py                Parámetros: fechas, variables, horizontes, partición…
 │   ├── datos.py                 Carga y limpieza
@@ -42,7 +43,8 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   ├── validaciones.py          Comprobaciones automáticas (huecos, fugas de información)
 │   ├── modelos.py               Las tres redes (misma estructura, cambia la celda) y modelo lineal
 │   ├── entrenamiento.py         Entrenamiento común: pérdida Huber, parada temprana, semillas
-│   ├── experimentos.py          Búsquedas (fase A, confirmación, sin tendencia): ejecución reanudable, resumen y regla de elección
+│   ├── experimentos.py          Fase A, su confirmación y experimento sin tendencia: ejecución reanudable, resumen y regla de elección
+│   ├── busqueda.py              Fase B con Optuna: búsqueda por red y horizonte, poda, confirmación y elección
 │   ├── evaluacion.py            Métricas, modelo ingenuo y comparación con él
 │   └── graficos.py              Estilo de los gráficos
 ├── tests/                       Pruebas automáticas (pytest)
@@ -100,6 +102,10 @@ python scripts/tendencia.py                      # combinaciones elegidas sin la
 
 python scripts/fase_a.py --horizontes largo --sin-tendencia           # fase A de 1 año sin tendencia
 python scripts/fase_a_semillas.py --horizontes largo --sin-tendencia  # y su confirmación con semillas
+
+python scripts/fase_b.py --solo-mostrar                 # fase B: plan y tiempo previsto
+python scripts/fase_b.py --horizontes largo medio       # 1 año y 3 meses, 40 intentos por red (unas 2,5 h)
+python scripts/fase_b.py --horizontes corto             # 1 semana, 20 intentos por red (la más lenta, unas 8-9 h)
 ```
 
 Los notebooks leen esos resultados y los analizan (`notebooks/03_modelado.ipynb`).

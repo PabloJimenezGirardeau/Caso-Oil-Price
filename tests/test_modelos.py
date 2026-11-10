@@ -89,5 +89,8 @@ def test_red_sin_tendencia_no_proyecta_la_media():
     ajuste, _ = ent.dividir_parada_temprana(c)
     np.testing.assert_allclose(sin.tendencia, np.nanmean(ajuste.Y, axis=0), rtol=1e-5)
     assert np.abs(ent.predecir(sin, c.X).mean(axis=0)).max() < 0.5   # prevé alrededor de 0, no de 3
-    con = ent.entrenar_red("GRU", c, hp, semilla=1, dispositivo=torch.device("cpu"), ajustes={"max_epocas": 1})
-    assert np.all(con.tendencia == 0)   # por defecto se conserva la tendencia (como en la fase A)
+    por_defecto = ent.entrenar_red("GRU", c, hp, semilla=1, dispositivo=torch.device("cpu"), ajustes={"max_epocas": 1})
+    np.testing.assert_allclose(por_defecto.tendencia, sin.tendencia)   # por defecto, sin tendencia (D22)
+    con = ent.entrenar_red("GRU", c, hp, semilla=1, dispositivo=torch.device("cpu"),
+                           ajustes={"max_epocas": 1, "sin_tendencia": False})
+    assert np.all(con.tendencia == 0)   # la fase A original la conserva de forma explícita

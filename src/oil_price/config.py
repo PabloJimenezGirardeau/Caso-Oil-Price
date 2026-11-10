@@ -58,7 +58,8 @@ ENTRENAMIENTO = {
     "recorte_gradiente": 1.0,   # norma máxima del gradiente
     "fraccion_parada": 0.15,    # último trozo del train usado para la parada temprana
     "delta_huber": 1.0,         # en desviaciones típicas del objetivo
-    "sin_tendencia": False,     # D20: True quita la subida media del train y supone tendencia cero
+    "sin_tendencia": True,      # D20, D22: quita la subida media del train y supone tendencia cero.
+                                # La fase A original (con tendencia) lo desactiva de forma explícita
 }
 
 # Modelo lineal de referencia (Ridge): fuerza de la regularización a probar en validación
@@ -71,6 +72,38 @@ MIN_FICHAS_EVALUACION = 20
 # con más semillas para medir el ruido del entrenamiento (la semilla 42 ya está en la fase A)
 N_FINALISTAS = 3
 SEMILLAS_EXTRA = [43, 44]
+
+# --- Fase B: búsqueda de la configuración de cada red con Optuna (D16, D22) ---------------
+# Datos elegidos en la fase A para cada horizonte (D19; a 1 año, D21). Todo sin tendencia (D20)
+DATOS_FASE_B = {
+    "corto": {"ventana": 252, "recorte": None, "nivel": False},
+    "medio": {"ventana": 20, "recorte": None, "nivel": False},
+    "largo": {"ventana": 20, "recorte": (0.5, 99.5), "nivel": False},
+}
+
+# Intentos por red en cada horizonte; el primero es la estructura base, como referencia. A 1 semana,
+# 20 (D24): con la ventana de 252 días cada intento es lento, y a 3 meses la búsqueda no mejoró la base
+INTENTOS_FASE_B = {"corto": 20, "medio": 40, "largo": 40}
+
+# Semillas con las que se mide cada intento: a 1 año, tres, porque el azar es grande (0,06);
+# a 1 semana y a 3 meses, una, y las finalistas (las 3 mejores y la base, D23) se confirman
+# después con las demás
+SEMILLAS_FASE_B = {"corto": [SEMILLA], "medio": [SEMILLA], "largo": [SEMILLA, *SEMILLAS_EXTRA]}
+
+# Espacio de búsqueda, igual para las tres redes y los tres horizontes (D22). Incluye redes
+# pequeñas y muy reguladas, para comprobar H8
+ESPACIO_FASE_B = {
+    "unidades": (8, 128),     # neuronas por capa (escala logarítmica)
+    "capas": (1, 2),
+    "dropout": (0.0, 0.5),
+    "lr": (1e-4, 3e-3),       # velocidad de aprendizaje (escala logarítmica)
+    "l2": (1e-6, 1e-2),       # fuerza de la regularización L2, si se usa (escala logarítmica)
+    "lote": [32, 64, 128],
+}
+
+# Poda: un intento que va peor que la mediana de los anteriores en el mismo pliegue se abandona.
+# Nunca en los primeros intentos ni tras el primer pliegue, que solo es un año
+PODA_FASE_B = {"intentos_sin_poda": 10, "pliegues_sin_poda": 1}
 
 # Núcleos de CPU para entrenar (de 8): deja margen para que el portátil vaya más fresco
 HILOS_CPU = 6
