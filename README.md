@@ -9,7 +9,7 @@ Comparativa de tres redes neuronales recurrentes (RNN simple, LSTM y GRU) para p
 - [x] Entorno y descarga de datos
 - [x] Análisis exploratorio (EDA)
 - [x] Preprocesamiento
-- [ ] Modelos (RNN, LSTM y GRU) y comparativa: *en curso* (fase A cerrada: datos elegidos para cada horizonte, sin tendencia; fase B hecha a 1 año y 3 meses, falta 1 semana; pendiente el examen final)
+- [ ] Modelos (RNN, LSTM y GRU) y comparativa: *en curso* (fase A cerrada: datos elegidos para cada horizonte, sin tendencia; fase B cerrada en los tres horizontes; antes del examen final, mejora de las redes)
 - [ ] Aplicación
 - [ ] Presentación (máximo 5 diapositivas)
 
@@ -105,7 +105,7 @@ python scripts/fase_a_semillas.py --horizontes largo --sin-tendencia  # y su con
 
 python scripts/fase_b.py --solo-mostrar                 # fase B: plan y tiempo previsto
 python scripts/fase_b.py --horizontes largo medio       # 1 año y 3 meses, 40 intentos por red (unas 2,5 h)
-python scripts/fase_b.py --horizontes corto             # 1 semana, 20 intentos por red (la más lenta, unas 8-9 h)
+python scripts/fase_b.py --horizontes corto             # 1 semana, 20 intentos por red (la más lenta, unas 12-15 h)
 ```
 
 Los notebooks leen esos resultados y los analizan (`notebooks/03_modelado.ipynb`).

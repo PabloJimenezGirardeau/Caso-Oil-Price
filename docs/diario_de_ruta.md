@@ -36,22 +36,24 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 | D19 | 09/11/2026 | **Elección de los datos de cada horizonte (cierre de la fase A).** Las 3 mejores combinaciones de cada horizonte (media de las 3 redes) se repiten con 2 semillas más (43 y 44; la 42 ya está en la fase A) y se toma la media de las 3 semillas. **Ruido:** desviación típica entre semillas (media de las finalistas del horizonte). Empatan con la mejor las finalistas a menos de un ruido de ella. Entre las empatadas gana la ventana más corta (D6) y, con la misma ventana, la más sencilla (menos recorte, sin nivel). El lineal no se repite porque no tiene azar | Con una sola semilla, muchas diferencias de la fase A son menores que el azar del propio entrenamiento. La regla se fija antes de ver los resultados para no elegir a conveniencia | ✅ | `experimentos.decidir`, Diario 09/11 |
 | D20 | 09/11/2026 | **Experimento sin tendencia, antes de la fase B.** La combinación elegida de cada horizonte (D19) se repite con las 3 semillas **sin la subida media del train**: la red aprende la variación respecto a esa media y, para el futuro, supone tendencia cero, como el ingenuo. El lineal se repite igual (sin término fijo), con todas las combinaciones y fuerzas de regularización. **Regla, fijada antes de ver los resultados:** en cada horizonte se adopta «sin tendencia» si no empeora más de un ruido (el de D19: 0,002 / 0,011 / 0,033) frente a «con tendencia», comparando la media de las 3 redes y las 3 semillas; si empeora más, se mantiene la tendencia. El lineal sigue la misma regla con su mejor versión de cada variante. Si se adopta a 3 meses o a 1 año, se propone repetir la fase A de ese horizonte sin tendencia antes de la fase B | Un modelo que no aprende nada útil proyecta la subida media del train, y a 1 año eso solo ya cuesta 1,16 veces el error del ingenuo (las redes elegidas, 1,11). Con unos 14 años de datos esa media no es fiable (margen de unos ±9 puntos), y la fase B, al regular más las redes, las acercaría a ella. Tendencia cero es lo que supone el ingenuo y lo habitual con precios de mercado; en caso de empate se prefiere por prudente. **Resultado: se adopta sin tendencia en los tres horizontes** (a 1 año, de 1,114 a 1,044; empate a 1 semana y a 3 meses) | ✅ | Diario 09/11, `scripts/tendencia.py`, notebook 03 §4 |
 | D21 | 09/11/2026 | **Fase A de 1 año, repetida sin tendencia.** Las 36 combinaciones de 1 año con las 3 redes y la semilla 42, sin tendencia; las 3 mejores se repiten con las semillas 43 y 44 y se elige con la regla D19. Sustituye a la elección de 1 año de D19. A 1 semana y a 3 meses se mantiene la elección de D19, porque sin tendencia el resultado no cambia. El lineal no se repite (sin tendencia ya está completo, D20) | Los datos de 1 año se eligieron con tendencia, y quitarla cambia el resultado en 0,07; el indicador de nivel, por ejemplo, podía estar compensando la tendencia. **Resultado: a 1 año, 20 días, recorte 0,5-99,5, sin nivel (1,027)**, en lugar de 120 días con nivel (1,044 sin tendencia). Rinden igual dentro del azar, pero la nueva es más sencilla, más rápida y más regular por años | ✅ | Diario 09/11, `scripts/fase_a.py --sin-tendencia`, notebook 03 §5 |
-| D22 | 10/11/2026 | **Diseño de la fase B** (concreta D16). Por horizonte y red (D18), con los datos de D19 y D21 y **sin tendencia, que pasa a ser lo normal en el entrenamiento** (la fase A original lo desactiva de forma explícita). **40 intentos de Optuna por red**: el primero, la estructura base; los 10 primeros, al azar e iguales para las tres redes; después, Optuna propone cerca de los que mejor van. **Espacio, igual para todas:** neuronas 8-128, 1 o 2 capas, dropout 0-0,5, velocidad de aprendizaje 0,0001-0,003, L2 no o 0,000001-0,01, lote 32, 64 o 128. **Puntuación:** MAE / ingenuo juntando los pliegues; a 1 año, media de 3 semillas por intento; a 1 semana y a 3 meses, 1 semilla, y las 3 mejores de cada red se repiten con las semillas 43 y 44. **Poda:** desde el 2.º pliegue y a partir del 11.º intento, se abandona el intento que va peor que la mediana de los anteriores en ese punto. **Elección:** la mejor media de las 3 semillas; las que quedan a menos de un ruido empatan y gana la de menos parámetros. Sin cambios: parada temprana (limitación a 1 año) y ventana de 252 días a 1 semana | Mismas condiciones y presupuesto para las tres redes, como pide el enunciado. El espacio incluye redes pequeñas y muy reguladas para comprobar H8. A 1 año el azar entre semillas (0,06) es tan grande que, con una sola, la búsqueda premiaría al más afortunado. La poda ahorra tiempo sin cambiar el criterio. Cambiar la ventana de 1 semana después de ver los resultados rompería la regla D19 | ✅ (finalistas: D23; a 1 semana, 20 intentos: D24) | `config.py`, `busqueda.py`, `scripts/fase_b.py`, Diario 10/11 |
+| D22 | 10/11/2026 | **Diseño de la fase B** (concreta D16). Por horizonte y red (D18), con los datos de D19 y D21 y **sin tendencia, que pasa a ser lo normal en el entrenamiento** (la fase A original lo desactiva de forma explícita). **40 intentos de Optuna por red**: el primero, la estructura base; los 10 primeros, al azar e iguales para las tres redes; después, Optuna propone cerca de los que mejor van. **Espacio, igual para todas:** neuronas 8-128, 1 o 2 capas, dropout 0-0,5, velocidad de aprendizaje 0,0001-0,003, L2 no o 0,000001-0,01, lote 32, 64 o 128. **Puntuación:** MAE / ingenuo juntando los pliegues; a 1 año, media de 3 semillas por intento; a 1 semana y a 3 meses, 1 semilla, y las 3 mejores de cada red se repiten con las semillas 43 y 44. **Poda:** desde el 2.º pliegue y a partir del 11.º intento, se abandona el intento que va peor que la mediana de los anteriores en ese punto. **Elección:** la mejor media de las 3 semillas; las que quedan a menos de un ruido empatan y gana la de menos parámetros. Sin cambios: parada temprana (limitación a 1 año) y ventana de 252 días a 1 semana | Mismas condiciones y presupuesto para las tres redes, como pide el enunciado. El espacio incluye redes pequeñas y muy reguladas para comprobar H8. A 1 año el azar entre semillas (0,06) es tan grande que, con una sola, la búsqueda premiaría al más afortunado. La poda ahorra tiempo sin cambiar el criterio. Cambiar la ventana de 1 semana después de ver los resultados rompería la regla D19 | ✅ (finalistas: D23; a 1 semana, 20 intentos: D24; ampliación: D25) | `config.py`, `busqueda.py`, `scripts/fase_b.py`, Diario 10/11 |
 | D23 | 10/11/2026 | **La estructura base siempre entra en la final de la fase B.** Las finalistas de cada red son las 3 mejores de la búsqueda y, si no está entre ellas, el intento 1 (la estructura base); todas se miden con las semillas 42, 43 y 44 y se elige con la regla de D22 | A 3 meses, con una semilla por intento, las 3 mejores de cada red ganaron la primera ronda con suerte (la GRU, 0,89-0,90 con la semilla 42 y 0,96 con la 43 y la 44), y la base, mejor con 3 semillas (0,922 frente a 0,937), se quedaba fuera. La pregunta de la fase B es si hay algo mejor que la base, y para responderla la base tiene que competir en igualdad. No puede empeorar el resultado: solo evita quedarse con una configuración afortunada. **Resultado:** a 3 meses, la RNN y la GRU se quedan con la base; a 1 año no cambia nada | ✅ | `busqueda.finalistas_b`, Diario 10/11 (noche) |
-| D24 | 10/11/2026 | **A 1 semana, 20 intentos por red en lugar de 40**: los 10 primeros al azar (iguales para las tres redes) y 10 de Optuna. Confirmación y elección como a 3 meses, con D23 | Con la ventana de 252 días, 40 intentos tardarían unas 15 h: la previsión de D22 se quedó corta (×1,6). Hay poco que ganar: a 3 meses la búsqueda no mejoró la base, y a 1 semana la fase A dio 0,98-1,01 en todo. El azar entre semillas a 1 semana es muy pequeño (0,002), así que con una semilla por intento la comparación es fiable. Las tres redes mantienen el mismo presupuesto | ✅ | `config.INTENTOS_FASE_B`, Diario 10/11 (noche) |
+| D24 | 10/11/2026 | **A 1 semana, 20 intentos por red en lugar de 40**: los 10 primeros al azar (iguales para las tres redes) y 10 de Optuna. Confirmación y elección como a 3 meses, con D23 | Con la ventana de 252 días, 40 intentos tardarían unas 15 h: la previsión de D22 se quedó corta (×1,6). Hay poco que ganar: a 3 meses la búsqueda no mejoró la base, y a 1 semana la fase A dio 0,98-1,01 en todo. El azar entre semillas a 1 semana es muy pequeño (0,002), así que con una semilla por intento la comparación es fiable. Las tres redes mantienen el mismo presupuesto. **Resultado:** 15,4 h; la búsqueda no mejora la base (elegidas 0,991-0,994 frente a 0,988-0,997), como se esperaba | ✅ | `config.INTENTOS_FASE_B`, Diario 10/11 (noche) y 11/11 |
+| D25 | 10/11/2026 | **Ampliación de la búsqueda:** si la configuración elegida de una red (tras la confirmación) está en el último cuarto de sus intentos, esa red recibe 20 intentos más, una sola vez. Igual en los tres horizontes y las tres redes | Una elegida tardía indica que Optuna seguía encontrando mejoras: a 1 año, la LSTM pasó de 0,930 (tras 30 intentos) a 0,882 (intento 37). Se mira la elegida y no la mejor de la primera ronda, porque a 1 semana y a 3 meses esa es en parte suerte. Una sola vez, para acotar el tiempo. Con 20 intentos a 1 año, la RNN y la LSTM se habrían quedado en 0,95-0,96. **Aplicación:** 1 año, la LSTM pasa de 40 a 60 intentos (RNN 28 y GRU 20, no); 3 meses, ninguna (elegidas 1, 27 y 1); 1 semana, ninguna (elegidas 11, 8 y 15 de 20). **Resultado a 1 año:** la mejor nueva da 0,881 (intento 45), empatada con la 37 (0,882), que se mantiene por tener menos parámetros. La búsqueda ya estaba estabilizada | ✅ | `scripts/fase_b.py --intentos`, Diario 10/11 (noche) |
+| D26 | 11/11/2026 | **El examen final en test se aplaza:** antes, seguir trabajando para mejorar las redes. La fase B queda cerrada como referencia de lo que da ajustar la configuración | Tras la fase B, las redes siguen lejos del objetivo: no aportan a 1 semana (0,99), mejoran un 6-8 % al ingenuo a 3 meses y a 1 año van por detrás del lineal (0,88-0,89 frente a 0,82). El test se usa una sola vez (D7), así que solo tiene sentido con la versión final. Decisión de Pablo | ✅ | Diario 11/11 |
 
 ### Hipótesis abiertas
 
 | ID | Hipótesis | Cómo se comprobará | Estado |
 |---|---|---|---|
-| H1 | Las redes mejorarán algo al ingenuo a 5 días, pero no a 63 ni a 252 | Tabla comparativa en test | abierta · en validación (fase A, confirmada con semillas) **no se cumple**: se mejora a 63 días (≈ 6 %) y apenas a 5 (≈ 1 %) |
+| H1 | Las redes mejorarán algo al ingenuo a 5 días, pero no a 63 ni a 252 | Tabla comparativa en test | abierta · en validación (fase A, confirmada con semillas) **no se cumple**: se mejora a 63 días (≈ 6 %) y apenas a 5 (≈ 1 %). Tras la fase B, igual: ≈ 1 % a 5 días, 6-8 % a 63 y 11-12 % a 252 (el lineal, 18 %) (Diario 11/11) |
 | H2 | La variación de ayer del WTI anticipa el Brent de hoy (correlación ≈ 0,17), probablemente porque EE. UU. cierra después que Londres | Comparar el modelo con y sin WTI a 5 días | abierta |
 | H3 | El modelo aportará más en la anchura del intervalo (riesgo) que en la dirección del precio | Cobertura y anchura de los intervalos frente a los empíricos | abierta |
 | H4 | Predecir variaciones funciona mejor que predecir niveles; una red entrenada con precios tiende a copiar el precio de ayer | Experimento de control al final (D15) | abierta |
 | H5 | Las conclusiones (red ganadora y horizontes en los que aporta) no dependen de la partición elegida | Prueba de robustez con la partición A (D10) | abierta |
 | H6 | El indicador de nivel (precio frente a su media anual) mejora sobre todo a 63 y 252 días, porque los precios muy altos o muy bajos tienden a corregir | Estudio con y sin el indicador, en validación | **no se cumple en las redes** (el indicador las empeora). La corrección sí existe a 252 días, pero el lineal la aprovecha sobre todo con la ventana de 252 días (Diario 09/11). Sin tendencia, tampoco: a 1 año las 11 mejores combinaciones son sin nivel (1,056 con él frente a 1,022 sin él, D21) |
 | H7 | Parte del mal resultado a 1 año se debe a la subida media del train, que redes y lineal proyectan al futuro (+3 % a +12 % al año según el pliegue). Sin ella, las redes mejoran a 1 año; a 3 meses y a 1 semana apenas cambia | Experimento sin tendencia (D20) | **se cumple**: a 1 año las redes pasan de 1,114 a 1,044; a 3 meses y a 1 semana, empate (Diario 09/11) |
-| H8 | A 1 año, las redes pierden frente al lineal con los mismos datos (1,03 frente a 0,82) porque tienen demasiada capacidad: con unas 17 respuestas independientes, una red pequeña o muy regulada debería acercarse al lineal | Fase B (D22): si a 1 año ganan configuraciones pequeñas o muy reguladas, y si se acercan a 0,82 | **se cumple en parte**: el problema es aprender demasiado, no tener muchos parámetros. A 1 año gana aprender despacio (velocidad ≈ 0,0002 y lote 128): la velocidad es lo que más influye (correlación 0,8 con el error) y el tamaño apenas, si acaso a favor de las redes grandes. Las elegidas paran en la 1.ª época y hacen previsiones prudentes, en la dirección del lineal pero de un tercio a la mitad de su tamaño. Pasan de 1,01-1,06 a 0,88-0,89, sin llegar al lineal (0,82), que va por delante los tres años (Diario 10/11, noche) |
+| H8 | A 1 año, las redes pierden frente al lineal con los mismos datos (1,03 frente a 0,82) porque tienen demasiada capacidad: con unas 17 respuestas independientes, una red pequeña o muy regulada debería acercarse al lineal | Fase B (D22): si a 1 año ganan configuraciones pequeñas o muy reguladas, y si se acercan a 0,82 | **se cumple en parte**: el problema es aprender demasiado, no tener muchos parámetros. A 1 año gana aprender despacio (velocidad ≈ 0,0002 y lote 128): la velocidad es lo que más influye (correlación 0,8 con el error; 0,76 con los 140 intentos tras D25) y el tamaño apenas, si acaso a favor de las redes grandes. Las elegidas paran en la 1.ª época y hacen previsiones prudentes, en la dirección del lineal pero de un tercio a la mitad de su tamaño. Pasan de 1,01-1,06 a 0,88-0,89, sin llegar al lineal (0,82), que va por delante los tres años (Diario 10/11, noche) |
 
 ### Limitaciones y problemas conocidos
 
@@ -61,8 +63,9 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 - Smart App Control (Windows) puede bloquear versiones recién publicadas de librerías con DLL.
 - El EDA consulta FRED para identificar los días de cotización (sin conexión usa una regla aproximada).
 - La causa del pico de 2026 (138,21 $, 07/04/2026) está sin documentar.
-- Equipo de trabajo: Samsung Galaxy Book6 (Intel Core Ultra 7 355, gráfica integrada, 16 GB), **sin GPU NVIDIA**. El problema es pequeño y en CPU se estima entre 30 s y 2 min por entrenamiento. Para los entrenamientos largos: enchufado y sobre una mesa, protección de la batería activada al 80 % (Samsung Settings → Batería y rendimiento) y modo optimizado; con `--hilos 4` va más fresco, aunque algo más lento.
+- Equipo de trabajo: Samsung Galaxy Book6 (Intel Core Ultra 7 355, gráfica integrada, 16 GB), **sin GPU NVIDIA**. El problema es pequeño y en CPU se estima entre 30 s y 2 min por entrenamiento. Para los entrenamientos largos: enchufado y sobre una mesa, protección de la batería activada al 80 % (Samsung Settings → Batería y rendimiento) y modo optimizado; con `--hilos 4` va más fresco, aunque algo más lento. **Cargador:** el portátil necesita uno USB-C de 65 W; con uno de 20 W la batería baja al entrenar aunque esté enchufado (≈ 4-5 W con 4 hilos). Con el ahorro de energía de Windows aguanta, pero tarda más (Diario 11/11).
 - **Parada temprana a 1 año:** el trozo del train que decide cuándo parar tiene unas 3 respuestas independientes, así que la época de parada es casi azar. Se mantiene igual para todos (D22); las 3 semillas por intento promedian también este azar.
+- **Poda de la fase B a 3 meses:** con una semilla, la nota tras 2 años anticipa poco la final (correlación 0,33; tras 3 años, 0,64; a 1 año, con 3 semillas, 0,77), así que la poda corta algo a ciegas. Comprobado hacia atrás con los intentos 1-10, que nunca se podan: ninguno de los que habría cortado acabó entre los 3 mejores. Como a 3 meses todas las configuraciones rinden igual dentro del azar, no se pierde nada relevante.
 - **Hay GPU disponible en la universidad** para los entrenamientos más pesados (ajuste de hiperparámetros, reentrenamiento anual). Implicaciones:
   - el código debe funcionar igual en CPU y en GPU, eligiendo el dispositivo automáticamente;
   - el repo debe poder clonarse y ejecutarse allí con `poetry install`;
@@ -646,12 +649,87 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
   - `INTENTOS_FASE_B` pasa a ser por horizonte (20 / 40 / 40); la elección y el script lo leen de ahí, y `--intentos` sigue sirviendo para cambiarlo.
   - Plan con `--solo-mostrar`: 6,0 h previstas a 1 semana; con el desfase observado y la poda, unas 8-9 h.
 
+**Preguntas de Pablo, respondidas con los resultados**
+- **¿Perjudica bajar a 20 intentos?** A 1 año, sí lo habría hecho: tras 20 intentos, la RNN y la LSTM iban por 0,949 y 0,959, y llegaron a 0,893 y 0,882 en los intentos 28 y 37. A 3 meses no cambia nada (0,933 / 0,938 / 0,893 tras 20, frente a 0,933 / 0,931 / 0,893 tras 40). A 1 semana se espera lo segundo, porque las redes ya están pegadas al ingenuo y no hay un error grande que corregir. Por si acaso → **D25**.
+- **¿La poda ha hecho perder algo?** A 1 año poda poco (8 de 120) y bien: los que habría cortado entre los intentos 1-10 acabaron entre los últimos. A 3 meses corta algo a ciegas, pero sin perder nada relevante (ver Limitaciones).
+- **¿Redes aún más lentas a 1 año?** No. Con lote 128, las más lentas (0,0001-0,00015) dan 0,966 de mediana, frente a 0,951 entre 0,00015 y 0,00025. Las de 0,00011-0,00013 dan 0,95-1,01, y ninguna está entre las mejores. Más lento lleva al ingenuo, porque la red no aprende nada; más rápido, a memorizar. El límite a 1 año no es la velocidad: las redes ya prevén cambios más pequeños que el lineal y aun así pierden contra él.
+- **¿Cómo mejorar a 3 meses?** Ajustar la red no sirve. Opciones:
+  - **promediar las previsiones de 3 semillas:** el MAE del promedio nunca es peor que la media de los tres, y la previsión es más estable para la app;
+  - **información nueva** (por ejemplo, futuros frente a contado): obliga a reabrir los datos y la fase A, así que se deja como mejora futura.
+
 **Decisiones**
-- **D23** y **D24** (Resumen vivo). H8, actualizada.
+- **D23**, **D24** y **D25** (Resumen vivo). H8, actualizada.
 
 **Pendiente**
-- Pablo lanza de noche `python scripts/fase_b.py --horizontes medio corto`:
+- ~~D25 a 1 año~~ Hecho: `python scripts/fase_b.py --horizontes largo --modelos LSTM --intentos 60`, 21 min. De los 20 intentos nuevos, 4 se podan y el mejor da 0,881 (intento 45), frente a 0,882 del 37. Las finalistas son la 45, la 37 y la 42 (0,884), empatadas; se mantiene la 37, la de menos parámetros. La LSTM ya había llegado a su techo.
+- Decidir si se prueba en validación el promedio de 3 semillas (unas 1 h de entrenamientos, después de 1 semana). → Sigue pendiente (Diario 11/11).
+- ~~Pablo lanza de noche `python scripts/fase_b.py --horizontes medio corto`~~ Hecho (Diario 11/11):
   - primero, a 3 meses, solo repite la base con las semillas 43 y 44 (24 entrenamientos, un par de minutos); debe dar exactamente lo calculado arriba, porque la base reproduce los resultados anteriores;
   - después, la búsqueda a 1 semana con 20 intentos.
-- Notebook 03, sección 6 (fase B). Commit de D22, D23 y D24, con el visto bueno de Pablo.
+- ~~Notebook 03, sección 6 (fase B). Commit de D22, D23 y D24~~ Hecho: commit de D22-D24 el 10/11; sección 6 el 11/11.
+- Después: examen final en test, robustez con la partición A (D10), control de precios (D15), aplicación y diapositivas. → El test se aplaza (D26).
+
+### 11/11/2026 · Fase B a 1 semana y cierre de la fase B
+
+**Hecho**
+- Pablo lanzó de noche `python scripts/fase_b.py --horizontes medio corto --hilos 4`. Terminó en 15,4 h sin incidencias: 11,1 h de búsqueda y 4,3 h de final. Fue más lento de lo previsto por el ahorro de energía (ver *Problemas*).
+- 3 meses: la base se repitió con las semillas 43 y 44 (D23) y la elección quedó como se había calculado: la RNN y la GRU se quedan con la base, y la LSTM con el intento 27.
+- 1 semana: 60 intentos (10 podados) y la final de cada red con 3 semillas. Ninguna elegida cae en el último cuarto, así que no hay ampliación (D25).
+- Análisis de la fase B completa. **Notebook 03, sección 6**:
+  - cómo avanza la búsqueda;
+  - qué influye en el error;
+  - la final con 3 semillas;
+  - la elegida frente a la base y al lineal, también año a año;
+  - curvas de aprendizaje de las elegidas;
+  - la poda.
+
+**Resultados a 1 semana** (media de 3 semillas)
+
+| Red | Base (intento 1) | Elegida | Configuración elegida | Parámetros |
+|---|---|---|---|---|
+| RNN | 0,997 | 0,994 (intento 11) | 38 neuronas × 2 capas · velocidad 0,00012 · lote 128 · dropout 0,02 · L2 1·10⁻⁵ | 4.789 |
+| LSTM | 0,988 | 0,991 (intento 8) | 23 × 1 · velocidad 0,00034 · lote 64 · dropout 0,41 · sin L2 | 2.968 |
+| GRU | 0,993 | 0,994 (intento 15) | 8 × 1 · velocidad 0,00037 · lote 64 · dropout 0,25 · sin L2 | 417 |
+| Lineal (mismos datos) | | 0,993 | | |
+
+- **La búsqueda no mejora la base.** Cada año todo queda entre 0,98 y 1,01. Las redes aciertan si sube o baja el 54-56 % de las veces.
+- **La diferencia entre configuraciones es del mismo tamaño que el azar entre semillas** (≈ 0,005): la búsqueda no puede distinguir una configuración buena de una afortunada. Las finalistas empeoran con las semillas 43 y 44 (de 0,985-0,991 a 0,992-0,996), como a 3 meses.
+- Casi ningún valor influye. Aprender despacio ayuda un poco (correlación 0,20).
+- **El lineal elige la regularización más fuerte de las probadas** (alfa 100.000): lo mejor es casi no predecir.
+- Como todas empatan, la regla se queda con las redes más pequeñas. La GRU elegida tiene 8 neuronas.
+- **Poda:** 10 de 60. La nota tras 2 años anticipa bien la final (0,65), y el mejor podado iba por 0,992, frente al 0,981 del mejor completo.
+
+**La fase B completa** (MAE / ingenuo, media de 3 semillas)
+
+| Horizonte | RNN | LSTM | GRU | Lineal | Mejora frente al ingenuo |
+|---|---|---|---|---|---|
+| 1 semana | 0,994 | 0,991 | 0,994 | 0,993 | ≈ 1 % |
+| 3 meses | 0,943 | 0,943 | 0,922 | 0,972 | 6-8 % |
+| 1 año | 0,893 | 0,882 | 0,893 | **0,820** | 11-12 % (lineal, 18 %) |
+
+- **Las tres redes empatan en los tres horizontes.**
+- **Frente al lineal:**
+  - a 3 meses las redes le ganan, sobre todo en 2018 y 2021; en 2019 gana el lineal;
+  - a 1 año gana el lineal los tres años;
+  - a 1 semana empatan todos con el ingenuo.
+- **La búsqueda solo sirve a 1 año**, y lo que encuentra es aprender despacio.
+- **H1 sigue sin cumplirse:** las redes aportan a 3 meses y a 1 año, y no a 1 semana.
+
+**Frente a lo esperado:**
+- **Resultado:** se esperaba que la búsqueda no cambiara nada a 1 semana, y así fue.
+- **Tiempo:** 15,4 h frente a las 8-9 h esperadas, casi el doble. Influyen el ahorro de energía, los 4 hilos y que la búsqueda prueba redes grandes y lentas (un intento llegó a 49 minutos).
+
+**Problemas y soluciones**
+- **La batería bajaba con el portátil enchufado.** Windows decía «cargando», pero en media hora entrenando el nivel bajó de 47,2 a 45,1 Wh, unos 4-5 W. La causa probable es un cargador de 20 W (de iPad); el portátil necesita 65 W.
+  - Con el ahorro de energía de Windows y la pantalla apagada, la batería dejó de bajar: subió de 45,1 a 46,9 Wh en una hora.
+  - El precio: el entrenamiento fue más lento.
+  - Pablo compra un cargador Anker Nano II de 65 W. Anotado en *Limitaciones*.
+- **Notebook, qué influye en el error:** con la nota final solo cuentan los intentos que sobrevivieron a la poda, y a 3 meses eso daba correlaciones de hasta −0,4 que no aparecían en el análisis anterior. Se usa la nota tras 2 años, que tienen todos los intentos, como en el análisis del 10/11.
+
+**Decisiones**
+- **D26**: el examen final en test se aplaza para seguir mejorando las redes. Pablo: «estamos lejos del resultado deseado».
+
+**Pendiente**
+- Buscar cómo mejorar las redes. Ajustar la configuración ya no da más de sí: el límite está en otra parte (los datos que reciben, cómo se entrenan o cómo se combinan). Las ideas se deciden con Pablo antes de lanzar nada.
+- Sigue pendiente decidir si se prueba en validación el promedio de 3 semillas.
 - Después: examen final en test, robustez con la partición A (D10), control de precios (D15), aplicación y diapositivas.
