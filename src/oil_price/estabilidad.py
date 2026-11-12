@@ -92,18 +92,19 @@ def _guardar_fichas(ruta, horizonte, pliegues):
                                              "precio origen": evaluado.precio_origen}), COLUMNAS_FICHAS)
 
 
-def leer_entrenos(dir_salida=config.DIR_RESULTADOS):
-    ruta = dir_salida / ARCHIVOS["entrenos"]
+def leer_entrenos(dir_salida=config.DIR_RESULTADOS, archivos=ARCHIVOS):
+    ruta = dir_salida / archivos["entrenos"]
     return pd.read_csv(ruta) if ruta.exists() else pd.DataFrame(columns=bu.COLUMNAS_B)
 
 
-def leer_previsiones(dir_salida=config.DIR_RESULTADOS):
-    """Previsión de cada red, semilla y ficha, junto a lo que pasó (variación real y precio de partida)."""
-    previsiones = pd.read_csv(dir_salida / ARCHIVOS["previsiones"], parse_dates=["fecha"])
+def leer_previsiones(dir_salida=config.DIR_RESULTADOS, archivos=ARCHIVOS):
+    """Previsión de cada red, semilla y ficha, junto a lo que pasó (variación real y precio de partida).
+    Con `archivos`, los de otra ejecución con el mismo formato (por ejemplo, la validación hacia atrás)."""
+    previsiones = pd.read_csv(dir_salida / archivos["previsiones"], parse_dates=["fecha"])
     # Si el proceso se cortó entre guardar las previsiones y la fila de resultados, ese
     # entrenamiento se repitió: vale la última copia (es idéntica)
     previsiones = previsiones.drop_duplicates(["horizonte", "modelo", "intento", "semilla", "fecha"], keep="last")
-    fichas = pd.read_csv(dir_salida / ARCHIVOS["fichas"], parse_dates=["fecha"])
+    fichas = pd.read_csv(dir_salida / archivos["fichas"], parse_dates=["fecha"])
     return previsiones.merge(fichas, on=["horizonte", "pliegue", "fecha"], how="left", validate="many_to_one")
 
 

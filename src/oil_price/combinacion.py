@@ -36,15 +36,16 @@ def alfa_lineal(horizonte, dir_salida=config.DIR_RESULTADOS):
     return float(notas.idxmin()), float(notas.min())
 
 
-def previsiones_lineal(horizontes=None, dir_salida=config.DIR_RESULTADOS, bases=None):
+def previsiones_lineal(horizontes=None, dir_salida=config.DIR_RESULTADOS, bases=None, pliegues=bu._pliegues):
     """Previsión del lineal de referencia en cada ficha de validación, con el formato de
-    `estabilidad.leer_previsiones` (modelo «Lineal», sin semilla)."""
+    `estabilidad.leer_previsiones` (modelo «Lineal», sin semilla). Con `pliegues`, en otros años
+    (una función como `busqueda._pliegues`)."""
     horizontes = horizontes or list(config.HORIZONTES)
     bases = bases if bases is not None else ex._bases()
     tablas = []
     for h in horizontes:
         alfa, _ = alfa_lineal(h, dir_salida)
-        for año, train, evaluado in bu._pliegues(bases, bu.combinacion(h)):
+        for año, train, evaluado in pliegues(bases, bu.combinacion(h)):
             lineal = ModeloLineal(alfa, sin_tendencia=True).ajustar(train)
             tablas.append(pd.DataFrame({
                 "horizonte": h, "modelo": "Lineal", "intento": 0, "pliegue": año, "semilla": np.nan,

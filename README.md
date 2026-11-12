@@ -9,7 +9,7 @@ Comparativa de tres redes neuronales recurrentes (RNN simple, LSTM y GRU) para p
 - [x] Entorno y descarga de datos
 - [x] Análisis exploratorio (EDA)
 - [x] Preprocesamiento
-- [ ] Modelos (RNN, LSTM y GRU) y comparativa: *en curso* (fase A cerrada: datos elegidos para cada horizonte, sin tendencia; fase B cerrada en los tres horizontes; estabilidad cerrada: se promedian 5 semillas; la combinación de red y lineal no mejora; antes del examen final, mejora de las redes)
+- [ ] Modelos (RNN, LSTM y GRU) y comparativa: *en curso* (fase A cerrada: datos elegidos para cada horizonte, sin tendencia; fase B cerrada en los tres horizontes; estabilidad cerrada: se promedian 5 semillas; la combinación de red y lineal no mejora; la validación hacia atrás (2010-2017) no confirma la ventaja de las redes; antes del examen final, incertidumbre)
 - [ ] Aplicación
 - [ ] Presentación (máximo 5 diapositivas)
 
@@ -37,7 +37,8 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   ├── tendencia.py             Repite las combinaciones elegidas sin la subida media del train
 │   ├── fase_b.py                Fase B: busca la mejor configuración de cada red (Optuna)
 │   ├── estabilidad.py           Entrena las redes elegidas con 10 semillas para medir el efecto de promediarlas
-│   └── importancia.py           Reentrena las redes elegidas y mide qué variables usan
+│   ├── importancia.py           Reentrena las redes elegidas y mide qué variables usan
+│   └── hacia_atras.py           Evalúa las redes elegidas en 2010-2017, sin usar nada posterior
 ├── src/oil_price/               Código reutilizable (notebooks y aplicación)
 │   ├── config.py                Parámetros: fechas, variables, horizontes, partición…
 │   ├── datos.py                 Carga y limpieza
@@ -50,6 +51,7 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   ├── estabilidad.py           Promedio de semillas (D27): entrenamiento, previsiones y medidas de estabilidad
 │   ├── combinacion.py           Combinación de red y lineal (D28): previsiones del lineal, mezcla y regla
 │   ├── explicacion.py           Qué ve cada modelo: aportación e importancia de cada variable, situaciones típicas
+│   ├── hacia_atras.py           Validación hacia atrás (D29): las redes elegidas, evaluadas en 2010-2017
 │   ├── evaluacion.py            Métricas, modelo ingenuo y comparación con él
 │   └── graficos.py              Estilo de los gráficos
 ├── tests/                       Pruebas automáticas (pytest)
@@ -116,6 +118,7 @@ python scripts/estabilidad.py --solo-mostrar            # estabilidad (D27): pla
 python scripts/estabilidad.py                           # las 9 redes elegidas con 10 semillas (unas 5 h)
 
 python scripts/importancia.py                           # qué variables usan las redes, a 3 meses y a 1 año (unos 10 min)
+python scripts/hacia_atras.py                           # validación hacia atrás, 2010-2017 (unos 12 min)
 ```
 
 Los notebooks leen esos resultados y los analizan (`notebooks/03_modelado.ipynb`).

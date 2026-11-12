@@ -43,12 +43,13 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 | D26 | 11/11/2026 | **El examen final en test se aplaza:** antes, seguir trabajando para mejorar las redes. La fase B queda cerrada como referencia de lo que da ajustar la configuración | Tras la fase B, las redes siguen lejos del objetivo: no aportan a 1 semana (0,99), mejoran un 6-8 % al ingenuo a 3 meses y a 1 año van por detrás del lineal (0,88-0,89 frente a 0,82). El test se usa una sola vez (D7), así que solo tiene sentido con la versión final. Decisión de Pablo | ✅ | Diario 11/11 |
 | D27 | 11/11/2026 | **Estabilidad: promedio de semillas.** Las 9 configuraciones elegidas en la fase B, sin volver a elegir nada, se entrenan con 10 semillas (42-51) y se guardan sus previsiones. Se mide el error de una red suelta frente al promedio de 2, 3, 5 y 10 semillas, y la estabilidad: cuánto cambian la nota y las previsiones entre grupos de semillas distintos. El promedio es la media de los precios que prevé cada semilla. **Regla, fijada antes de ver los resultados:** se adopta el promedio de 5 semillas, igual para las tres redes; la curva de 1 a 10 solo describe el efecto | La semilla (hasta 0,04 a 1 año) y la época de parada, que es medio azar, hacen que cada entrenamiento salga distinto. Así cuesta saber si una mejora es real, y en la aplicación la previsión cambiaría al reentrenar. Promediar no puede empeorar el error (su MAE nunca supera la media del de sus semillas) y no elige nada, así que no añade riesgo de sobreajustar la validación. Además, las semillas 45-51 no se usaron para elegir: dan una estimación más honesta del error de las elegidas. **Resultado:** se adopta el promedio de 5. Mejora poco el error (0,001-0,009), pero a 3 meses reduce a la mitad cuánto cambia la previsión de unas semillas a otras. Con las semillas nuevas, la fase B resulta optimista: 0,03-0,07 peor a 1 año y hasta 0,02 a 3 meses. Notas de referencia desde ahora (promedio de 5): 1 semana 0,991-0,993; 3 meses 0,924-0,950; 1 año 0,906-0,937 (lineal 0,820) | ✅ | `estabilidad.py`, `scripts/estabilidad.py`, Diario 11/11 (tarde) y 12/11, notebook 03 §7 |
 | D28 | 12/11/2026 | **Combinación de red y lineal.** La previsión combinada es la media, a partes iguales, del precio que prevé la red (promedio de 5 semillas, D27) y del que prevé el lineal de referencia (sin tendencia, mismos datos, su mejor regularización). Se calcula con las previsiones ya guardadas, sin entrenar, solo en validación. **Regla, fijada antes de calcular:** en cada horizonte, con la media de las tres redes, se adopta la combinación si mejora a la mejor de las dos opciones por separado (red sola o lineal) en más del azar que queda con 5 semillas (D27); si empata, se queda la opción sola, por sencilla. La curva con otros pesos (0; 0,25; 0,5; 0,75; 1) es solo descriptiva | A 1 año el lineal es mejor que las redes, y a 3 meses al revés, pero cada uno falla en años distintos (el lineal en 2021, las redes en 2019). Combinar es la forma más sencilla de aprovechar los dos. Mitad y mitad no se elige con la validación, así que no añade riesgo de sobreajustarla (problema 5), y el error de la mezcla nunca supera la media de los errores de las dos. **Resultado: no se adopta en ningún horizonte.** 1 semana, empate (0,990 frente a 0,992 de la red sola; azar 0,003); 3 meses, algo peor que la red sola (0,945 frente a 0,938); 1 año, peor que el lineal (0,851 frente a 0,820). A 1 año las redes son una copia en pequeño del lineal: misma dirección (correlación 0,94-0,95) y la mitad o dos tercios de su tamaño | ✅ | `combinacion.py`, Diario 12/11 (tarde), notebook 03 §8 |
+| D29 | 12/11/2026 | **Validación hacia atrás (2010-2017).** Las configuraciones elegidas en la fase B, sin volver a elegir nada (promedio de 5 semillas, 42-46) y el lineal de referencia se evalúan en cada año de 2010 a 2017, entrenando solo con lo anterior. No se usa nada posterior al 31/12/2017. 3 meses y 1 año. **Criterio, fijado antes de calcular:** la ventaja a 3 meses es real si la media de las tres redes gana al ingenuo en al menos 9 de los 12 años (2010-2021) y queda por debajo de 1 con los años juntos; dudosa con 7-8; no se sostiene con 6 o menos (1 año: 8 de 10) | La validación tiene 4 años (3 a 1 año), se ha usado muchas veces para elegir y puede ser favorable a la señal de los modelos (Diario 12/11, noche: en 2006-2017 la regla de la volatilidad no gana al ingenuo a 3 meses). Ocho años que nunca se usaron para elegir dicen, sin tocar el test, si la ventaja es real. No elige nada. **Resultado:** 3 meses, **dudosa**: gana 7 de 12 años, 1,023 con los 12 juntos y 1,073 en 2010-2017 (0,933 en 2018-2021); 1 año, **no se sostiene**: 4 de 10, tanto las redes como el lineal. La validación era un periodo favorable | ✅ | `hacia_atras.py`, Diario 12/11 (noche), notebook 03 §10 |
 
 ### Hipótesis abiertas
 
 | ID | Hipótesis | Cómo se comprobará | Estado |
 |---|---|---|---|
-| H1 | Las redes mejorarán algo al ingenuo a 5 días, pero no a 63 ni a 252 | Tabla comparativa en test | abierta · en validación (fase A, confirmada con semillas) **no se cumple**: se mejora a 63 días (≈ 6 %) y apenas a 5 (≈ 1 %). Tras la fase B, igual: ≈ 1 % a 5 días, 6-8 % a 63 y 11-12 % a 252 (el lineal, 18 %) (Diario 11/11). Con el promedio de 5 semillas (D27): ≈ 1 % a 5 días, 5-8 % a 63 y 6-9 % a 252 (Diario 12/11) |
+| H1 | Las redes mejorarán algo al ingenuo a 5 días, pero no a 63 ni a 252 | Tabla comparativa en test | abierta · en validación (fase A, confirmada con semillas) **no se cumple**: se mejora a 63 días (≈ 6 %) y apenas a 5 (≈ 1 %). Tras la fase B, igual: ≈ 1 % a 5 días, 6-8 % a 63 y 11-12 % a 252 (el lineal, 18 %) (Diario 11/11). Con el promedio de 5 semillas (D27): ≈ 1 % a 5 días, 5-8 % a 63 y 6-9 % a 252 (Diario 12/11). **Con 12 años (D29), ningún horizonte mejora al ingenuo de forma fiable:** a 63 días, dudosa (7 de 12 años, 1,023 con los años juntos); a 252, no se sostiene (4 de 10) |
 | H2 | La variación de ayer del WTI anticipa el Brent de hoy (correlación ≈ 0,17), probablemente porque EE. UU. cierra después que Londres | Comparar el modelo con y sin WTI a 5 días | abierta |
 | H3 | El modelo aportará más en la anchura del intervalo (riesgo) que en la dirección del precio | Cobertura y anchura de los intervalos frente a los empíricos | abierta |
 | H4 | Predecir variaciones funciona mejor que predecir niveles; una red entrenada con precios tiende a copiar el precio de ayer | Experimento de control al final (D15) | abierta |
@@ -928,6 +929,88 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 - Para la aplicación, la explicación de la previsión a 3 meses y a 1 año: depende sobre todo de lo nervioso que esté el mercado, y tras las tormentas el precio suele recuperarse. Puede invalidarla una tormenta que venga de una subida.
 
 **Pendiente**
-- D29: diseño del experimento de información nueva, con su regla y lo esperado, antes de calcular. Pendiente del visto bueno de Pablo.
-- Comprobar en el train (2000-2017), sin tocar el test, si tras las subidas bruscas de volatilidad el precio también rebota.
-- Commit del paso 1, con el visto bueno de Pablo.
+- D29: diseño del experimento de información nueva, con su regla y lo esperado, antes de calcular. Pendiente del visto bueno de Pablo. (→ no se hace por ahora: ver abajo)
+- Comprobar en el train (2000-2017), sin tocar el test, si tras las subidas bruscas de volatilidad el precio también rebota. (→ hecho: ver abajo)
+- Commit del paso 1, con el visto bueno de Pablo. (→ hecho por Pablo a mano: `e43c413`)
+
+### 12/11/2026 (noche) · Información nueva: estudio en el entrenamiento (paso 2)
+
+**Hecho**
+- Antes de gastar la validación, un estudio **solo con datos hasta 2017** (sin tocar validación ni test), en tres partes. Lo hacen dos scripts de trabajo, que no están en el repositorio:
+  1. las tormentas del train (el 10 % de días con más volatilidad), una a una;
+  2. la relación de cada medida candidata con la variación posterior;
+  3. una validación por años dentro del train: modelos lineales pequeños, entrenados con lo anterior, prevén cada año de 2006 a 2017.
+
+**Resultados**
+- **Tormentas:** 15 episodios en 2000-2017. 12 llegaron tras una caída, y después el precio subió de media un 9 % en 3 meses y un 23 % en un año (un día cualquiera: un 2 % y un 5 %). Solo 3 llegaron tras una subida, y después el precio también subió. En el train no hay ningún caso como el de septiembre de 2019 (tormenta de subida seguida de caída), así que los modelos no pueden aprender esa diferencia.
+- **Ninguna candidata mejora a la volatilidad de un mes sola** en la validación por años dentro del train:
+
+  | Añadido a la volatilidad de un mes | 3 meses | 1 año |
+  |---|---|---|
+  | Nada (lo de ahora) | 1,046 | 0,964 |
+  | Volatilidad a 3 meses | 1,099 | 0,978 |
+  | VIX en nivel | 1,084 | 1,057 |
+  | Volatilidad de caídas y de subidas por separado | 1,055 | 0,966 |
+  | Futuro del WTI frente al contado | 1,045 | 0,960 |
+  | Brent frente al WTI · dólar · cobre (frente a su media del año) | 1,06-1,08 | 0,98-0,99 |
+  | Gas frente al Brent | 1,192 | 1,262 |
+  | Tipo del BCE (cambio en un año) | 1,069 | 0,951 |
+
+  - El gas frente al Brent parece muy relacionado con lo que pasó después (correlación 0,48 a 1 año), pero al prever años nuevos falla mucho: es una tendencia de esos años, no una señal.
+  - El tipo del BCE mejora algo a 1 año, pero en 2018-2021 apenas cambió: allí no podría ayudar.
+- **Lo más importante:** en 2006-2017, la regla de la volatilidad es peor que el ingenuo a 3 meses (1,046) y apenas lo mejora a 1 año (0,964). En 2018-2021 funciona mucho mejor (0,968 y 0,853), sobre todo por 2020, un desplome con rebote muy rápido. En las caídas largas (2008, 2014-2016) el precio siguió bajando meses después de la tormenta. **La validación puede ser un periodo favorable a la regla.**
+
+**Decisiones**
+- **Información nueva: se deja sin explorar por ahora** (decisión de Pablo). El estudio en el train no apoya ninguna candidata, así que no se gasta la validación en probarlas.
+- **Se adelanta el paso 4 y se mejora:** en lugar de mirar solo los 4 años de validación, las configuraciones elegidas se prueban también en 2010-2017 (D29).
+
+### 12/11/2026 (noche) · Validación hacia atrás (D29, paso 4)
+
+**Diseño** (D29, fijado antes de calcular)
+- **Qué:** las configuraciones elegidas en la fase B, sin volver a elegir nada, con su promedio de 5 semillas (42-46, D27), y el lineal de referencia con su misma regularización. Se evalúan en cada año de 2010 a 2017, entrenando solo con lo anterior, como en la validación.
+- **Por qué es limpia:** esos años nunca se usaron para elegir nada (solo se miró 2018-2021), y no se usa nada posterior al 31/12/2017: las fichas cuya respuesta cae después se descartan. A 1 año, el último año evaluado es 2016. El test no se toca.
+- **Dónde:** 3 meses (8 años nuevos, 12 con la validación) y 1 año (7 nuevos, 10 en total). 1 semana queda fuera: con la ventana de 252 días tardaría horas, y allí ningún modelo aporta.
+- **Qué se mide:** la nota de cada año; cuántos años gana cada modelo al ingenuo; la nota con todos los años juntos y un intervalo (remuestreando años); y cuántas veces acierta si el precio sube o baja.
+- **Criterio, fijado antes de ver nada** (media de las tres redes, los 12 años de 3 meses):
+  - **ventaja real:** gana al ingenuo en al menos 9 de los 12 años y queda por debajo de 1 con los años juntos. Sin ninguna ventaja, ganar 9 o más de 12 años sale el 7 % de las veces, como sacar 9 caras en 12 tiradas;
+  - **dudosa:** gana 7 u 8 años;
+  - **no se sostiene:** gana 6 o menos.
+  - A 1 año, lo mismo con 10 años: real con 8 o más.
+
+**Lo esperado** (apuntado antes de calcular)
+- **3 meses:** menos ventaja que en validación. Entre 0,96 y 1,02 de media en 2010-2017, ganando al ingenuo en la mitad de esos años o algo más. Con los 12 años, entre «dudosa» y «real».
+- **1 año:** alrededor de 1 (0,95-1,05) en 2010-2017. El lineal, algo mejor que las redes pero lejos de su 0,82. Las caídas largas de 2014-2016 deberían salir mal.
+
+**Hecho**
+- `hacia_atras.py` (años 2010-2017 sin nada posterior a 2017, ejecución reanudable, medidas y criterio), `scripts/hacia_atras.py` y 6 pruebas nuevas, entre ellas que ninguna ficha mira después de 2017. 76 en total, todas correctas.
+- Pablo lanzó `python scripts/hacia_atras.py`: 225 entrenamientos en 11,9 minutos (la mitad de lo previsto).
+- `estabilidad.leer_previsiones` y `combinacion.previsiones_lineal` admiten otros archivos y otros años.
+- Notebook 03, sección 10 («Validación hacia atrás»). El examen final pasa a ser la sección 11.
+
+**Resultados** (media de las tres redes; detalle en el notebook 03, §10)
+
+| | 2010-2017 | 2018-2021 (validación) | Todos los años | Años que gana | Veredicto |
+|---|---|---|---|---|---|
+| 3 meses · redes | 1,073 | 0,933 | 1,023 (0,96-1,10) | 7 de 12 | **dudosa** |
+| 3 meses · lineal | 1,047 | 0,972 | 1,020 | 5 de 12 | no se sostiene |
+| 1 año · redes | 1,024 | 0,901 | 0,984 (0,86-1,14) | 4 de 10 | **no se sostiene** |
+| 1 año · lineal | 0,982 | 0,820 | 0,928 (0,76-1,16) | 4 de 10 | no se sostiene |
+
+- **3 meses:** las redes ganan solo 3 de los 8 años nuevos (2010, 2016 y 2017). Sin ninguna ventaja, ganar 7 o más de 12 años pasa el 39 % de las veces. La RNN es la más regular: 0,994 con los 12 años, la única por debajo de 1.
+- **1 año:** unos pocos años muy buenos (2014, 2016 y 2020) compensan muchos malos (2010-2012, 2015 y 2019).
+- **Peores años:** 2011-2012, con el precio por encima de 100 $ casi todo el tiempo (a 1 año, también 2010), y 2015, la caída larga.
+- **Dirección:**
+  - a 3 meses, la RNN acierta si sube o baja el 58 % de las veces, frente al 54 % de decir siempre «sube»;
+  - a 1 año, el lineal acierta el 64 % (el precio bajó en el 54 % de las fichas) y las redes el 52-57 %.
+- **Lo esperado frente a lo obtenido:**
+  - 3 meses: peor de lo esperado (1,073 en 2010-2017 frente a 0,96-1,02), y el veredicto queda en el extremo bajo de lo previsto (dudosa);
+  - 1 año: se cumple en la media, pero no en los años: 2014 y 2016 salen bien, y 2010-2012, que no esperaba, mal.
+
+**Decisiones**
+- **Conclusión del estudio, con 12 años:** ninguna red mejora al ingenuo de forma fiable en ningún horizonte. La ventaja a 3 meses de la validación era sobre todo de esos años: dudosa con el criterio fijado. A 1 año, ni las redes ni el lineal se sostienen. Es la respuesta a lo que pide el enunciado («en qué horizontes la predicción aporta valor y en cuáles no»).
+- Expectativa para el test (cuando Pablo lo apruebe): alrededor de 1 en los tres horizontes.
+- Para la aplicación, el valor estará más en decir cuánto puede moverse el precio (incertidumbre, paso 3) que en la dirección.
+
+**Pendiente**
+- Commit de D29, con el visto bueno de Pablo.
+- Paso 3, incertidumbre: el intervalo del 80 % (D8) y su cobertura año a año. Ahora se puede comprobar en 12 años (2010-2021), no solo en 4.
