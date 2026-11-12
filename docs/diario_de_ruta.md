@@ -66,6 +66,7 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 - El EDA consulta FRED para identificar los días de cotización (sin conexión usa una regla aproximada).
 - La causa del pico de 2026 (138,21 $, 07/04/2026) está sin documentar.
 - Equipo de trabajo: Samsung Galaxy Book6 (Intel Core Ultra 7 355, gráfica integrada, 16 GB), **sin GPU NVIDIA**. El problema es pequeño y en CPU se estima entre 30 s y 2 min por entrenamiento. Para los entrenamientos largos: enchufado y sobre una mesa, protección de la batería activada al 80 % (Samsung Settings → Batería y rendimiento) y modo optimizado; con `--hilos 4` va más fresco, aunque algo más lento. **Cargador:** el portátil necesita uno USB-C de 65 W; con uno de 20 W la batería baja al entrenar aunque esté enchufado (≈ 4-5 W con 4 hilos). Con el ahorro de energía de Windows aguanta, pero tarda más (Diario 11/11).
+- **La señal de los modelos es una sola: la volatilidad del Brent** (Diario 12/11, noche). Tras las tormentas de caída, el precio rebotó; pero la regla no distingue una tormenta de caída de una de subida. En validación ya falló una vez (septiembre de 2019), y la única gran tormenta de la validación (2020) fue de caída.
 - **Parada temprana a 1 año:** el trozo del train que decide cuándo parar tiene unas 3 respuestas independientes, así que la época de parada es casi azar. Se mantiene igual para todos (D22); las 3 semillas por intento promedian también este azar. **Con 10 semillas (D27):** en 2018 y 2019, el 80-100 % de los entrenamientos se queda con la 1.ª época, y la nota de cada semilla depende de dónde para cada año (de 0,87 a 0,99). El promedio de 5 semillas no lo resuelve.
 - **Poda de la fase B a 3 meses:** con una semilla, la nota tras 2 años anticipa poco la final (correlación 0,33; tras 3 años, 0,64; a 1 año, con 3 semillas, 0,77), así que la poda corta algo a ciegas. Comprobado hacia atrás con los intentos 1-10, que nunca se podan: ninguno de los que habría cortado acabó entre los 3 mejores. Como a 3 meses todas las configuraciones rinden igual dentro del azar, no se pierde nada relevante.
 - **Hay GPU disponible en la universidad** para los entrenamientos más pesados (ajuste de hiperparámetros, reentrenamiento anual). Implicaciones:
@@ -891,4 +892,42 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 2. **Información nueva, en un solo experimento**, solo a 3 meses y a 1 año, con la regla escrita antes y 10 semillas: por ejemplo, la diferencia entre el futuro y el contado del WTI, la diferencia entre el Brent y el WTI, o el tipo del BCE. Todo está en el CSV y el enunciado lo permite.
 3. **Incertidumbre:** el intervalo del 80 % (D8) y su cobertura en cada año, calibrando cada año con los otros tres (H3).
 4. **¿Es real la ventaja a 3 meses?** Años que gana, cuánto puede ser azar y acierto de la dirección.
-- Commit de D28, con el visto bueno de Pablo.
+- Commit de D28, con el visto bueno de Pablo. (→ hecho: `8f2c643`)
+
+### 12/11/2026 (noche) · Qué ve cada modelo (paso 1)
+
+**Hecho**
+- `explicacion.py`:
+  - aportación exacta de cada variable a la previsión del lineal;
+  - el lineal reajustado sin cada variable y con solo ella;
+  - para redes y lineal, cuánto empeora la nota al desordenar cada variable entre fichas, y cuánto cambia la previsión en situaciones típicas (volatilidad al doble o a la mitad; Brent y WTI un 10 % más abajo que hace un mes).
+- `scripts/importancia.py`: reentrena las redes elegidas con las semillas 42-46, a 3 meses y a 1 año, y guarda `resultados/importancia.csv` y `resultados/efectos.csv`. Tardó 8 minutos (lo lancé yo, por ser corto). Sin desordenar nada, la nota de cada red coincide exactamente con la de su promedio en la estabilidad.
+- 6 pruebas nuevas (70 en total, todas correctas).
+- Notebook 03, sección 9 («Qué ve cada modelo»). El examen final pasa a ser la sección 10.
+
+**Resultados**
+- **El lineal mira casi solo la volatilidad del Brent** del último mes:
+
+  | | Todas las variables | Solo la volatilidad | Todas menos la volatilidad |
+  |---|---|---|---|
+  | 1 semana | 0,993 | 0,992 | 1,001 |
+  | 3 meses | 0,972 | 0,968 | 1,011 |
+  | 1 año | 0,820 | 0,853 | 0,981 |
+
+  - Es lo que más mueve su previsión: dos tercios a 1 año (correlación 0,99 con la previsión entera), más de un tercio a 3 meses y la mitad a 1 semana.
+  - Su regla es «tras la tormenta, rebote». Con la volatilidad al doble de lo normal prevé un 7 % más a 3 meses y un 35 % más a 1 año.
+  - Lo demás pesa poco: a 1 año, el cobre y el dólar (sin ellos, 0,833-0,834) y algo de corrección tras las caídas (un 10 % abajo en un mes → un 3 % más).
+- **Las redes también miran sobre todo la volatilidad:**
+  - **3 meses:** con la misma fuerza que el lineal o más (al doble: un 8-12 % más, frente al 7 %). Además aprovechan algo del último mes del Brent (un 10 % abajo → un 3 % más, frente al 1 % del lineal), del cobre (la RNN) y del VIX (la GRU). Ese «algo más» explica su ventaja sobre el lineal;
+  - **1 año:** solo la volatilidad, y con menos de la mitad de fuerza (al doble: un 12-15 % más, frente al 35 %). Nada más. Es la copia en pequeño de D28.
+- **Por qué funciona:** la volatilidad alta llegó casi siempre con desplomes (2008, 2014-2016, 2020), y después el precio se recuperó. En validación, casi toda la ventaja a 1 año está en el rebote de 2020.
+- **El riesgo ya aparece en validación:** el 16/09/2019, tras el ataque a las instalaciones petroleras saudíes, el Brent saltó un 12 % (de 61,25 a 68,42 $). La volatilidad subió por una subida, no por una caída, y el lineal previó entre el 13/09 y el 31/10 un 17-35 % más a un año. Lo que pasó fue un 29-43 % menos.
+
+**Decisiones**
+- Para la información nueva (paso 2), lo prometedor es medir mejor el estrés del mercado: el VIX en nivel (ahora solo entra su variación diaria) y la volatilidad del Brent a más plazo. Añadir más variaciones diarias, no. Se propone a Pablo el diseño antes de calcular (D29).
+- Para la aplicación, la explicación de la previsión a 3 meses y a 1 año: depende sobre todo de lo nervioso que esté el mercado, y tras las tormentas el precio suele recuperarse. Puede invalidarla una tormenta que venga de una subida.
+
+**Pendiente**
+- D29: diseño del experimento de información nueva, con su regla y lo esperado, antes de calcular. Pendiente del visto bueno de Pablo.
+- Comprobar en el train (2000-2017), sin tocar el test, si tras las subidas bruscas de volatilidad el precio también rebota.
+- Commit del paso 1, con el visto bueno de Pablo.

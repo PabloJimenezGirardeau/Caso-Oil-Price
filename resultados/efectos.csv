@@ -1,0 +1,25 @@
+horizonte,modelo,escenario,cambio medio de la previsión (%)
+medio,RNN,volatilidad ×2,7.83903
+medio,RNN,"volatilidad ×0,5",-6.66192
+medio,RNN,Brent y WTI −10 % en un mes,2.58108
+medio,LSTM,volatilidad ×2,11.6458
+medio,LSTM,"volatilidad ×0,5",-8.58647
+medio,LSTM,Brent y WTI −10 % en un mes,3.39861
+medio,GRU,volatilidad ×2,8.68762
+medio,GRU,"volatilidad ×0,5",-7.23871
+medio,GRU,Brent y WTI −10 % en un mes,2.95102
+medio,Lineal,volatilidad ×2,7.13063
+medio,Lineal,"volatilidad ×0,5",-6.65601
+medio,Lineal,Brent y WTI −10 % en un mes,1.36813
+largo,RNN,volatilidad ×2,14.0239
+largo,RNN,"volatilidad ×0,5",-14.7633
+largo,RNN,Brent y WTI −10 % en un mes,-0.360628
+largo,LSTM,volatilidad ×2,14.5836
+largo,LSTM,"volatilidad ×0,5",-12.8937
+largo,LSTM,Brent y WTI −10 % en un mes,0.57906
+largo,GRU,volatilidad ×2,11.7737
+largo,GRU,"volatilidad ×0,5",-13.4768
+largo,GRU,Brent y WTI −10 % en un mes,-0.204916
+largo,Lineal,volatilidad ×2,34.7355
+largo,Lineal,"volatilidad ×0,5",-25.7805
+largo,Lineal,Brent y WTI −10 % en un mes,3.2434

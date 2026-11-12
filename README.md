@@ -36,7 +36,8 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   ├── fase_a_semillas.py       Repite las finalistas de la fase A con otras semillas
 │   ├── tendencia.py             Repite las combinaciones elegidas sin la subida media del train
 │   ├── fase_b.py                Fase B: busca la mejor configuración de cada red (Optuna)
-│   └── estabilidad.py           Entrena las redes elegidas con 10 semillas para medir el efecto de promediarlas
+│   ├── estabilidad.py           Entrena las redes elegidas con 10 semillas para medir el efecto de promediarlas
+│   └── importancia.py           Reentrena las redes elegidas y mide qué variables usan
 ├── src/oil_price/               Código reutilizable (notebooks y aplicación)
 │   ├── config.py                Parámetros: fechas, variables, horizontes, partición…
 │   ├── datos.py                 Carga y limpieza
@@ -48,6 +49,7 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   ├── busqueda.py              Fase B con Optuna: búsqueda por red y horizonte, poda, confirmación y elección
 │   ├── estabilidad.py           Promedio de semillas (D27): entrenamiento, previsiones y medidas de estabilidad
 │   ├── combinacion.py           Combinación de red y lineal (D28): previsiones del lineal, mezcla y regla
+│   ├── explicacion.py           Qué ve cada modelo: aportación e importancia de cada variable, situaciones típicas
 │   ├── evaluacion.py            Métricas, modelo ingenuo y comparación con él
 │   └── graficos.py              Estilo de los gráficos
 ├── tests/                       Pruebas automáticas (pytest)
@@ -112,6 +114,8 @@ python scripts/fase_b.py --horizontes corto             # 1 semana, 20 intentos 
 
 python scripts/estabilidad.py --solo-mostrar            # estabilidad (D27): plan y tiempo previsto
 python scripts/estabilidad.py                           # las 9 redes elegidas con 10 semillas (unas 5 h)
+
+python scripts/importancia.py                           # qué variables usan las redes, a 3 meses y a 1 año (unos 10 min)
 ```
 
 Los notebooks leen esos resultados y los analizan (`notebooks/03_modelado.ipynb`).
