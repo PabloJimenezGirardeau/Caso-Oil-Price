@@ -42,6 +42,7 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 | D25 | 10/11/2026 | **Ampliación de la búsqueda:** si la configuración elegida de una red (tras la confirmación) está en el último cuarto de sus intentos, esa red recibe 20 intentos más, una sola vez. Igual en los tres horizontes y las tres redes | Una elegida tardía indica que Optuna seguía encontrando mejoras: a 1 año, la LSTM pasó de 0,930 (tras 30 intentos) a 0,882 (intento 37). Se mira la elegida y no la mejor de la primera ronda, porque a 1 semana y a 3 meses esa es en parte suerte. Una sola vez, para acotar el tiempo. Con 20 intentos a 1 año, la RNN y la LSTM se habrían quedado en 0,95-0,96. **Aplicación:** 1 año, la LSTM pasa de 40 a 60 intentos (RNN 28 y GRU 20, no); 3 meses, ninguna (elegidas 1, 27 y 1); 1 semana, ninguna (elegidas 11, 8 y 15 de 20). **Resultado a 1 año:** la mejor nueva da 0,881 (intento 45), empatada con la 37 (0,882), que se mantiene por tener menos parámetros. La búsqueda ya estaba estabilizada | ✅ | `scripts/fase_b.py --intentos`, Diario 10/11 (noche) |
 | D26 | 11/11/2026 | **El examen final en test se aplaza:** antes, seguir trabajando para mejorar las redes. La fase B queda cerrada como referencia de lo que da ajustar la configuración | Tras la fase B, las redes siguen lejos del objetivo: no aportan a 1 semana (0,99), mejoran un 6-8 % al ingenuo a 3 meses y a 1 año van por detrás del lineal (0,88-0,89 frente a 0,82). El test se usa una sola vez (D7), así que solo tiene sentido con la versión final. Decisión de Pablo | ✅ | Diario 11/11 |
 | D27 | 11/11/2026 | **Estabilidad: promedio de semillas.** Las 9 configuraciones elegidas en la fase B, sin volver a elegir nada, se entrenan con 10 semillas (42-51) y se guardan sus previsiones. Se mide el error de una red suelta frente al promedio de 2, 3, 5 y 10 semillas, y la estabilidad: cuánto cambian la nota y las previsiones entre grupos de semillas distintos. El promedio es la media de los precios que prevé cada semilla. **Regla, fijada antes de ver los resultados:** se adopta el promedio de 5 semillas, igual para las tres redes; la curva de 1 a 10 solo describe el efecto | La semilla (hasta 0,04 a 1 año) y la época de parada, que es medio azar, hacen que cada entrenamiento salga distinto. Así cuesta saber si una mejora es real, y en la aplicación la previsión cambiaría al reentrenar. Promediar no puede empeorar el error (su MAE nunca supera la media del de sus semillas) y no elige nada, así que no añade riesgo de sobreajustar la validación. Además, las semillas 45-51 no se usaron para elegir: dan una estimación más honesta del error de las elegidas. **Resultado:** se adopta el promedio de 5. Mejora poco el error (0,001-0,009), pero a 3 meses reduce a la mitad cuánto cambia la previsión de unas semillas a otras. Con las semillas nuevas, la fase B resulta optimista: 0,03-0,07 peor a 1 año y hasta 0,02 a 3 meses. Notas de referencia desde ahora (promedio de 5): 1 semana 0,991-0,993; 3 meses 0,924-0,950; 1 año 0,906-0,937 (lineal 0,820) | ✅ | `estabilidad.py`, `scripts/estabilidad.py`, Diario 11/11 (tarde) y 12/11, notebook 03 §7 |
+| D28 | 12/11/2026 | **Combinación de red y lineal.** La previsión combinada es la media, a partes iguales, del precio que prevé la red (promedio de 5 semillas, D27) y del que prevé el lineal de referencia (sin tendencia, mismos datos, su mejor regularización). Se calcula con las previsiones ya guardadas, sin entrenar, solo en validación. **Regla, fijada antes de calcular:** en cada horizonte, con la media de las tres redes, se adopta la combinación si mejora a la mejor de las dos opciones por separado (red sola o lineal) en más del azar que queda con 5 semillas (D27); si empata, se queda la opción sola, por sencilla. La curva con otros pesos (0; 0,25; 0,5; 0,75; 1) es solo descriptiva | A 1 año el lineal es mejor que las redes, y a 3 meses al revés, pero cada uno falla en años distintos (el lineal en 2021, las redes en 2019). Combinar es la forma más sencilla de aprovechar los dos. Mitad y mitad no se elige con la validación, así que no añade riesgo de sobreajustarla (problema 5), y el error de la mezcla nunca supera la media de los errores de las dos. **Resultado: no se adopta en ningún horizonte.** 1 semana, empate (0,990 frente a 0,992 de la red sola; azar 0,003); 3 meses, algo peor que la red sola (0,945 frente a 0,938); 1 año, peor que el lineal (0,851 frente a 0,820). A 1 año las redes son una copia en pequeño del lineal: misma dirección (correlación 0,94-0,95) y la mitad o dos tercios de su tamaño | ✅ | `combinacion.py`, Diario 12/11 (tarde), notebook 03 §8 |
 
 ### Hipótesis abiertas
 
@@ -54,7 +55,7 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 | H5 | Las conclusiones (red ganadora y horizontes en los que aporta) no dependen de la partición elegida | Prueba de robustez con la partición A (D10) | abierta |
 | H6 | El indicador de nivel (precio frente a su media anual) mejora sobre todo a 63 y 252 días, porque los precios muy altos o muy bajos tienden a corregir | Estudio con y sin el indicador, en validación | **no se cumple en las redes** (el indicador las empeora). La corrección sí existe a 252 días, pero el lineal la aprovecha sobre todo con la ventana de 252 días (Diario 09/11). Sin tendencia, tampoco: a 1 año las 11 mejores combinaciones son sin nivel (1,056 con él frente a 1,022 sin él, D21) |
 | H7 | Parte del mal resultado a 1 año se debe a la subida media del train, que redes y lineal proyectan al futuro (+3 % a +12 % al año según el pliegue). Sin ella, las redes mejoran a 1 año; a 3 meses y a 1 semana apenas cambia | Experimento sin tendencia (D20) | **se cumple**: a 1 año las redes pasan de 1,114 a 1,044; a 3 meses y a 1 semana, empate (Diario 09/11) |
-| H8 | A 1 año, las redes pierden frente al lineal con los mismos datos (1,03 frente a 0,82) porque tienen demasiada capacidad: con unas 17 respuestas independientes, una red pequeña o muy regulada debería acercarse al lineal | Fase B (D22): si a 1 año ganan configuraciones pequeñas o muy reguladas, y si se acercan a 0,82 | **se cumple en parte**: el problema es aprender demasiado, no tener muchos parámetros. A 1 año gana aprender despacio (velocidad ≈ 0,0002 y lote 128): la velocidad es lo que más influye (correlación 0,8 con el error; 0,76 con los 140 intentos tras D25) y el tamaño apenas, si acaso a favor de las redes grandes. Las elegidas paran en la 1.ª época y hacen previsiones prudentes, en la dirección del lineal pero de un tercio a la mitad de su tamaño. Pasan de 1,01-1,06 a 0,88-0,89, sin llegar al lineal (0,82), que va por delante los tres años (Diario 10/11, noche). **Con 10 semillas (D27), menos aún:** con las semillas nuevas dan 0,92-0,96, y el promedio de 5, 0,91-0,94. En 2018 y 2019 casi todas se quedan con la 1.ª época: más que aprender despacio, no aprenden. Solo ganan al ingenuo en 2020 (Diario 12/11) |
+| H8 | A 1 año, las redes pierden frente al lineal con los mismos datos (1,03 frente a 0,82) porque tienen demasiada capacidad: con unas 17 respuestas independientes, una red pequeña o muy regulada debería acercarse al lineal | Fase B (D22): si a 1 año ganan configuraciones pequeñas o muy reguladas, y si se acercan a 0,82 | **se cumple en parte**: el problema es aprender demasiado, no tener muchos parámetros. A 1 año gana aprender despacio (velocidad ≈ 0,0002 y lote 128): la velocidad es lo que más influye (correlación 0,8 con el error; 0,76 con los 140 intentos tras D25) y el tamaño apenas, si acaso a favor de las redes grandes. Las elegidas paran en la 1.ª época y hacen previsiones prudentes, en la dirección del lineal pero de un tercio a la mitad de su tamaño. Pasan de 1,01-1,06 a 0,88-0,89, sin llegar al lineal (0,82), que va por delante los tres años (Diario 10/11, noche). **Con 10 semillas (D27), menos aún:** con las semillas nuevas dan 0,92-0,96, y el promedio de 5, 0,91-0,94. En 2018 y 2019 casi todas se quedan con la 1.ª época: más que aprender despacio, no aprenden. Solo ganan al ingenuo en 2020 (Diario 12/11). **D28:** su previsión es una copia en pequeño de la del lineal (correlación 0,94-0,95, la mitad o dos tercios de su tamaño); no encuentran nada que el lineal no vea |
 
 ### Limitaciones y problemas conocidos
 
@@ -834,6 +835,60 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
   - como mucho 2 o 3 experimentos más antes del test.
 
 **Pendiente**
-- Commit de la estabilidad, con el visto bueno de Pablo.
+- Commit de la estabilidad, con el visto bueno de Pablo. (→ hecho: `abcffc5`, subido a GitHub)
 - D28: combinar red y lineal. Antes de calcular, fijar la regla (sin pesos que afinar) y apuntar lo esperado.
 - Fijar con Pablo la fecha para congelar los modelos.
+
+**Notas**
+- Mapa conceptual del notebook 03 (secciones 1-7) en una página visual, para repasar todo lo visto. Se guarda solo en local, en `notas_locales/` (excluida de git), sin subir.
+- Pablo pide que el test no se use sin su aprobación explícita.
+
+### 12/11/2026 (tarde) · Combinación de red y lineal (D28)
+
+**Diseño** (D28)
+- Previsión combinada: la media, a partes iguales, del precio que prevé la red (promedio de 5 semillas) y del que prevé el lineal.
+- El lineal es el de referencia de la fase B (0,993 / 0,972 / 0,820). Sus previsiones se recalculan con las mismas fichas que las redes; antes de usarlas se comprueba que dan su nota de siempre.
+- Las redes usan los dos grupos de 5 semillas de D27 (42-46 y 47-51), y la nota es la media de los dos, como la nota adoptada en D27.
+- Solo validación (2018-2021). El test no se toca.
+- **Regla** (fijada antes de calcular): ver D28.
+
+**Lo esperado** (apuntado antes de calcular)
+- **1 año:** entre las dos, más cerca del lineal (0,83-0,86). Seguramente no le gane: las redes prevén en su misma dirección pero más corto, y mezclarlas acorta la previsión del lineal. No se adoptaría.
+- **3 meses:** algo mejor que la red sola (0,92-0,94), porque fallan en años distintos. Puede quedarse dentro del azar.
+- **1 semana:** nada (0,99). No se adoptaría.
+
+**Hecho**
+- `combinacion.py`: previsiones del lineal de referencia con las mismas fichas que las redes, combinación, curva de pesos y regla de D28. 6 pruebas nuevas, entre ellas que la mezcla nunca tiene más error que la media de las dos; 64 en total, todas correctas.
+- El lineal recalculado da exactamente su nota guardada en los tres horizontes (0,993 / 0,972 / 0,820), en las mismas 2.730 fichas que las redes. Su regularización: 100.000 a 1 semana, 1.000 a 3 meses y 1 a 1 año (casi sin regularizar).
+- Notebook 03, sección 8 («Combinación de red y lineal»). El examen final pasa a ser la sección 9.
+
+**Resultados** (media de las tres redes; detalle en el notebook 03, §8)
+
+| | Red sola | Lineal | Mitad y mitad | Azar con 5 semillas | Se queda |
+|---|---|---|---|---|---|
+| 1 semana | 0,992 | 0,993 | 0,990 | 0,003 | red sola (empate) |
+| 3 meses | 0,938 | 0,972 | 0,945 | 0,008 | red sola |
+| 1 año | 0,917 | 0,820 | 0,851 | 0,022 | lineal |
+
+- **Lo esperado frente a lo obtenido:**
+  - 1 año: se cumple (0,846-0,861; no se adopta);
+  - 3 meses: no se cumple. Esperaba una pequeña mejora y la mezcla queda algo peor que la red sola;
+  - 1 semana: se cumple (empate).
+- **A 1 año, las redes son una copia en pequeño del lineal:**
+  - su previsión va en la misma dirección (correlación 0,94-0,95) y se mueve la mitad o dos tercios (0,48-0,72);
+  - cuanto más peso tiene el lineal en la mezcla, mejor, sin excepción, y año a año la mezcla queda siempre detrás del lineal;
+  - las redes no encuentran nada que el lineal no vea.
+- **A 3 meses, red y lineal se parecen demasiado** (correlación 0,76-0,83, mismo tamaño). La mezcla gana en 2019, el buen año del lineal (de 0,95 a 0,91), pero pierde más en 2021, su mal año (de 0,89 a 1,01).
+- **A 1 semana, al revés:** casi no se parecen (0,23-0,25), y la mitad y mitad es el mejor punto de la curva, pero solo gana 0,001-0,004, del tamaño del azar.
+
+**Decisiones**
+- D28 cerrada: no se adopta la combinación. A 1 semana y a 3 meses, la red sola; a 1 año, el mejor modelo de validación sigue siendo el lineal.
+- **No se hace, por ahora, la red que parte del lineal a 1 año** (paso 3 del plan del 12/11): con estos datos las redes no encuentran nada que el lineal no vea, y lo más probable es que se quedara en el lineal. Solo se reconsidera si aparece información nueva que las redes aprovechen.
+- Pablo no quiere pasar todavía al test: se sigue investigando.
+
+**Pendiente** (plan propuesto a Pablo)
+1. **Entender qué ve el lineal** (qué variables y qué días pesan), sobre todo a 1 año. Sin entrenar. Sirve para elegir la información nueva y para la explicación de la aplicación.
+2. **Información nueva, en un solo experimento**, solo a 3 meses y a 1 año, con la regla escrita antes y 10 semillas: por ejemplo, la diferencia entre el futuro y el contado del WTI, la diferencia entre el Brent y el WTI, o el tipo del BCE. Todo está en el CSV y el enunciado lo permite.
+3. **Incertidumbre:** el intervalo del 80 % (D8) y su cobertura en cada año, calibrando cada año con los otros tres (H3).
+4. **¿Es real la ventaja a 3 meses?** Años que gana, cuánto puede ser azar y acierto de la dirección.
+- Commit de D28, con el visto bueno de Pablo.

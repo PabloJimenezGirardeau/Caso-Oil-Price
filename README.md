@@ -9,7 +9,7 @@ Comparativa de tres redes neuronales recurrentes (RNN simple, LSTM y GRU) para p
 - [x] Entorno y descarga de datos
 - [x] Análisis exploratorio (EDA)
 - [x] Preprocesamiento
-- [ ] Modelos (RNN, LSTM y GRU) y comparativa: *en curso* (fase A cerrada: datos elegidos para cada horizonte, sin tendencia; fase B cerrada en los tres horizontes; estabilidad cerrada: se promedian 5 semillas; antes del examen final, mejora de las redes)
+- [ ] Modelos (RNN, LSTM y GRU) y comparativa: *en curso* (fase A cerrada: datos elegidos para cada horizonte, sin tendencia; fase B cerrada en los tres horizontes; estabilidad cerrada: se promedian 5 semillas; la combinación de red y lineal no mejora; antes del examen final, mejora de las redes)
 - [ ] Aplicación
 - [ ] Presentación (máximo 5 diapositivas)
 
@@ -47,6 +47,7 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   ├── experimentos.py          Fase A, su confirmación y experimento sin tendencia: ejecución reanudable, resumen y regla de elección
 │   ├── busqueda.py              Fase B con Optuna: búsqueda por red y horizonte, poda, confirmación y elección
 │   ├── estabilidad.py           Promedio de semillas (D27): entrenamiento, previsiones y medidas de estabilidad
+│   ├── combinacion.py           Combinación de red y lineal (D28): previsiones del lineal, mezcla y regla
 │   ├── evaluacion.py            Métricas, modelo ingenuo y comparación con él
 │   └── graficos.py              Estilo de los gráficos
 ├── tests/                       Pruebas automáticas (pytest)

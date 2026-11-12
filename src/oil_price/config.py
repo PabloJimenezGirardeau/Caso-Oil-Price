@@ -112,5 +112,11 @@ PODA_FASE_B = {"intentos_sin_poda": 10, "pliegues_sin_poda": 1}
 SEMILLAS_ESTABILIDAD = list(range(42, 52))
 N_SEMILLAS_PROMEDIO = 5
 
+# --- Combinación de red y lineal (D28) ----------------------------------------------------
+# Peso de la red en la media de los precios previstos (el resto es el lineal). Fijado antes de
+# calcular, sin afinar con la validación; la curva con otros pesos solo describe el efecto
+PESO_RED_COMBINACION = 0.5
+PESOS_CURVA_COMBINACION = [0.0, 0.25, 0.5, 0.75, 1.0]
+
 # Núcleos de CPU para entrenar (de 8): deja margen para que el portátil vaya más fresco
 HILOS_CPU = 6
