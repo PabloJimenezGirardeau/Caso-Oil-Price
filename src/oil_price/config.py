@@ -105,5 +105,12 @@ ESPACIO_FASE_B = {
 # Nunca en los primeros intentos ni tras el primer pliegue, que solo es un año
 PODA_FASE_B = {"intentos_sin_poda": 10, "pliegues_sin_poda": 1}
 
+# --- Estabilidad: promedio de semillas (D27) ----------------------------------------------
+# La configuración elegida de cada red se entrena con 10 semillas (dos grupos independientes de 5)
+# para medir cuánto estabiliza promediar sus previsiones. Se adopta el promedio de 5, fijado antes
+# de ver los resultados: la curva de 1 a 10 semillas solo describe el efecto
+SEMILLAS_ESTABILIDAD = list(range(42, 52))
+N_SEMILLAS_PROMEDIO = 5
+
 # Núcleos de CPU para entrenar (de 8): deja margen para que el portátil vaya más fresco
 HILOS_CPU = 6

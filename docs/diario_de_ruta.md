@@ -41,19 +41,20 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 | D24 | 10/11/2026 | **A 1 semana, 20 intentos por red en lugar de 40**: los 10 primeros al azar (iguales para las tres redes) y 10 de Optuna. Confirmación y elección como a 3 meses, con D23 | Con la ventana de 252 días, 40 intentos tardarían unas 15 h: la previsión de D22 se quedó corta (×1,6). Hay poco que ganar: a 3 meses la búsqueda no mejoró la base, y a 1 semana la fase A dio 0,98-1,01 en todo. El azar entre semillas a 1 semana es muy pequeño (0,002), así que con una semilla por intento la comparación es fiable. Las tres redes mantienen el mismo presupuesto. **Resultado:** 15,4 h; la búsqueda no mejora la base (elegidas 0,991-0,994 frente a 0,988-0,997), como se esperaba | ✅ | `config.INTENTOS_FASE_B`, Diario 10/11 (noche) y 11/11 |
 | D25 | 10/11/2026 | **Ampliación de la búsqueda:** si la configuración elegida de una red (tras la confirmación) está en el último cuarto de sus intentos, esa red recibe 20 intentos más, una sola vez. Igual en los tres horizontes y las tres redes | Una elegida tardía indica que Optuna seguía encontrando mejoras: a 1 año, la LSTM pasó de 0,930 (tras 30 intentos) a 0,882 (intento 37). Se mira la elegida y no la mejor de la primera ronda, porque a 1 semana y a 3 meses esa es en parte suerte. Una sola vez, para acotar el tiempo. Con 20 intentos a 1 año, la RNN y la LSTM se habrían quedado en 0,95-0,96. **Aplicación:** 1 año, la LSTM pasa de 40 a 60 intentos (RNN 28 y GRU 20, no); 3 meses, ninguna (elegidas 1, 27 y 1); 1 semana, ninguna (elegidas 11, 8 y 15 de 20). **Resultado a 1 año:** la mejor nueva da 0,881 (intento 45), empatada con la 37 (0,882), que se mantiene por tener menos parámetros. La búsqueda ya estaba estabilizada | ✅ | `scripts/fase_b.py --intentos`, Diario 10/11 (noche) |
 | D26 | 11/11/2026 | **El examen final en test se aplaza:** antes, seguir trabajando para mejorar las redes. La fase B queda cerrada como referencia de lo que da ajustar la configuración | Tras la fase B, las redes siguen lejos del objetivo: no aportan a 1 semana (0,99), mejoran un 6-8 % al ingenuo a 3 meses y a 1 año van por detrás del lineal (0,88-0,89 frente a 0,82). El test se usa una sola vez (D7), así que solo tiene sentido con la versión final. Decisión de Pablo | ✅ | Diario 11/11 |
+| D27 | 11/11/2026 | **Estabilidad: promedio de semillas.** Las 9 configuraciones elegidas en la fase B, sin volver a elegir nada, se entrenan con 10 semillas (42-51) y se guardan sus previsiones. Se mide el error de una red suelta frente al promedio de 2, 3, 5 y 10 semillas, y la estabilidad: cuánto cambian la nota y las previsiones entre grupos de semillas distintos. El promedio es la media de los precios que prevé cada semilla. **Regla, fijada antes de ver los resultados:** se adopta el promedio de 5 semillas, igual para las tres redes; la curva de 1 a 10 solo describe el efecto | La semilla (hasta 0,04 a 1 año) y la época de parada, que es medio azar, hacen que cada entrenamiento salga distinto. Así cuesta saber si una mejora es real, y en la aplicación la previsión cambiaría al reentrenar. Promediar no puede empeorar el error (su MAE nunca supera la media del de sus semillas) y no elige nada, así que no añade riesgo de sobreajustar la validación. Además, las semillas 45-51 no se usaron para elegir: dan una estimación más honesta del error de las elegidas. **Resultado:** se adopta el promedio de 5. Mejora poco el error (0,001-0,009), pero a 3 meses reduce a la mitad cuánto cambia la previsión de unas semillas a otras. Con las semillas nuevas, la fase B resulta optimista: 0,03-0,07 peor a 1 año y hasta 0,02 a 3 meses. Notas de referencia desde ahora (promedio de 5): 1 semana 0,991-0,993; 3 meses 0,924-0,950; 1 año 0,906-0,937 (lineal 0,820) | ✅ | `estabilidad.py`, `scripts/estabilidad.py`, Diario 11/11 (tarde) y 12/11, notebook 03 §7 |
 
 ### Hipótesis abiertas
 
 | ID | Hipótesis | Cómo se comprobará | Estado |
 |---|---|---|---|
-| H1 | Las redes mejorarán algo al ingenuo a 5 días, pero no a 63 ni a 252 | Tabla comparativa en test | abierta · en validación (fase A, confirmada con semillas) **no se cumple**: se mejora a 63 días (≈ 6 %) y apenas a 5 (≈ 1 %). Tras la fase B, igual: ≈ 1 % a 5 días, 6-8 % a 63 y 11-12 % a 252 (el lineal, 18 %) (Diario 11/11) |
+| H1 | Las redes mejorarán algo al ingenuo a 5 días, pero no a 63 ni a 252 | Tabla comparativa en test | abierta · en validación (fase A, confirmada con semillas) **no se cumple**: se mejora a 63 días (≈ 6 %) y apenas a 5 (≈ 1 %). Tras la fase B, igual: ≈ 1 % a 5 días, 6-8 % a 63 y 11-12 % a 252 (el lineal, 18 %) (Diario 11/11). Con el promedio de 5 semillas (D27): ≈ 1 % a 5 días, 5-8 % a 63 y 6-9 % a 252 (Diario 12/11) |
 | H2 | La variación de ayer del WTI anticipa el Brent de hoy (correlación ≈ 0,17), probablemente porque EE. UU. cierra después que Londres | Comparar el modelo con y sin WTI a 5 días | abierta |
 | H3 | El modelo aportará más en la anchura del intervalo (riesgo) que en la dirección del precio | Cobertura y anchura de los intervalos frente a los empíricos | abierta |
 | H4 | Predecir variaciones funciona mejor que predecir niveles; una red entrenada con precios tiende a copiar el precio de ayer | Experimento de control al final (D15) | abierta |
 | H5 | Las conclusiones (red ganadora y horizontes en los que aporta) no dependen de la partición elegida | Prueba de robustez con la partición A (D10) | abierta |
 | H6 | El indicador de nivel (precio frente a su media anual) mejora sobre todo a 63 y 252 días, porque los precios muy altos o muy bajos tienden a corregir | Estudio con y sin el indicador, en validación | **no se cumple en las redes** (el indicador las empeora). La corrección sí existe a 252 días, pero el lineal la aprovecha sobre todo con la ventana de 252 días (Diario 09/11). Sin tendencia, tampoco: a 1 año las 11 mejores combinaciones son sin nivel (1,056 con él frente a 1,022 sin él, D21) |
 | H7 | Parte del mal resultado a 1 año se debe a la subida media del train, que redes y lineal proyectan al futuro (+3 % a +12 % al año según el pliegue). Sin ella, las redes mejoran a 1 año; a 3 meses y a 1 semana apenas cambia | Experimento sin tendencia (D20) | **se cumple**: a 1 año las redes pasan de 1,114 a 1,044; a 3 meses y a 1 semana, empate (Diario 09/11) |
-| H8 | A 1 año, las redes pierden frente al lineal con los mismos datos (1,03 frente a 0,82) porque tienen demasiada capacidad: con unas 17 respuestas independientes, una red pequeña o muy regulada debería acercarse al lineal | Fase B (D22): si a 1 año ganan configuraciones pequeñas o muy reguladas, y si se acercan a 0,82 | **se cumple en parte**: el problema es aprender demasiado, no tener muchos parámetros. A 1 año gana aprender despacio (velocidad ≈ 0,0002 y lote 128): la velocidad es lo que más influye (correlación 0,8 con el error; 0,76 con los 140 intentos tras D25) y el tamaño apenas, si acaso a favor de las redes grandes. Las elegidas paran en la 1.ª época y hacen previsiones prudentes, en la dirección del lineal pero de un tercio a la mitad de su tamaño. Pasan de 1,01-1,06 a 0,88-0,89, sin llegar al lineal (0,82), que va por delante los tres años (Diario 10/11, noche) |
+| H8 | A 1 año, las redes pierden frente al lineal con los mismos datos (1,03 frente a 0,82) porque tienen demasiada capacidad: con unas 17 respuestas independientes, una red pequeña o muy regulada debería acercarse al lineal | Fase B (D22): si a 1 año ganan configuraciones pequeñas o muy reguladas, y si se acercan a 0,82 | **se cumple en parte**: el problema es aprender demasiado, no tener muchos parámetros. A 1 año gana aprender despacio (velocidad ≈ 0,0002 y lote 128): la velocidad es lo que más influye (correlación 0,8 con el error; 0,76 con los 140 intentos tras D25) y el tamaño apenas, si acaso a favor de las redes grandes. Las elegidas paran en la 1.ª época y hacen previsiones prudentes, en la dirección del lineal pero de un tercio a la mitad de su tamaño. Pasan de 1,01-1,06 a 0,88-0,89, sin llegar al lineal (0,82), que va por delante los tres años (Diario 10/11, noche). **Con 10 semillas (D27), menos aún:** con las semillas nuevas dan 0,92-0,96, y el promedio de 5, 0,91-0,94. En 2018 y 2019 casi todas se quedan con la 1.ª época: más que aprender despacio, no aprenden. Solo ganan al ingenuo en 2020 (Diario 12/11) |
 
 ### Limitaciones y problemas conocidos
 
@@ -64,7 +65,7 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 - El EDA consulta FRED para identificar los días de cotización (sin conexión usa una regla aproximada).
 - La causa del pico de 2026 (138,21 $, 07/04/2026) está sin documentar.
 - Equipo de trabajo: Samsung Galaxy Book6 (Intel Core Ultra 7 355, gráfica integrada, 16 GB), **sin GPU NVIDIA**. El problema es pequeño y en CPU se estima entre 30 s y 2 min por entrenamiento. Para los entrenamientos largos: enchufado y sobre una mesa, protección de la batería activada al 80 % (Samsung Settings → Batería y rendimiento) y modo optimizado; con `--hilos 4` va más fresco, aunque algo más lento. **Cargador:** el portátil necesita uno USB-C de 65 W; con uno de 20 W la batería baja al entrenar aunque esté enchufado (≈ 4-5 W con 4 hilos). Con el ahorro de energía de Windows aguanta, pero tarda más (Diario 11/11).
-- **Parada temprana a 1 año:** el trozo del train que decide cuándo parar tiene unas 3 respuestas independientes, así que la época de parada es casi azar. Se mantiene igual para todos (D22); las 3 semillas por intento promedian también este azar.
+- **Parada temprana a 1 año:** el trozo del train que decide cuándo parar tiene unas 3 respuestas independientes, así que la época de parada es casi azar. Se mantiene igual para todos (D22); las 3 semillas por intento promedian también este azar. **Con 10 semillas (D27):** en 2018 y 2019, el 80-100 % de los entrenamientos se queda con la 1.ª época, y la nota de cada semilla depende de dónde para cada año (de 0,87 a 0,99). El promedio de 5 semillas no lo resuelve.
 - **Poda de la fase B a 3 meses:** con una semilla, la nota tras 2 años anticipa poco la final (correlación 0,33; tras 3 años, 0,64; a 1 año, con 3 semillas, 0,77), así que la poda corta algo a ciegas. Comprobado hacia atrás con los intentos 1-10, que nunca se podan: ninguno de los que habría cortado acabó entre los 3 mejores. Como a 3 meses todas las configuraciones rinden igual dentro del azar, no se pierde nada relevante.
 - **Hay GPU disponible en la universidad** para los entrenamientos más pesados (ajuste de hiperparámetros, reentrenamiento anual). Implicaciones:
   - el código debe funcionar igual en CPU y en GPU, eligiendo el dispositivo automáticamente;
@@ -731,5 +732,108 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 
 **Pendiente**
 - Buscar cómo mejorar las redes. Ajustar la configuración ya no da más de sí: el límite está en otra parte (los datos que reciben, cómo se entrenan o cómo se combinan). Las ideas se deciden con Pablo antes de lanzar nada.
-- Sigue pendiente decidir si se prueba en validación el promedio de 3 semillas.
+- Sigue pendiente decidir si se prueba en validación el promedio de 3 semillas. → Se hace con 5 (D27, Diario 11/11, tarde).
 - Después: examen final en test, robustez con la partición A (D10), control de precios (D15), aplicación y diapositivas.
+
+### 11/11/2026 (tarde) · Siguientes pasos y diseño de la estabilidad (D27)
+
+**Hecho**
+- Repaso con Pablo de los mayores problemas tras la fase B:
+  1. **poca señal y pocos datos independientes:** a 1 año, unas 17 respuestas en el train y 3 años de validación;
+  2. **redes inestables:** la semilla y la época de parada cambian el resultado;
+  3. **a 1 año, el lineal gana a las redes;**
+  4. **información limitada;**
+  5. **riesgo de sobreajustar la validación:** cientos de configuraciones elegidas sobre 2018-2021.
+- Orden acordado: primero la estabilidad (problema 2), con cautela por el problema 5.
+- Restricción de Pablo para la información nueva: solo lo que está en los CSV del proyecto o lo que permita el enunciado.
+- **Pregunta de Pablo sobre las curvas de la sección 1.1** (mejores épocas 2, 4 y 12). No es un fallo de la parada temprana:
+  - la pérdida de parada no baja nunca (oscila entre 0,32 y 0,37), así que la «mejor época» es el punto más bajo de un zigzag plano y cae casi al azar;
+  - la LSTM paró la más tarde y fue la peor;
+  - con velocidades más lentas la curva se suaviza (fase B, 1 semana: mejor época 17-45), pero el error no mejora.
+  - El azar de la época de parada sí es un problema de estabilidad → D27.
+- **D27** implementada:
+  - `busqueda._entrenar_y_prever`: el entrenamiento de la fase B, que devuelve también la previsión;
+  - `estabilidad.py`: ejecución reanudable, comprobación contra la fase B, promedio, nota, curva según el número de semillas y cambio de la previsión;
+  - `scripts/estabilidad.py`;
+  - 6 pruebas nuevas, entre ellas que el promedio nunca tenga más error que la media de sus semillas y que la ejecución se reanude sin repetir. 58 en total, todas correctas.
+- Prueba real pequeña (RNN de 1 año y de 3 meses, 3 semillas):
+  - la nota calculada desde las previsiones guardadas coincide con la de cada entrenamiento;
+  - las semillas de la fase B se reproducen salvo redondeo (2·10⁻⁷ $ de diferencia en el MAE, por usar 4 hilos en lugar de 6).
+
+**Lo esperado** (apuntado antes de lanzar)
+- **Error:** mejora pequeña, de 0,00 a 0,02, mayor a 1 año.
+- **Estabilidad:** el azar del resultado baja a menos de la mitad (con 5 semillas, en teoría a 1/√5 ≈ 0,45).
+- **Lo que no cambiará:** la distancia con el lineal a 1 año y el empate entre redes.
+- **A 1 año, las semillas nuevas (45-51) pueden dar algo peor que las de la elección (42-44):** parte del 0,88-0,89 puede ser suerte. En la prueba, la semilla 50 de la RNN dio 0,92.
+
+**Ejecución** (6 hilos, ya con el cargador de 65 W y sin ahorro de energía)
+- Terminada en 5,1 h, más de las 3-4 h previstas: casi todo es 1 semana, que fue al ritmo de la fase B.
+- Completa: 330 entrenamientos (9 redes × 10 semillas × 3 o 4 años) y 81.900 previsiones, sin huecos ni repetidos.
+- Las 9 comprobaciones salen bien: las semillas 42-44 reproducen la fase B exactamente (1 año RNN, LSTM y GRU; 3 meses LSTM) o salvo redondeo (las demás, como mucho 5·10⁻⁷ $ de diferencia en el MAE).
+
+**Pendiente**
+- Analizar (→ hecho el 12/11):
+  - la curva de 1 a 10 semillas;
+  - el azar entre grupos;
+  - el cambio de la previsión;
+  - la nota con las semillas 45-51 frente a las 42-44.
+- Notebook 03: sección nueva antes del examen final (→ hecho el 12/11, §7).
+- Commit, con el visto bueno de Pablo.
+
+### 12/11/2026 · Resultados de la estabilidad (D27) y siguientes pasos
+
+**Hecho**
+- Análisis de la estabilidad y sección 7 del notebook 03 («Estabilidad: promedio de semillas»). El examen final en test pasa a ser la sección 8.
+- Repaso con Pablo de los problemas tras la estabilidad, de más a menos grave:
+  1. **a 1 año las redes no aprenden** y el lineal es mejor;
+  2. **sobreajuste de la validación**, ya confirmado;
+  3. **a 1 semana no hay nada que ganar** (0,99): no se invierte más tiempo ahí;
+  4. **inestabilidad:** el promedio de 5 la reduce a 3 meses; a 1 año el problema es el 1;
+  5. **poca información:** los futuros del Brent empiezan en 2007, pero el futuro del WTI está en el CSV desde 2000, y su diferencia con el contado (si el mercado espera subidas o bajadas) no se usa;
+  6. **tiempo:** quedan el test, la aplicación y las 5 diapositivas, y el enunciado pide no intensificar en lo técnico.
+
+**Resultados** (detalle en el notebook 03, §7)
+
+| | Fase B (semillas 42-44) | Semillas nuevas (45-51) | Promedio de 5 (adoptado) | Lineal |
+|---|---|---|---|---|
+| 1 semana · RNN | 0,994 | 0,995 | 0,993 | 0,993 |
+| 1 semana · LSTM | 0,991 | 1,000 | 0,992 | |
+| 1 semana · GRU | 0,994 | 0,992 | 0,991 | |
+| 3 meses · RNN | 0,943 | 0,947 | 0,941 | 0,972 |
+| 3 meses · LSTM | 0,943 | 0,966 | 0,950 | |
+| 3 meses · GRU | 0,922 | 0,937 | 0,924 | |
+| 1 año · RNN | 0,893 | 0,920 | 0,908 | 0,820 |
+| 1 año · LSTM | 0,882 | 0,923 | 0,906 | |
+| 1 año · GRU | 0,893 | 0,958 | 0,937 | |
+
+- **Lo esperado frente a lo obtenido:**
+  - **error:** mejora de 0,001 a 0,009, dentro de lo esperado, pero mayor a 3 meses que a 1 año;
+  - **estabilidad:** a 3 meses se cumple. El cambio de la previsión baja a 0,37-0,55 de lo que cambia con una semilla (teoría: 0,45): el precio previsto se mueve un 0,8-1,4 % con otras 5 semillas, frente al 1,7-2,9 % con una sola. A 1 año queda muy desigual (0,17-0,66);
+  - **lo que no cambia:** se cumple; la distancia con el lineal a 1 año crece;
+  - **semillas nuevas a 1 año:** dan peor, como se temía, y más de lo esperado (0,03-0,07).
+- **La fase B era optimista** (problema 5): las elegidas ganaron en parte por suerte. A 3 meses, hasta 0,02; a 1 semana, nada.
+- **A 1 año, las redes no aprenden:**
+  - en 2018 y 2019, 57 de los 60 entrenamientos se quedan con la 1.ª época: la red apenas se mueve de su punto de partida. Solo en 2020 aprende algo (mejor época mediana, la 8.ª-12.ª);
+  - las peores semillas (0,96-0,99) son las que paran distinto: en 2020 también se quedan con la 1.ª época (GRU 45, 47, 49 y 51; LSTM 46 y 49) o en 2019 siguen aprendiendo y se equivocan (RNN 47 y GRU 48, con 1,34-1,40 ese año);
+  - las redes solo ganan al ingenuo en 2020 (0,67-0,77), el rebote tras el COVID. En 2018 no lo mejoran (0,99-1,10) y en 2019 pierden (1,13-1,15). El lineal les gana en 2018 (0,75) y en 2019 (1,04).
+- **A 3 meses, las redes siguen ganando al lineal** (0,924-0,950 frente a 0,972), y de forma más regular: el lineal gana en 2019 (0,89) pero falla mucho en 2021 (1,14). Es el horizonte donde aportan.
+
+**Decisiones**
+- Se adopta el promedio de 5 semillas en los tres horizontes (regla de D27). Las notas de referencia de la validación pasan a ser las del promedio de 5.
+- Plan propuesto:
+  1. cerrar la estabilidad (notebook, diario y commit);
+  2. combinar red y lineal (D28), con las previsiones ya guardadas y sin entrenar;
+  3. a 1 año, una red que corrige al lineal: parte de su previsión y solo aprende lo que le falta;
+  4. congelar los modelos, hacer el test una sola vez y la robustez con la partición A;
+  5. aplicación y diapositivas.
+  - Opcional, si hay tiempo: la diferencia entre el futuro y el contado del WTI como información nueva, solo a 3 meses.
+  - Pablo aprueba empezar por los pasos 1 y 2, por partes.
+- **Cautela con el problema 5:**
+  - solo valen las cifras con 10 semillas;
+  - cada experimento nuevo lleva su regla escrita antes y nada que afinar;
+  - como mucho 2 o 3 experimentos más antes del test.
+
+**Pendiente**
+- Commit de la estabilidad, con el visto bueno de Pablo.
+- D28: combinar red y lineal. Antes de calcular, fijar la regla (sin pesos que afinar) y apuntar lo esperado.
+- Fijar con Pablo la fecha para congelar los modelos.

@@ -9,7 +9,7 @@ Comparativa de tres redes neuronales recurrentes (RNN simple, LSTM y GRU) para p
 - [x] Entorno y descarga de datos
 - [x] Análisis exploratorio (EDA)
 - [x] Preprocesamiento
-- [ ] Modelos (RNN, LSTM y GRU) y comparativa: *en curso* (fase A cerrada: datos elegidos para cada horizonte, sin tendencia; fase B cerrada en los tres horizontes; antes del examen final, mejora de las redes)
+- [ ] Modelos (RNN, LSTM y GRU) y comparativa: *en curso* (fase A cerrada: datos elegidos para cada horizonte, sin tendencia; fase B cerrada en los tres horizontes; estabilidad cerrada: se promedian 5 semillas; antes del examen final, mejora de las redes)
 - [ ] Aplicación
 - [ ] Presentación (máximo 5 diapositivas)
 
@@ -35,7 +35,8 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   ├── fase_a.py                Lanza la fase A del estudio (ventana × recorte × nivel)
 │   ├── fase_a_semillas.py       Repite las finalistas de la fase A con otras semillas
 │   ├── tendencia.py             Repite las combinaciones elegidas sin la subida media del train
-│   └── fase_b.py                Fase B: busca la mejor configuración de cada red (Optuna)
+│   ├── fase_b.py                Fase B: busca la mejor configuración de cada red (Optuna)
+│   └── estabilidad.py           Entrena las redes elegidas con 10 semillas para medir el efecto de promediarlas
 ├── src/oil_price/               Código reutilizable (notebooks y aplicación)
 │   ├── config.py                Parámetros: fechas, variables, horizontes, partición…
 │   ├── datos.py                 Carga y limpieza
@@ -45,6 +46,7 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   ├── entrenamiento.py         Entrenamiento común: pérdida Huber, parada temprana, semillas
 │   ├── experimentos.py          Fase A, su confirmación y experimento sin tendencia: ejecución reanudable, resumen y regla de elección
 │   ├── busqueda.py              Fase B con Optuna: búsqueda por red y horizonte, poda, confirmación y elección
+│   ├── estabilidad.py           Promedio de semillas (D27): entrenamiento, previsiones y medidas de estabilidad
 │   ├── evaluacion.py            Métricas, modelo ingenuo y comparación con él
 │   └── graficos.py              Estilo de los gráficos
 ├── tests/                       Pruebas automáticas (pytest)
@@ -106,6 +108,9 @@ python scripts/fase_a_semillas.py --horizontes largo --sin-tendencia  # y su con
 python scripts/fase_b.py --solo-mostrar                 # fase B: plan y tiempo previsto
 python scripts/fase_b.py --horizontes largo medio       # 1 año y 3 meses, 40 intentos por red (unas 2,5 h)
 python scripts/fase_b.py --horizontes corto             # 1 semana, 20 intentos por red (la más lenta, unas 12-15 h)
+
+python scripts/estabilidad.py --solo-mostrar            # estabilidad (D27): plan y tiempo previsto
+python scripts/estabilidad.py                           # las 9 redes elegidas con 10 semillas (unas 5 h)
 ```
 
 Los notebooks leen esos resultados y los analizan (`notebooks/03_modelado.ipynb`).

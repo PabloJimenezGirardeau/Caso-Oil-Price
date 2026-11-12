@@ -126,8 +126,9 @@ def _pliegues(bases, comb):
     return salida
 
 
-def _entrenar(comb, celda, intento, params, año, train, evaluado, semilla, dispositivo):
-    """Entrena una red con los valores de un intento, sin tendencia. Devuelve su fila y sus curvas."""
+def _entrenar_y_prever(comb, celda, intento, params, año, train, evaluado, semilla, dispositivo):
+    """Entrena una red con los valores de un intento, sin tendencia. Devuelve su fila, sus curvas
+    y su previsión de cada ficha evaluada (variaciones logarítmicas)."""
     resultado = ent.entrenar_red(celda, train, hiperparametros(params), semilla=semilla, dispositivo=dispositivo,
                                  ajustes={"sin_tendencia": True})
     prediccion = ent.predecir(resultado, evaluado.X)
@@ -137,6 +138,12 @@ def _entrenar(comb, celda, intento, params, año, train, evaluado, semilla, disp
                        "dispositivo": str(dispositivo)})
     curvas = resultado.historial.assign(horizonte=comb["horizonte"], modelo=celda, intento=intento,
                                         pliegue=año, semilla=semilla)
+    return fila, curvas, prediccion
+
+
+def _entrenar(comb, celda, intento, params, año, train, evaluado, semilla, dispositivo):
+    """Como `_entrenar_y_prever`, sin la previsión: su fila y sus curvas."""
+    fila, curvas, _ = _entrenar_y_prever(comb, celda, intento, params, año, train, evaluado, semilla, dispositivo)
     return fila, curvas
 
 
