@@ -27,10 +27,10 @@ from . import experimentos as ex
 
 AÑOS = list(range(2010, 2018))
 LIMITE = pd.Timestamp("2017-12-31")
-HORIZONTES = ["medio", "largo"]   # a 1 semana, la ventana de 252 días tardaría horas, y allí nada aporta
+HORIZONTES = ["medio", "largo"]   # 1 semana se lanza aparte (--horizontes corto): con la ventana de 252 días tarda más
 ARCHIVOS = {"entrenos": "hacia_atras.csv", "previsiones": "hacia_atras_previsiones.csv",
             "fichas": "hacia_atras_fichas.csv"}
-CRITERIO = {"medio": {"real": 9, "dudosa": 7}, "largo": {"real": 8, "dudosa": 6}}
+CRITERIO = {"corto": {"real": 9, "dudosa": 7}, "medio": {"real": 9, "dudosa": 7}, "largo": {"real": 8, "dudosa": 6}}
 
 
 # --- Qué se evalúa -------------------------------------------------------------------------------
@@ -187,17 +187,18 @@ def media_de_las_redes(redes, nombre=MEDIA):
     return t.assign(modelo=nombre, **{"variación prevista": np.log(t["factor"])}).drop(columns=["factor", "redes"])
 
 
-def previsiones_doce_años(bases=None, dir_salida=config.DIR_RESULTADOS):
-    """Previsión de cada ficha de 2010-2021 (hacia atrás y validación), a 3 meses y a 1 año: cada red
-    con el promedio de las semillas 42-46, el lineal de referencia y la media de las tres redes."""
+def previsiones_doce_años(bases=None, dir_salida=config.DIR_RESULTADOS, horizontes=None):
+    """Previsión de cada ficha de 2010-2021 (hacia atrás y validación), por defecto a 3 meses y a 1 año:
+    cada red con el promedio de las semillas 42-46, el lineal de referencia y la media de las tres redes."""
+    horizontes = horizontes or HORIZONTES
     semillas = config.SEMILLAS_ESTABILIDAD[:config.N_SEMILLAS_PROMEDIO]
     bases = bases if bases is not None else ex._bases()
     atras = es.promedio(leer_previsiones(dir_salida), semillas)
-    atras = atras[atras["horizonte"].isin(HORIZONTES)]   # 1 semana se añade aparte cuando está completa
+    atras = atras[atras["horizonte"].isin(horizontes)]
     validacion = es.promedio(es.leer_previsiones(dir_salida), semillas)
-    validacion = validacion[validacion["horizonte"].isin(HORIZONTES)]
+    validacion = validacion[validacion["horizonte"].isin(horizontes)]
     redes = pd.concat([atras[COLUMNAS], validacion[COLUMNAS]], ignore_index=True)
-    lineal = pd.concat([previsiones_lineal(bases=bases), co.previsiones_lineal(HORIZONTES, dir_salida, bases)],
+    lineal = pd.concat([previsiones_lineal(horizontes, bases=bases), co.previsiones_lineal(horizontes, dir_salida, bases)],
                        ignore_index=True)
     lineal["fecha"] = lineal["fecha"].astype(redes["fecha"].dtype)
     return pd.concat([redes, lineal[COLUMNAS], media_de_las_redes(redes)[COLUMNAS]], ignore_index=True)

@@ -1,0 +1,211 @@
+horizonte,control,mejora plantada,repetición,nota,años que gana,años,veredicto
+corto,negativo,0.0,0,1.0044471631377037,3,12,no se sostiene
+corto,negativo,0.0,1,1.0035251840917765,6,12,no se sostiene
+corto,negativo,0.0,2,0.9968775121467182,7,12,dudosa
+corto,negativo,0.0,3,1.004837187333538,4,12,no se sostiene
+corto,negativo,0.0,4,0.9967086429942447,8,12,dudosa
+corto,negativo,0.0,5,0.9991022733453151,4,12,no se sostiene
+corto,negativo,0.0,6,0.9983461997956313,8,12,dudosa
+corto,negativo,0.0,7,1.0053200488771212,3,12,no se sostiene
+corto,negativo,0.0,8,1.0079777676395292,3,12,no se sostiene
+corto,negativo,0.0,9,1.0032675117659657,6,12,no se sostiene
+corto,negativo,0.0,10,1.0128561092109853,2,12,no se sostiene
+corto,negativo,0.0,11,1.013038753197287,2,12,no se sostiene
+corto,negativo,0.0,12,1.0022453991099807,5,12,no se sostiene
+corto,negativo,0.0,13,0.9982783832148034,6,12,no se sostiene
+corto,negativo,0.0,14,1.005251034320811,4,12,no se sostiene
+corto,negativo,0.0,15,1.0046826749404392,4,12,no se sostiene
+corto,negativo,0.0,16,1.0163913625367493,1,12,no se sostiene
+corto,negativo,0.0,17,1.0053133757056143,3,12,no se sostiene
+corto,negativo,0.0,18,1.0082855037246437,5,12,no se sostiene
+corto,negativo,0.0,19,0.998117551160833,6,12,no se sostiene
+corto,positivo,0.01,0,0.9980442951897717,7,12,dudosa
+corto,positivo,0.01,1,0.9981545779989414,7,12,dudosa
+corto,positivo,0.01,2,0.9983457776796599,7,12,dudosa
+corto,positivo,0.01,3,0.9983253969739366,7,12,dudosa
+corto,positivo,0.01,4,0.9981081363791241,7,12,dudosa
+corto,positivo,0.01,5,0.9980750441631092,7,12,dudosa
+corto,positivo,0.01,6,0.9979441430410061,7,12,dudosa
+corto,positivo,0.01,7,0.9982839388956432,7,12,dudosa
+corto,positivo,0.01,8,0.9978883189277762,7,12,dudosa
+corto,positivo,0.01,9,0.9982536018705757,7,12,dudosa
+corto,positivo,0.02,0,0.9974692740398918,7,12,dudosa
+corto,positivo,0.02,1,0.9976231497788255,7,12,dudosa
+corto,positivo,0.02,2,0.99789948291746,7,12,dudosa
+corto,positivo,0.02,3,0.9978602921577124,7,12,dudosa
+corto,positivo,0.02,4,0.9975679737215944,7,12,dudosa
+corto,positivo,0.02,5,0.9975074024724462,7,12,dudosa
+corto,positivo,0.02,6,0.9973445579294465,7,12,dudosa
+corto,positivo,0.02,7,0.9978123426600514,7,12,dudosa
+corto,positivo,0.02,8,0.9972611569091869,7,12,dudosa
+corto,positivo,0.02,9,0.9977709132848572,7,12,dudosa
+corto,positivo,0.04,0,0.9963623711185378,7,12,dudosa
+corto,positivo,0.04,1,0.9965757182299926,7,12,dudosa
+corto,positivo,0.04,2,0.9969724633251454,7,12,dudosa
+corto,positivo,0.04,3,0.9969055724748829,7,12,dudosa
+corto,positivo,0.04,4,0.9965141021481765,7,12,dudosa
+corto,positivo,0.04,5,0.9964192995274643,7,12,dudosa
+corto,positivo,0.04,6,0.9962113662019223,7,12,dudosa
+corto,positivo,0.04,7,0.9968429991616456,7,12,dudosa
+corto,positivo,0.04,8,0.9960842608650435,7,12,dudosa
+corto,positivo,0.04,9,0.9967896447229994,7,12,dudosa
+corto,positivo,0.08,0,0.9942556764874804,7,12,dudosa
+corto,positivo,0.08,1,0.9945481162858064,7,12,dudosa
+corto,positivo,0.08,2,0.995102193485979,8,12,dudosa
+corto,positivo,0.08,3,0.9949869004519379,7,12,dudosa
+corto,positivo,0.08,4,0.9944677667853935,8,12,dudosa
+corto,positivo,0.08,5,0.9943437866983523,8,12,dudosa
+corto,positivo,0.08,6,0.9940765740831804,8,12,dudosa
+corto,positivo,0.08,7,0.9949019896339826,8,12,dudosa
+corto,positivo,0.08,8,0.9938845763628464,8,12,dudosa
+corto,positivo,0.08,9,0.9948509132856967,7,12,dudosa
+corto,positivo,0.16,0,0.9903722339877515,8,12,dudosa
+corto,positivo,0.16,1,0.9907391598663928,8,12,dudosa
+corto,positivo,0.16,2,0.9914502787394693,8,12,dudosa
+corto,positivo,0.16,3,0.991279238549008,8,12,dudosa
+corto,positivo,0.16,4,0.9906322240291408,8,12,dudosa
+corto,positivo,0.16,5,0.9904785501071866,8,12,dudosa
+corto,positivo,0.16,6,0.9901420975937475,8,12,dudosa
+corto,positivo,0.16,7,0.9911652455559736,8,12,dudosa
+corto,positivo,0.16,8,0.9898894271381901,8,12,dudosa
+corto,positivo,0.16,9,0.9911207907628458,8,12,dudosa
+medio,negativo,0.0,0,1.0033826043756477,8,12,dudosa
+medio,negativo,0.0,1,1.0038491302945451,6,12,no se sostiene
+medio,negativo,0.0,2,1.0289020345115687,3,12,no se sostiene
+medio,negativo,0.0,3,1.0747624124820196,3,12,no se sostiene
+medio,negativo,0.0,4,1.0480611874505703,3,12,no se sostiene
+medio,negativo,0.0,5,1.0638948684073668,3,12,no se sostiene
+medio,negativo,0.0,6,1.0147989163209823,5,12,no se sostiene
+medio,negativo,0.0,7,1.051427750284637,2,12,no se sostiene
+medio,negativo,0.0,8,1.094860049821774,2,12,no se sostiene
+medio,negativo,0.0,9,1.0085593525166832,6,12,no se sostiene
+medio,negativo,0.0,10,1.1322350331059823,2,12,no se sostiene
+medio,negativo,0.0,11,1.050522597359454,2,12,no se sostiene
+medio,negativo,0.0,12,1.0305072859545403,5,12,no se sostiene
+medio,negativo,0.0,13,1.0350044682704178,4,12,no se sostiene
+medio,negativo,0.0,14,1.039707568957484,5,12,no se sostiene
+medio,negativo,0.0,15,1.0057356872299221,6,12,no se sostiene
+medio,negativo,0.0,16,1.0812978911753737,3,12,no se sostiene
+medio,negativo,0.0,17,1.0467199112848378,5,12,no se sostiene
+medio,negativo,0.0,18,1.0491146683111738,5,12,no se sostiene
+medio,negativo,0.0,19,0.9817989568392141,7,12,dudosa
+medio,positivo,0.01,0,1.0222494136884435,5,12,no se sostiene
+medio,positivo,0.01,1,1.0111094191701226,5,12,no se sostiene
+medio,positivo,0.01,2,1.0184040845501567,5,12,no se sostiene
+medio,positivo,0.01,3,1.0113361771413014,5,12,no se sostiene
+medio,positivo,0.01,4,1.0068625708012615,5,12,no se sostiene
+medio,positivo,0.01,5,1.0148896454624812,5,12,no se sostiene
+medio,positivo,0.01,6,1.0142918055779662,5,12,no se sostiene
+medio,positivo,0.01,7,1.0177823428801671,5,12,no se sostiene
+medio,positivo,0.01,8,1.0131634715547702,5,12,no se sostiene
+medio,positivo,0.01,9,1.0124622013028566,5,12,no se sostiene
+medio,positivo,0.02,0,1.0188402349329866,6,12,no se sostiene
+medio,positivo,0.02,1,1.0036877634059165,5,12,no se sostiene
+medio,positivo,0.02,2,1.014323287231181,5,12,no se sostiene
+medio,positivo,0.02,3,1.005168344414667,5,12,no se sostiene
+medio,positivo,0.02,4,0.9982662146999651,6,12,no se sostiene
+medio,positivo,0.02,5,1.0092268447239976,5,12,no se sostiene
+medio,positivo,0.02,6,1.0086841187673579,6,12,no se sostiene
+medio,positivo,0.02,7,1.013646576266386,5,12,no se sostiene
+medio,positivo,0.02,8,1.0063823792984903,5,12,no se sostiene
+medio,positivo,0.02,9,1.0061340521159163,5,12,no se sostiene
+medio,positivo,0.04,0,1.0101541614946608,7,12,dudosa
+medio,positivo,0.04,1,0.9896606119528171,6,12,no se sostiene
+medio,positivo,0.04,2,1.0036505788313512,6,12,no se sostiene
+medio,positivo,0.04,3,0.9922226276839726,7,12,dudosa
+medio,positivo,0.04,4,0.9834027062728793,7,12,dudosa
+medio,positivo,0.04,5,0.997503613930146,7,12,dudosa
+medio,positivo,0.04,6,0.998398231526911,7,12,dudosa
+medio,positivo,0.04,7,1.0042403445703425,6,12,no se sostiene
+medio,positivo,0.04,8,0.9924143389698982,7,12,dudosa
+medio,positivo,0.04,9,0.993530681362751,7,12,dudosa
+medio,positivo,0.08,0,0.9869004026074151,7,12,dudosa
+medio,positivo,0.08,1,0.9634628554665604,7,12,dudosa
+medio,positivo,0.08,2,0.977987233102838,7,12,dudosa
+medio,positivo,0.08,3,0.9650794575921218,7,12,dudosa
+medio,positivo,0.08,4,0.9556522102041098,7,12,dudosa
+medio,positivo,0.08,5,0.9716680701528524,7,12,dudosa
+medio,positivo,0.08,6,0.9751529953428785,7,12,dudosa
+medio,positivo,0.08,7,0.9822875712297299,7,12,dudosa
+medio,positivo,0.08,8,0.963632320800584,7,12,dudosa
+medio,positivo,0.08,9,0.96772834750702,7,12,dudosa
+medio,positivo,0.16,0,0.9320500722368893,7,12,dudosa
+medio,positivo,0.16,1,0.9091929996233377,8,12,dudosa
+medio,positivo,0.16,2,0.9219448565394629,8,12,dudosa
+medio,positivo,0.16,3,0.909105995144583,7,12,dudosa
+medio,positivo,0.16,4,0.8987335967464587,7,12,dudosa
+medio,positivo,0.16,5,0.9151356932059607,7,12,dudosa
+medio,positivo,0.16,6,0.9206078538839125,7,12,dudosa
+medio,positivo,0.16,7,0.9287158227287591,7,12,dudosa
+medio,positivo,0.16,8,0.9037368341893494,8,12,dudosa
+medio,positivo,0.16,9,0.9118342065797507,7,12,dudosa
+largo,negativo,0.0,0,0.9527085573572878,3,10,no se sostiene
+largo,negativo,0.0,1,1.0366589396503705,5,10,no se sostiene
+largo,negativo,0.0,2,1.0225787328893592,3,10,no se sostiene
+largo,negativo,0.0,3,1.1456827504868448,3,10,no se sostiene
+largo,negativo,0.0,4,1.1688742362601736,0,10,no se sostiene
+largo,negativo,0.0,5,1.1517790964242343,4,10,no se sostiene
+largo,negativo,0.0,6,1.091256424292322,3,10,no se sostiene
+largo,negativo,0.0,7,1.1663656384238659,2,10,no se sostiene
+largo,negativo,0.0,8,1.205003981107337,1,10,no se sostiene
+largo,negativo,0.0,9,1.1467721343756283,1,10,no se sostiene
+largo,negativo,0.0,10,1.309253356341315,4,10,no se sostiene
+largo,negativo,0.0,11,1.0549364748479422,2,10,no se sostiene
+largo,negativo,0.0,12,1.0825793879743673,5,10,no se sostiene
+largo,negativo,0.0,13,1.2168656302778718,2,10,no se sostiene
+largo,negativo,0.0,14,0.9796375606861591,6,10,dudosa
+largo,negativo,0.0,15,1.2194700613717777,1,10,no se sostiene
+largo,negativo,0.0,16,1.15208487701914,3,10,no se sostiene
+largo,negativo,0.0,17,1.0005636130624185,5,10,no se sostiene
+largo,negativo,0.0,18,1.299910664282273,3,10,no se sostiene
+largo,negativo,0.0,19,0.9637509004876278,3,10,no se sostiene
+largo,positivo,0.01,0,0.9253987732661207,4,10,no se sostiene
+largo,positivo,0.01,1,0.9169491232716157,4,10,no se sostiene
+largo,positivo,0.01,2,0.924513638014122,4,10,no se sostiene
+largo,positivo,0.01,3,0.9204013356392535,4,10,no se sostiene
+largo,positivo,0.01,4,0.9334111434451409,4,10,no se sostiene
+largo,positivo,0.01,5,0.9234031086061448,4,10,no se sostiene
+largo,positivo,0.01,6,0.9190055547573056,4,10,no se sostiene
+largo,positivo,0.01,7,0.9221222146430634,4,10,no se sostiene
+largo,positivo,0.01,8,0.9227411324219797,4,10,no se sostiene
+largo,positivo,0.01,9,0.9179727405063538,4,10,no se sostiene
+largo,positivo,0.02,0,0.9223272395806035,5,10,no se sostiene
+largo,positivo,0.02,1,0.9102063131081528,5,10,no se sostiene
+largo,positivo,0.02,2,0.9200981146153877,4,10,no se sostiene
+largo,positivo,0.02,3,0.9141844691166261,5,10,no se sostiene
+largo,positivo,0.02,4,0.9331308524599848,4,10,no se sostiene
+largo,positivo,0.02,5,0.9191969049909361,5,10,no se sostiene
+largo,positivo,0.02,6,0.9128076576059911,5,10,no se sostiene
+largo,positivo,0.02,7,0.9173439907447284,5,10,no se sostiene
+largo,positivo,0.02,8,0.9181753910263607,5,10,no se sostiene
+largo,positivo,0.02,9,0.9124278533710203,5,10,no se sostiene
+largo,positivo,0.04,0,0.9151421885415835,5,10,no se sostiene
+largo,positivo,0.04,1,0.8980274352901277,5,10,no se sostiene
+largo,positivo,0.04,2,0.9114727316842094,5,10,no se sostiene
+largo,positivo,0.04,3,0.9027571762870347,5,10,no se sostiene
+largo,positivo,0.04,4,0.9293256156474071,5,10,no se sostiene
+largo,positivo,0.04,5,0.909910831801869,5,10,no se sostiene
+largo,positivo,0.04,6,0.9014333601304078,5,10,no se sostiene
+largo,positivo,0.04,7,0.9073602956936521,5,10,no se sostiene
+largo,positivo,0.04,8,0.9084791205053352,5,10,no se sostiene
+largo,positivo,0.04,9,0.9017690269218994,5,10,no se sostiene
+largo,positivo,0.08,0,0.8960275197981383,5,10,no se sostiene
+largo,positivo,0.08,1,0.8761981266161194,6,10,dudosa
+largo,positivo,0.08,2,0.8907633595066267,5,10,no se sostiene
+largo,positivo,0.08,3,0.8810666389522728,5,10,no se sostiene
+largo,positivo,0.08,4,0.9142946629552989,5,10,no se sostiene
+largo,positivo,0.08,5,0.8889365650304418,6,10,dudosa
+largo,positivo,0.08,6,0.8790776148398088,5,10,no se sostiene
+largo,positivo,0.08,7,0.887097513625189,5,10,no se sostiene
+largo,positivo,0.08,8,0.8886216796924382,6,10,dudosa
+largo,positivo,0.08,9,0.8803908155368836,5,10,no se sostiene
+largo,positivo,0.16,0,0.8491322194678866,7,10,dudosa
+largo,positivo,0.16,1,0.8328065678282478,7,10,dudosa
+largo,positivo,0.16,2,0.8440343422036728,7,10,dudosa
+largo,positivo,0.16,3,0.8342958502986186,6,10,dudosa
+largo,positivo,0.16,4,0.8686491579908289,6,10,dudosa
+largo,positivo,0.16,5,0.8406890884888588,7,10,dudosa
+largo,positivo,0.16,6,0.8354590097553038,6,10,dudosa
+largo,positivo,0.16,7,0.8437761047057328,6,10,dudosa
+largo,positivo,0.16,8,0.8412073829305321,7,10,dudosa
+largo,positivo,0.16,9,0.8329733197833943,6,10,dudosa

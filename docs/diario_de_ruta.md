@@ -29,7 +29,7 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 | D12 | 06/11/2026 | `data/petroleo_dataset.csv` **se mantiene versionado** como foto de los datos del proyecto. Los experimentos usarán una fecha de corte fija, y las descargas de la app se guardarán en otro archivo | Criterio: quitarlo solo si no causa fallos. Sí los causaría: si Yahoo falla, el script sigue sin cobre, oro e índice del dólar, y cada descarga nueva cambia el test y todas las cifras | ✅ | Diario 06/11 |
 | D13 | 06/11/2026 | Calendario de días reales del Brent en `data/dias_brent.csv`, generado una vez desde FRED (`scripts/generar_dias_brent.py`) y versionado. El CSV original no se modifica nunca; el resto del preprocesamiento se hace en memoria | El preprocesamiento funciona sin conexión y siempre da el mismo resultado; las fichas se generan en menos de 1 s y no hace falta guardarlas | ✅ | Prep. §1 |
 | D14 | 06/11/2026 | Código reutilizable en el paquete `src/oil_price/` (instalado con `poetry install`): configuración única (`config.py`), comprobaciones automáticas (`validaciones.py`) y pruebas con `pytest` (`tests/`) | Notebooks y aplicación usan la misma receta y los mismos parámetros; una fuga de información no da error visible, así que se comprueba automáticamente | ✅ | Prep. |
-| D15 | 06/11/2026 | **Experimento de control para H4, al final:** la red ganadora, con su mejor configuración, entrenada también para predecir el **precio** en lugar de la variación. Se compara su error con el del ingenuo y el de nuestra red, se dibuja el «espejismo» (línea que sigue al precio con un día de retraso) y se comprueba si su predicción se parece más al precio real o al de ayer | Versión mínima: pocos entrenamientos, código reutilizado. Aporta evidencia para H4 y una figura muy clara para la presentación, sin multiplicar el estudio | ✅ | Diario 06/11 |
+| D15 | 06/11/2026 | **Experimento de control para H4, al final:** la red ganadora, con su mejor configuración, entrenada también para predecir el **precio** en lugar de la variación. Se compara su error con el del ingenuo y el de nuestra red, se dibuja el «espejismo» (línea que sigue al precio con un día de retraso) y se comprueba si su predicción se parece más al precio real o al de ayer | Versión mínima: pocos entrenamientos, código reutilizado. Aporta evidencia para H4 y una figura muy clara para la presentación, sin multiplicar el estudio **Resultado (13/11):** con precios, la RNN se equivoca un 54 % más que el ingenuo a 1 semana (1,544) y un 3 % más a 3 meses (1,028), frente a 0,993 y 0,938 con variaciones; a 1 semana parece acertar (correlación de niveles 0,95). H4 se cumple | ✅ | Diario 06/11 y 13/11, `control_precios.py`, notebook 03 §13.5 |
 | D16 | 08/11/2026 | **Búsqueda de la mejor configuración de cada red en dos fases.** Fase A (común): las 18 combinaciones de ventana × recorte × nivel con una estructura base, en las 3 redes y los 4 pliegues; se elige la mejor de media. Fase B (por red): **Optuna** con el mismo espacio y **40 intentos por red** (neuronas, capas, dropout, velocidad de aprendizaje en rango continuo 0,0001-0,003, regularización L2, tamaño de lote). Fijo para las tres: Adam, Huber, parada temprana con un trozo final del train (guarda la mejor versión), reducción automática de la velocidad, recorte de gradientes. Criterio fijado de antemano: error / error del ingenuo, promediado en horizontes y pliegues; las 3 mejores configuraciones se confirman con 3 semillas; empate → la de menos parámetros. Curvas de aprendizaje de las ganadoras | El enunciado pide un presupuesto de ajuste similar, no la misma configuración: cada red compite con su mejor versión. Optuna explora mejor que una rejilla con el mismo número de intentos y dice qué parámetros importan | ✅ (la fase B se concreta en D22) | Diario 08/11 |
 | D17 | 08/11/2026 | **Modelo lineal (Ridge) como referencia extra** en la comparativa, con las mismas fichas y el mismo criterio; su regularización se elige en los mismos pliegues de validación. Se prescinde de él si resultara costoso | Peldaño intermedio entre el ingenuo y las redes: responde a «¿hacía falta una red neuronal?». No lo pide el enunciado; suma credibilidad | ✅ | Diario 08/11 |
 | D18 | 08/11/2026 | **Una red por horizonte**: cada tipo de red (RNN, LSTM, GRU) se entrena y se ajusta por separado para 5, 63 y 252 sesiones, es decir, 9 modelos. El presupuesto de ajuste de D16 (fase B) se aplica a cada par red-horizonte | El enunciado no lo impide. La prueba inicial mostró que el largo plazo se comporta muy distinto (memoriza y proyecta tendencias): separado, no contamina al corto y medio plazo, y cada horizonte puede tener su propia configuración | ✅ | Diario 08/11 |
@@ -44,8 +44,9 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 | D27 | 11/11/2026 | **Estabilidad: promedio de semillas.** Las 9 configuraciones elegidas en la fase B, sin volver a elegir nada, se entrenan con 10 semillas (42-51) y se guardan sus previsiones. Se mide el error de una red suelta frente al promedio de 2, 3, 5 y 10 semillas, y la estabilidad: cuánto cambian la nota y las previsiones entre grupos de semillas distintos. El promedio es la media de los precios que prevé cada semilla. **Regla, fijada antes de ver los resultados:** se adopta el promedio de 5 semillas, igual para las tres redes; la curva de 1 a 10 solo describe el efecto | La semilla (hasta 0,04 a 1 año) y la época de parada, que es medio azar, hacen que cada entrenamiento salga distinto. Así cuesta saber si una mejora es real, y en la aplicación la previsión cambiaría al reentrenar. Promediar no puede empeorar el error (su MAE nunca supera la media del de sus semillas) y no elige nada, así que no añade riesgo de sobreajustar la validación. Además, las semillas 45-51 no se usaron para elegir: dan una estimación más honesta del error de las elegidas. **Resultado:** se adopta el promedio de 5. Mejora poco el error (0,001-0,009), pero a 3 meses reduce a la mitad cuánto cambia la previsión de unas semillas a otras. Con las semillas nuevas, la fase B resulta optimista: 0,03-0,07 peor a 1 año y hasta 0,02 a 3 meses. Notas de referencia desde ahora (promedio de 5): 1 semana 0,991-0,993; 3 meses 0,924-0,950; 1 año 0,906-0,937 (lineal 0,820) | ✅ | `estabilidad.py`, `scripts/estabilidad.py`, Diario 11/11 (tarde) y 12/11, notebook 03 §7 |
 | D28 | 12/11/2026 | **Combinación de red y lineal.** La previsión combinada es la media, a partes iguales, del precio que prevé la red (promedio de 5 semillas, D27) y del que prevé el lineal de referencia (sin tendencia, mismos datos, su mejor regularización). Se calcula con las previsiones ya guardadas, sin entrenar, solo en validación. **Regla, fijada antes de calcular:** en cada horizonte, con la media de las tres redes, se adopta la combinación si mejora a la mejor de las dos opciones por separado (red sola o lineal) en más del azar que queda con 5 semillas (D27); si empata, se queda la opción sola, por sencilla. La curva con otros pesos (0; 0,25; 0,5; 0,75; 1) es solo descriptiva | A 1 año el lineal es mejor que las redes, y a 3 meses al revés, pero cada uno falla en años distintos (el lineal en 2021, las redes en 2019). Combinar es la forma más sencilla de aprovechar los dos. Mitad y mitad no se elige con la validación, así que no añade riesgo de sobreajustarla (problema 5), y el error de la mezcla nunca supera la media de los errores de las dos. **Resultado: no se adopta en ningún horizonte.** 1 semana, empate (0,990 frente a 0,992 de la red sola; azar 0,003); 3 meses, algo peor que la red sola (0,945 frente a 0,938); 1 año, peor que el lineal (0,851 frente a 0,820). A 1 año las redes son una copia en pequeño del lineal: misma dirección (correlación 0,94-0,95) y la mitad o dos tercios de su tamaño | ✅ | `combinacion.py`, Diario 12/11 (tarde), notebook 03 §8 |
 | D29 | 12/11/2026 | **Validación hacia atrás (2010-2017).** Las configuraciones elegidas en la fase B, sin volver a elegir nada (promedio de 5 semillas, 42-46) y el lineal de referencia se evalúan en cada año de 2010 a 2017, entrenando solo con lo anterior. No se usa nada posterior al 31/12/2017. 3 meses y 1 año. **Criterio, fijado antes de calcular:** la ventaja a 3 meses es real si la media de las tres redes gana al ingenuo en al menos 9 de los 12 años (2010-2021) y queda por debajo de 1 con los años juntos; dudosa con 7-8; no se sostiene con 6 o menos (1 año: 8 de 10) | La validación tiene 4 años (3 a 1 año), se ha usado muchas veces para elegir y puede ser favorable a la señal de los modelos (Diario 12/11, noche: en 2006-2017 la regla de la volatilidad no gana al ingenuo a 3 meses). Ocho años que nunca se usaron para elegir dicen, sin tocar el test, si la ventaja es real. No elige nada. **Resultado:** 3 meses, **dudosa**: gana 7 de 12 años, 1,023 con los 12 juntos y 1,073 en 2010-2017 (0,933 en 2018-2021); 1 año, **no se sostiene**: 4 de 10, tanto las redes como el lineal. La validación era un periodo favorable | ✅ | `hacia_atras.py`, Diario 12/11 (noche), notebook 03 §10 |
-| D30 | 12/11/2026 | **Rango de incertidumbre del 80 %.** Se comparan tres rangos, ajustados solo con errores ya conocidos al empezar cada año (previsiones fuera de muestra de 2010-2021): el **rango ingenuo** (percentiles 10-90 de las variaciones pasadas, alrededor del precio de hoy; la referencia), un rango fijo alrededor de la red y **A, el rango según la volatilidad** (D8: errores pasados divididos por la volatilidad de 21 días y multiplicados por la de hoy). Medidas: cobertura, anchura y la puntuación de intervalos (α = 0,2), por años y por tercios de volatilidad. **Regla, fijada antes de calcular:** en cada horizonte, con la media de las tres redes, gana el de mejor nota entre los que aciertan el 75-85 % en total y al menos el 70 % en cada tercio de volatilidad; si gana el ingenuo, la aplicación usa ese y lo dice. El 50 % y el 95 %, solo como información | El enunciado pide un rango para cada previsión. Si el precio no se puede prever (D29), lo útil es decir cuánto puede moverse, y la volatilidad sí se puede prever (H3). Ajustar solo con lo ya conocido evita mirar el futuro, y el rango ingenuo dice si el nuestro aporta algo **Resultado:** se adopta **A2, el rango según la volatilidad con memoria** (el ancho crece con la volatilidad solo lo que dura el nerviosismo, aprendido del pasado), a 3 meses y a 1 año: nota un 12 % y un 24 % mejor que el ingenuo, y cobertura del 78 % y el 73 %. Ninguno cumple del todo la regla: en calma A2 acierta el 63 % y el 58 %. Las redes que dan el rango (B) no mejoran a A2 y no se adoptan. 1 semana, pendiente | ✅ (3 meses y 1 año) | `incertidumbre.py`, `rango_redes.py`, Diario 12/11 (noche), notebook 03 §12 |
+| D30 | 12/11/2026 | **Rango de incertidumbre del 80 %.** Se comparan tres rangos, ajustados solo con errores ya conocidos al empezar cada año (previsiones fuera de muestra de 2010-2021): el **rango ingenuo** (percentiles 10-90 de las variaciones pasadas, alrededor del precio de hoy; la referencia), un rango fijo alrededor de la red y **A, el rango según la volatilidad** (D8: errores pasados divididos por la volatilidad de 21 días y multiplicados por la de hoy). Medidas: cobertura, anchura y la puntuación de intervalos (α = 0,2), por años y por tercios de volatilidad. **Regla, fijada antes de calcular:** en cada horizonte, con la media de las tres redes, gana el de mejor nota entre los que aciertan el 75-85 % en total y al menos el 70 % en cada tercio de volatilidad; si gana el ingenuo, la aplicación usa ese y lo dice. El 50 % y el 95 %, solo como información | El enunciado pide un rango para cada previsión. Si el precio no se puede prever (D29), lo útil es decir cuánto puede moverse, y la volatilidad sí se puede prever (H3). Ajustar solo con lo ya conocido evita mirar el futuro, y el rango ingenuo dice si el nuestro aporta algo **Resultado:** a 3 meses y a 1 año se adopta **A3, el rango centrado** (simétrico alrededor de la previsión, con la memoria aprendida de los días nerviosos y sin estrecharse por debajo de la volatilidad normal). A 3 meses cumple la regla (79 %, nota 0,873); a 1 año tiene la mejor nota (0,706), pero acierta el 71 % y se presenta como orientativo. A 1 semana gana **A2, el rango según la volatilidad con memoria** (82 %, nota 0,871): allí la calma sí dura, y el suelo de A3 lo deja demasiado ancho. Las redes que dan el rango (B) no se adoptan | ✅ | `incertidumbre.py`, `rango_redes.py`, Diario 12/11 (noche) y 13/11, notebook 03 §12 |
 | D31 | 12/11/2026 | **Reentrenar las redes con todo el entrenamiento.** Sin trozo de parada temprana y con un número fijo de épocas: la mediana de sus mejores épocas en la estabilidad (3 meses: RNN 7, LSTM 4, GRU 6; 1 año: 1). Se evalúa en 2010-2021. **Regla, fijada antes de calcular:** sustituye a la versión actual si, con todos los años, la media de las tres redes mejora la nota con los años juntos y gana al ingenuo en al menos tantos años | Hasta ahora la red no aprende de los últimos años del entrenamiento (15 % de parada más la purga): para prever 2020 a 1 año, aprende con fichas hasta mediados de 2015, y el lineal con todo. Es la única objeción que podría cambiar la conclusión, y afecta al modelo final de la aplicación. **Resultado:** se adopta a 1 año (de 0,984 a 0,956; gana 6 de 10 años en lugar de 4; el veredicto pasa a «dudosa»), y no a 3 meses (empeora de 1,023 a 1,048) | ✅ | Diario 12/11 (noche) y 13/11 |
+| D32 | 13/11/2026 | **El centro del rango.** Con el rango elegido en cada horizonte (A2 a 1 semana; A3 a 3 meses y a 1 año), se compara el rango centrado en la previsión de las redes con el mismo centrado en el precio de hoy. **Regla, fijada antes de calcular:** se mantiene el centro de las redes solo si mejora la nota al menos un 1 % con los años juntos y en más de la mitad de los años; si no, el precio de hoy (salvo que así deje de cumplir la regla de D30) | Las redes no ganan al ingenuo (D29), y el centro de un rango debe ser la mejor previsión disponible; en empate, lo más sencillo. **Resultado:** gana el precio de hoy en los tres horizontes (las redes empeoran la nota un 0,2 %, un 2,6 % y un 1,3 %). Notas finales frente al rango ingenuo: 0,870, 0,851 y 0,716 | ✅ | `incertidumbre.py`, Diario 13/11, notebook 03 §12.6 |
 
 ### Hipótesis abiertas
 
@@ -54,7 +55,7 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 | H1 | Las redes mejorarán algo al ingenuo a 5 días, pero no a 63 ni a 252 | Tabla comparativa en test | abierta · en validación (fase A, confirmada con semillas) **no se cumple**: se mejora a 63 días (≈ 6 %) y apenas a 5 (≈ 1 %). Tras la fase B, igual: ≈ 1 % a 5 días, 6-8 % a 63 y 11-12 % a 252 (el lineal, 18 %) (Diario 11/11). Con el promedio de 5 semillas (D27): ≈ 1 % a 5 días, 5-8 % a 63 y 6-9 % a 252 (Diario 12/11). **Con 12 años (D29), ningún horizonte mejora al ingenuo de forma fiable:** a 63 días, dudosa (7 de 12 años, 1,023 con los años juntos); a 252, no se sostiene (4 de 10) |
 | H2 | La variación de ayer del WTI anticipa el Brent de hoy (correlación ≈ 0,17), probablemente porque EE. UU. cierra después que Londres | Comparar el modelo con y sin WTI a 5 días | abierta |
 | H3 | El modelo aportará más en la anchura del intervalo (riesgo) que en la dirección del precio | Cobertura y anchura de los intervalos frente a los empíricos | **se cumple en parte** (D30): un rango que se ensancha con la volatilidad (con memoria) mejora al rango fijo de las variaciones pasadas un 12 % a 3 meses y un 24 % a 1 año, sobre todo en las tormentas. Pero lo construye una regla sencilla; las redes que dan el rango no la mejoran. En calma, ningún rango cumple el 80 % (Diario 12/11, noche) |
-| H4 | Predecir variaciones funciona mejor que predecir niveles; una red entrenada con precios tiende a copiar el precio de ayer | Experimento de control al final (D15) | abierta |
+| H4 | Predecir variaciones funciona mejor que predecir niveles; una red entrenada con precios tiende a copiar el precio de ayer | Experimento de control al final (D15) | **se cumple**: con precios, la RNN da 1,544 a 1 semana y 1,028 a 3 meses (con variaciones, 0,993 y 0,938); a 1 semana parece acertar (correlación de niveles 0,95) y está más cerca del precio de hoy que del futuro. A 3 meses, además, tira hacia el precio típico del train (Diario 13/11) |
 | H5 | Las conclusiones (red ganadora y horizontes en los que aporta) no dependen de la partición elegida | Prueba de robustez con la partición A (D10) | abierta |
 | H6 | El indicador de nivel (precio frente a su media anual) mejora sobre todo a 63 y 252 días, porque los precios muy altos o muy bajos tienden a corregir | Estudio con y sin el indicador, en validación | **no se cumple en las redes** (el indicador las empeora). La corrección sí existe a 252 días, pero el lineal la aprovecha sobre todo con la ventana de 252 días (Diario 09/11). Sin tendencia, tampoco: a 1 año las 11 mejores combinaciones son sin nivel (1,056 con él frente a 1,022 sin él, D21) |
 | H7 | Parte del mal resultado a 1 año se debe a la subida media del train, que redes y lineal proyectan al futuro (+3 % a +12 % al año según el pliegue). Sin ella, las redes mejoran a 1 año; a 3 meses y a 1 semana apenas cambia | Experimento sin tendencia (D20) | **se cumple**: a 1 año las redes pasan de 1,114 a 1,044; a 3 meses y a 1 semana, empate (Diario 09/11) |
@@ -1367,3 +1368,280 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 - **1 semana en marcha:** `python scripts/hacia_atras.py --horizontes corto`, 120 entrenamientos (RNN, LSTM y GRU, 2010-2017, semillas 42-46). Si se corta, se relanza igual y continúa. Después: su criterio de D29 y los rangos a 1 semana.
 - **Repetir los rangos** con las redes de 1 año de D31 como centro (cambia poco, porque el ancho no depende del centro).
 - **Commit pendiente,** con el visto bueno de Pablo, cuando termine la de 1 semana (antes, los `hacia_atras*.csv` irían a medias): todo lo posterior a `78b8e44`.
+
+### 13/11/2026 · 1 semana: validación hacia atrás y rango
+
+- Commit de lo anterior (sección 11, incertidumbre, redes que dan el rango, D31, comprobaciones, secciones 12-13 del notebook): hecho y subido a GitHub (`29e3b4a`).
+- La validación hacia atrás de 1 semana terminó: 120 entrenamientos en 75 minutos (RNN, LSTM y GRU elegidas en la fase B, 2010-2017, semillas 42-46, nada posterior a 2017).
+
+**Diseño** (fijado antes de calcular)
+- **Criterio:** el de D29 a 3 meses, que también tiene 12 años (8 hacia atrás y 4 de validación), con la media de las tres redes:
+  - **ventaja real:** gana al ingenuo en 9 o más años y queda por debajo de 1 con los años juntos;
+  - **dudosa:** gana 7 u 8;
+  - **no se sostiene:** gana 6 o menos.
+- **Rango del 80 %:** los mismos candidatos y la misma regla de D30 que a 3 meses y a 1 año.
+
+**Lo esperado** (apuntado antes de calcular)
+- **Redes:** entre 0,99 y 1,01 con los 12 años, ganando unos 6: «no se sostiene» o, como mucho, «dudosa». El lineal, parecido.
+- **La pequeña ventaja de la LSTM y la GRU en 2018-2021** (Diebold-Mariano, p ≈ 0,05) se diluye con los 12 años: p por encima de 0,10.
+- **Rango A3:**
+  - cobertura entre el 78 y el 82 %, con calma y tormenta más parejas que a 3 meses;
+  - memoria entre 0,7 y 0,9 (ya apuntado en D30);
+  - nota frente al rango ingenuo mejor que a 3 meses (entre 0,80 y 0,87), porque a una semana la volatilidad de hoy dice más.
+
+**Resultados: la previsión** (media de las tres redes, promedio de las semillas 42-46)
+
+| | 2010-2017 | 2018-2021 (validación) | Todos los años | Años que gana | Veredicto |
+|---|---|---|---|---|---|
+| 1 semana · redes | 1,009 | 0,990 | 1,002 (0,99-1,01) | 8 de 12 | **dudosa** |
+| 1 semana · lineal | 1,002 | 0,993 | 0,999 (0,99-1,01) | 7 de 12 | dudosa |
+
+- **«Dudosa» por la regla, igual que el ingenuo en la práctica:**
+  - gana 8 años, pero por muy poco (entre 0,980 y 0,999), y pierde 2011 por más (1,040);
+  - con los años juntos queda en 1,002: la previsión media de las tres se equivoca lo mismo que el ingenuo (0,01 céntimos de diferencia por previsión);
+  - ganar 8 o más de 12 años sin ninguna ventaja pasa el 19 % de las veces;
+  - la regla de D29 no previó este caso (muchos años ganados por poco y la nota con los años juntos por encima de 1). No se cambia, pero se dice.
+- **La ventaja de la LSTM y la GRU en 2018-2021 desaparece:** con los 12 años, ninguna red se distingue del ingenuo (Diebold-Mariano: p entre 0,25 y 0,45; la media de las tres, 0,99). En 2010-2017, la RNN y la GRU se equivocan algo más que el ingenuo (p = 0,06 y 0,08).
+- **La LSTM es la más regular:** 0,997 con los 12 años, gana 8, y queda por delante de la GRU en 9 de los 12. Las diferencias, de menos del 1 %.
+- **La media de las tres no se adopta a 1 semana** (regla de D29): no mejora a la LSTM (1,000 frente a 0,997).
+- **Peor año: 2011,** en las tres redes (entre 1,03 y 1,07).
+- **Otras medidas** (RMSE, error en %, mediana de los años): todas entre 0,994 y 1,007.
+
+**Resultados: el rango del 80 %** (media de las tres redes; 2011-2021, porque el primer año no tiene errores anteriores)
+
+| | Cobertura | Calma · normal · tormenta | Anchura | Nota / ingenuo |
+|---|---|---|---|---|
+| ingenuo | 84 % | 96 · 84 · 72 | 12,4 % | 1,000 |
+| fijo | 76 % | 89 · 77 · 62 | 9,7 % | 0,993 |
+| volatilidad (A) | 80 % | 74 · 79 · 87 | 12,9 % | 0,893 |
+| **memoria (A2)** | **82 %** | **82 · 81 · 84** | 12,1 % | **0,871** |
+| centrado (A3) | 84 % | 93 · 81 · 78 | 12,3 % | 0,904 |
+
+- **Margen de la cobertura:** ±1,6 puntos (a 1 semana hay muchas fichas independientes: 555).
+- **Con la regla de D30 gana A2:** cumple (82 %, peor tercio 81 %) y tiene la mejor nota. A3 también cumple, pero se pasa en calma (93 %).
+- **Por qué A3 no gana aquí:** su suelo (no estrechar el rango por debajo de la volatilidad normal) se apoyaba en que a 3 meses y a 1 año la calma no dura. A una semana sí dura, y el rango de A3 queda demasiado ancho en calma. A2, sin suelo, queda parejo.
+- **A2 es el más estable por años:** entre el 75 % (2020) y el 89 % (2019). El ingenuo va del 59 % (2020) al 100 % (2013).
+- **Memoria:** A2, entre 0,61 y 0,83; A3, entre 0,58 y 0,98.
+- **Fallos casi equilibrados** (A2): 9,6 % por abajo y 8,1 % por arriba.
+- **Niveles, como información** (A2): el 50 % cubre el 53 % y el 95 %, el 95 %.
+
+**Lo esperado frente a lo obtenido**
+- Redes entre 0,99 y 1,01, ganando unos 6 años: 1,002 y 8 años. «Dudosa», el extremo alto de lo previsto.
+- La ventaja de la LSTM y la GRU se diluye (p por encima de 0,10): se cumple (0,45 y 0,39).
+- Rango A3:
+  - cobertura del 78-82 %: 84 %;
+  - calma y tormenta más parejas que a 3 meses: **no se cumple** (93 y 78);
+  - memoria entre 0,7 y 0,9: más o menos (A3, 0,58-0,98; A2, 0,61-0,83);
+  - nota entre 0,80 y 0,87: A3, 0,904 (peor); A2, 0,871 (en el límite). Mirar la volatilidad ayuda a 1 semana lo mismo que a 3 meses (0,873), no más.
+
+**Decisiones**
+- **1 semana, previsión:** «dudosa» por la regla de D29, y en la práctica igual que el ingenuo. Se mantiene la conclusión del estudio: ninguna red mejora al ingenuo de forma fiable en ningún horizonte.
+- **1 semana, rango:** A2, por la regla de D30. Queda A2 a 1 semana y A3 a 3 meses y a 1 año: la misma idea (el ancho crece con la volatilidad de hoy), con distinto ajuste según cuánto dura la calma en cada horizonte.
+- **Código:** `hacia_atras.previsiones_doce_años` admite `horizontes=` y el criterio tiene 1 semana (mismos umbrales que a 3 meses).
+
+- **Notebook 03:** 1 semana añadida a las secciones 10 (validación hacia atrás), 12 (rango) y 13 (robustez: otras medidas, Diebold-Mariano con los 12 años y por periodos, parejas). Ejecutado sin errores.
+
+**Pendiente**
+- Repetir los rangos con las redes de 1 año de D31 como centro.
+
+### 13/11/2026 · Controles del procedimiento y límites de la validación hacia atrás
+
+**Límite de la validación hacia atrás** (no cambia nada, pero hay que decirlo). 2010-2017 nunca se usó para elegir configuraciones, pero no es del todo independiente:
+- la ventana, las variables y el «sin tendencia» se eligieron con modelos entrenados con datos de 2000-2017;
+- el análisis exploratorio vio toda la serie.
+
+Ese sesgo favorece a los modelos. Como el resultado es negativo, la conclusión es robusta. Lo que sí está contaminado es la nota de 2018-2021 (0,90-0,93 a 3 meses), porque con esos años se eligió todo.
+
+**Diseño de los controles** (fijado antes de calcular). Comprueban el procedimiento entero (fichas, purga, escalado, entrenamiento, evaluación y criterio de D29) con el lineal de referencia, que tarda segundos. Mismos años (12 a 1 semana y a 3 meses, 10 a 1 año), mismos datos y misma regularización.
+- **Control negativo (sin señal):** las respuestas del entrenamiento se desplazan en círculo un número de fichas al azar (al menos un año más el horizonte). Conservan cómo se mueve el precio, pero ya no corresponden a sus entradas: no hay nada que aprender. 20 repeticiones por horizonte.
+- **Control positivo (señal plantada):**
+  - se añade a las entradas un «chivato»: la respuesta verdadera más ruido, solo en el último día de la ventana. Con menos ruido, más señal;
+  - el ruido se fija para que el mejor previsor posible mejore al ingenuo un 1, 2, 4, 8 y un 16 %;
+  - 10 repeticiones por nivel y horizonte;
+  - es el caso más fácil: la señal es igual de fuerte todos los años, y una real seguramente iría y vendría.
+- **Qué se mide:** la nota con los años juntos, los años que gana y el veredicto con el criterio de D29, contando en qué parte de las repeticiones sale cada veredicto.
+
+**Lo esperado** (apuntado antes de calcular)
+- **Negativo:** nota entre 1,00 y 1,03; «no se sostiene» en al menos el 90 % de las repeticiones y «real» en ninguna. Si saliera «dudosa» o «real» a menudo (más del 20 %), el criterio sería demasiado blando: habría que decirlo y revisarlo antes del test.
+- **Positivo:**
+  - 3 meses: con una mejora del 8 %, «real» casi siempre (80 % o más); con un 4 %, mezcla de «dudosa» y «real»; con un 2 % o menos, no se detecta;
+  - 1 año: hace falta más, alrededor del 16 %;
+  - 1 semana: los años varían muy poco (0,98-1,04), así que bastaría con un 2-4 %;
+  - la mejora medida, algo menor que la del mejor previsor, por la regularización y el ruido de las otras entradas.
+- **Para qué sirve:** sustituye la estimación «solo se detectarían mejoras del 8 % o más» por una medida en cada horizonte.
+
+**Hecho:** `controles.py` (control negativo y positivo con el lineal, medidas y resumen), `scripts/controles.py` y 4 pruebas nuevas (entre ellas, que el ruido elegido da la mejora prometida). 210 repeticiones en 5,6 minutos, en `resultados/controles.csv`.
+
+**Resultados**
+
+| | Sin señal: nota media (rango) | Sin señal: veredicto | Con la señal plantada más fuerte (16 %) |
+|---|---|---|---|
+| 1 semana | 1,004 (1,00-1,02) | «no se sostiene» 85 %, «dudosa» 15 % | nota 0,991, gana 8 de 12: «dudosa» siempre |
+| 3 meses | 1,042 (0,98-1,13) | «no se sostiene» 90 %, «dudosa» 10 % | nota 0,915, gana 7 de 12: «dudosa» siempre |
+| 1 año | 1,118 (0,95-1,31) | «no se sostiene» 95 %, «dudosa» 5 % | nota 0,842, gana 6-7 de 10: «dudosa» siempre |
+
+- **Sin señal, el criterio no se engaña:** ninguna repetición sale «real». Pero «dudosa» sale entre el 5 y el 15 % de las veces sin ninguna señal.
+- **Con señal, el criterio no llega nunca a «real»,** en ninguna repetición ni horizonte:
+  - a 3 meses, un lineal un 8,5 % mejor que el ingenuo con los años juntos solo gana 7 de 12 años, porque los años en que el lineal ya iba mal (2011-2012) siguen mal;
+  - a 1 año, un 16 % mejor gana 6-7 de 10;
+  - «real» pide una ventaja que se mantenga casi todos los años, y un modelo con años muy malos no la tiene aunque de media sea bastante mejor.
+- **A 1 semana, el control positivo no dice nada del criterio.** La regularización del lineal (100.000, elegida porque allí no había señal) solo aprovecha el 2-4 % del chivato: con el 16 % plantado mejora un 0,9 %. Con esa regularización, el lineal no aprovecharía ni una señal fuerte. A 3 meses (regularización 1.000) aprovecha el 64-82 % y a 1 año (1), todo.
+- **Sin señal, el lineal sale peor que el ingenuo a 3 meses y a 1 año** (1,042 y 1,118): aprender de respuestas que no corresponden cuesta, sobre todo a 1 año.
+- **Solo como información (no estaba previsto): una prueba de permutación.** El lineal de verdad a 1 año (0,928) queda por debajo de las 20 repeticiones sin señal (la mejor, 0,953): aprende algo real a 1 año (sobre todo de la volatilidad, sección 9), aunque no baste para ganar al ingenuo de forma fiable. A 3 meses (1,020) y a 1 semana (0,999) queda dentro de lo que da un lineal sin señal.
+
+**Lo esperado frente a lo obtenido**
+- Sin señal:
+  - nota entre 1,00 y 1,03: solo a 1 semana. A 3 meses y a 1 año, peor (1,042 y 1,118);
+  - «real» en ninguna repetición: se cumple;
+  - «no se sostiene» en al menos el 90 %: a 1 semana se queda en el 85 %.
+- Con señal: **no se cumple.** Esperaba «real» casi siempre con una mejora del 8 % a 3 meses y del 16 % a 1 año, y no sale nunca. Esperaba una mejora medida algo menor que la plantada, y a 1 semana y a 3 meses es mucho menor, por la regularización.
+
+**Decisiones**
+- **El criterio de D29 no se cambia** (estaba fijado), y el control negativo lo respalda: no da falsos «real». Pero las conclusiones se precisan:
+  - «real» exige una ventaja que se mantenga casi todos los años, algo que ni con una señal plantada fuerte alcanza un modelo con años malos;
+  - «dudosa» no distingue entre no tener señal (sale el 5-15 % de las veces sin ninguna) y tener una señal apreciable. Los «dudosa» de 1 semana, 3 meses y 1 año no son evidencia de ventaja;
+  - la frase «con 12 años solo se detectarían mejoras de alrededor del 8 % o más» se sustituye por lo medido: con este criterio, ni un 8-9 % a 3 meses ni un 16 % a 1 año llegan a «real» si el modelo tiene años malos. La conclusión sigue siendo «sin evidencia de ventaja», no «sin ventaja».
+- **Propuesta para el protocolo del test:** con unos 4 años, contar años ganados no sirve. Mejor la nota con los años juntos y su intervalo, sabiendo de antemano que no será concluyente.
+- **Notebook 03:** sección 13.4 (controles) y la frase sobre los límites de la validación hacia atrás en la lectura de la sección 10.
+
+### 13/11/2026 · Antes del test (1): el centro del rango (D32)
+
+**Qué falta.** El rango de 1 año se calculó con las redes de siempre como centro, pero a 1 año se adoptaron las redes entrenadas con todo (D31). Y queda una pregunta abierta: si las redes no ganan al ingenuo, ¿para qué centrar el rango en su previsión y no en el precio de hoy?
+
+**Diseño** (fijado antes de calcular)
+- **(a) 1 año con las redes de D31 como centro:** se repiten todos los rangos a 1 año con la media de las semillas 42-46 de las redes de D31, y se aplica otra vez la regla de D30.
+- **(b) El centro (D32):** en cada horizonte, con el rango elegido (A2 a 1 semana; A3 a 3 meses y a 1 año), se compara el rango centrado en la previsión de las redes con el mismo rango centrado en el precio de hoy (variación prevista cero). Todo lo demás, igual: mismos años, mismas fichas, mismos errores pasados.
+- **Regla, fijada antes de calcular:**
+  - se mantiene el centro de las redes solo si, con la media de las tres, mejora la nota del rango al menos un 1 % con los años juntos **y** en más de la mitad de los años;
+  - si no, el rango se centra en el precio de hoy: es más sencillo y coherente con que las redes no ganan al ingenuo;
+  - excepción: si centrado en el precio de hoy dejara de cumplir la regla de D30 donde el de las redes la cumple, se mantiene el de las redes.
+
+**Lo esperado** (apuntado antes de calcular)
+- **(a):** A3 sigue siendo el elegido a 1 año, con una cobertura parecida (70-74 %) y una nota parecida (0,69-0,72 frente al ingenuo).
+- **(b):**
+  - a 1 semana y a 3 meses, las redes prevén variaciones muy pequeñas: la nota cambia menos de un 1 % y se centra en el precio de hoy;
+  - a 1 año, las redes de D31 prevén variaciones de varios puntos y podrían ayudar algo (hasta un 2-3 %). Es el único horizonte donde el centro de las redes podría mantenerse, pero no espero que gane en más de la mitad de los años.
+
+**Hecho:** `incertidumbre.centro_hoy` y `regla_centro` (regla de D32).
+
+**Resultados (a): 1 año con las redes de D31 como centro**
+- **A3 sigue siendo el elegido:** nota 0,725 frente al ingenuo y cobertura del 69 %. Con las redes de siempre era 0,706 y 71 %: un poco peor.
+- **Falla mucho más por abajo (26 %) que por arriba (5 %).**
+- Ninguno cumple la regla a 1 año, como antes.
+
+**Resultados (b): el centro del rango**
+
+| | Rango | Nota, centro en las redes | Nota, centro en el precio de hoy | Mejora de las redes | Años que mejoran | Cobertura (peor tercio), precio de hoy | Centro elegido |
+|---|---|---|---|---|---|---|---|
+| 1 semana | A2 | 17,78 | 17,75 | −0,2 % | 6 de 11 | 82 % (81 %) | **precio de hoy** |
+| 3 meses | A3 | 75,80 | 73,87 | −2,6 % | 4 de 11 | 79 % (75 %) | **precio de hoy** |
+| 1 año | A3 | 147,86 | 145,90 | −1,3 % | 3 de 8 | 70 % (61 %) | **precio de hoy** |
+
+- **En los tres horizontes, centrar el rango en la previsión de las redes lo empeora.** Lo que las redes mueven el centro añade error, no información.
+- **A 3 meses es más claro:** el rango centrado en el precio de hoy, además de mejor nota (0,851 frente al ingenuo, antes 0,873), cumple mejor en el peor tercio (75 % frente a 71 %). En 2012, las redes alejaban mucho el rango de lo que pasó (nota 57,2 frente a 44,2).
+- **Con el precio de hoy como centro, el rango ya no depende de qué red se use:** es el mismo para RNN, LSTM y GRU.
+
+**Lo esperado frente a lo obtenido**
+- (a): A3 sigue elegido, como esperaba; la cobertura (69 %) y la nota (0,725) quedan justo fuera de lo previsto (70-74 % y 0,69-0,72).
+- (b):
+  - a 1 semana, cambio de menos del 1 % y gana el precio de hoy: se cumple;
+  - a 3 meses esperaba un cambio de menos del 1 %, y el precio de hoy gana por un 2,6 %;
+  - a 1 año pensaba que las redes de D31 podrían ayudar algo; empeoran un 1,3 %.
+
+**Decisiones**
+- **D32: los rangos se centran en el precio de hoy en los tres horizontes,** con el ancho de A2 a 1 semana y de A3 a 3 meses y a 1 año. Notas frente al rango ingenuo: 0,870, 0,851 y 0,716.
+- **Para la aplicación:** la previsión de cada red se muestra como punto, y el rango del 80 % alrededor del precio de hoy. Es coherente con la conclusión: dónde acabará el precio no lo sabemos mejor que el ingenuo; cuánto puede moverse, sí.
+- **Notebook 03:** nueva sección 12.6 con (a) y (b).
+
+### 13/11/2026 · Antes del test (2): experimento de control con precios (D15, H4)
+
+**Diseño** (fijado antes de calcular; versión mínima de D15)
+- **Qué:** la RNN (la más regular y la candidata para la aplicación), con su configuración elegida en la fase B, entrenada para prever el **precio** a 1 semana y a 3 meses en lugar de la variación.
+- **Igualdad de condiciones:** mismas variables, pero en nivel (el precio del Brent, del WTI, del cobre… en lugar de su variación diaria; la volatilidad, igual). Misma ventana, recorte, escalado ajustado solo con el train, purga, pérdida, parada temprana, semillas (42-46, se promedia el precio previsto) y años (validación 2018-2021). El objetivo, el precio en t + h, se centra y escala con el train, como se hace habitualmente.
+- **Qué se mide**, frente a nuestra RNN (la de variaciones, mismas fichas):
+  - la nota (MAE / ingenuo, en $);
+  - el «espejismo»: cuánto se parece la previsión al precio real futuro (correlación de niveles, que suele salir altísima y da la impresión de acertar);
+  - si la previsión se parece más al precio de hoy que al de dentro de h sesiones (error medio frente a cada uno);
+  - si lo que la previsión dice que cambiará el precio tiene relación con lo que cambió de verdad (correlación de los cambios);
+  - un gráfico de un tramo de 2018-2021: la previsión con precios parece la línea real desplazada h sesiones.
+- **H4 se cumple si** la red con precios no mejora a la de variaciones y su previsión se parece más al precio de hoy que al futuro.
+
+**Lo esperado** (apuntado antes de calcular)
+- **Nota:** a 1 semana, entre 1,00 y 1,10 (nuestra RNN, 0,99); a 3 meses, entre 1,00 y 1,30 (la nuestra, por debajo de 1 en esos años).
+- **Espejismo:** correlación de niveles por encima de 0,9 a 1 semana, aunque la previsión esté más cerca del precio de hoy que del futuro.
+- **Cambios:** correlación entre el cambio previsto y el real por debajo de 0,1 en valor absoluto.
+- **H4:** se cumple en los dos horizontes.
+
+### 13/11/2026 · Antes del test (3): protocolo del examen final (D33, propuesta)
+
+> Propuesta, pendiente del visto bueno de Pablo. Se fija antes de tocar el test y no se cambia después de verlo.
+
+**Qué se congela**
+- Los datos de cada horizonte y las configuraciones de las redes (fase B), con el promedio de las semillas 42-46 (D27).
+- 1 semana y 3 meses: el entrenamiento de siempre, con parada temprana. 1 año: con todo el entrenamiento y épocas fijas (D31).
+- El lineal de referencia, con su regularización, y el ingenuo.
+- Los rangos del 80 %: A2 a 1 semana y A3 a 3 meses y a 1 año, centrados en el precio de hoy (D30, D32).
+- La red de la aplicación y de la conclusión se fija ahora, no con el test (decisión de Pablo): la mejor de cada horizonte en los 12 años de 2010-2021. A 1 semana, la LSTM (0,997); a 3 meses, la RNN (0,994); a 1 año, la RNN entrenada con todo (0,941). Las diferencias entre redes no se distinguen del azar, y en el test se evalúan las tres igualmente.
+
+**Cómo se ejecuta** (D7)
+- Cada red se entrena **una vez** con todo lo anterior al 1/1/2022 (train y validación, con purga) y prevé todas las fichas desde el 1/1/2022 cuya respuesta se conoce (hasta el 3/11/2026).
+- Los rangos se ajustan como en la validación: cada año, con lo conocido antes del 1 de enero.
+- Se ejecuta una sola vez. Si apareciera un error de programación, se corrige solo ese error, se repite y se dice.
+
+**Qué se mide, en cada horizonte**
+- **Previsión** (cada red, la media de las tres y el lineal):
+  - la nota (MAE / ingenuo, en $) con todo el test junto, y la de cada año;
+  - el contraste de Diebold-Mariano frente al ingenuo;
+  - el acierto de dirección.
+  - El número de años ganados no se usa: con 4-5 años no sirve (controles, 13.4).
+- **Rango:** la cobertura (total y por tercios de volatilidad, con su margen), la anchura, la nota frente al rango ingenuo y los fallos por abajo y por arriba.
+- **Tabla comparativa final** (la que pide el enunciado): el test junto a los 12 años de 2010-2021.
+
+**Qué se concluirá** (fijado ahora)
+- **Previsión:**
+  - si Diebold-Mariano no distingue el modelo del ingenuo (p ≥ 0,05): «en test, sin evidencia de ventaja». Junto con los 12 años, la conclusión del horizonte queda en «sin evidencia de ventaja»;
+  - si es mejor que el ingenuo con p < 0,05: «mejor que el ingenuo en test». Si en los 12 años no se sostenía, la conclusión final es «ventaja posible, no confirmada»;
+  - si es peor con p < 0,05: «peor que el ingenuo en test».
+- **Rango:** cumple si la cobertura queda a menos de dos márgenes (errores típicos con fichas independientes) del 80 %. Si no, se dice si se queda corto o se pasa, y en qué tercio.
+- **Entre redes:** no se elige una ganadora con el test. Si no se distinguen (comparación por parejas), se dice así.
+
+**Lo esperado** (apuntado antes de calcular)
+- Notas alrededor de 1 en los tres horizontes (entre 0,95 y 1,05), sin que Diebold-Mariano distinga ningún modelo del ingenuo.
+- Rangos: a 1 semana y a 3 meses, cobertura entre el 75 y el 85 %. A 1 año, con unos 4 movimientos independientes, cualquier cobertura entre el 50 y el 100 % es posible: orientativo.
+
+**Estado al cerrar la sesión** (13/11/2026, tarde)
+- **D15 a medias:** `python scripts/control_precios.py` lleva 34 de 40 entrenamientos (3 meses completo; a 1 semana faltan la semilla 46 de 2020 y las 5 de 2021). Se relanza igual y continúa (unos 15-20 min). Después: analizarlo (`control_precios.espejismo`, frente a la RNN de variaciones y el ingenuo) y añadirlo al notebook 03 (sección 13.5).
+- **Protocolo del test (D33):** propuesta escrita arriba, pendiente del visto bueno de Pablo.
+- **Commit pendiente,** con el visto bueno de Pablo: validación hacia atrás de 1 semana, controles del procedimiento, D32 (centro del rango), D15 y protocolo, con sus pruebas, notebook, README y diario.
+
+**Hecho (D15):** `control_precios.py` (base con las variables en nivel, entrenamiento reanudable, lectura y medidas del espejismo), `scripts/control_precios.py` y 2 pruebas nuevas. 40 entrenamientos: 3 meses en un minuto; 1 semana, unos 50 minutos (con precios la red tarda más en parar: 60 épocas de media).
+
+**Resultados (D15)** (validación 2018-2021, promedio de las semillas 42-46)
+
+| | Nota | Correlación de niveles | Error frente al precio futuro | Error frente al precio de hoy | Correlación de los cambios |
+|---|---|---|---|---|---|
+| 1 semana · RNN con precios | **1,544** | 0,949 | 3,68 $ | 3,26 $ | 0,16 |
+| 1 semana · RNN (variaciones) | 0,993 | 0,975 | 2,37 $ | 0,29 $ | 0,08 |
+| 3 meses · RNN con precios | **1,028** | 0,425 | 10,50 $ | 9,98 $ | 0,45 |
+| 3 meses · RNN (variaciones) | 0,938 | 0,543 | 9,58 $ | 2,90 $ | 0,32 |
+
+(El ingenuo: nota 1; correlación de niveles 0,975 a 1 semana y 0,537 a 3 meses; error frente al precio futuro, 2,39 $ y 10,22 $.)
+
+- **A 1 semana, el espejismo de manual:** la previsión con precios se parece mucho al precio real (correlación de 0,95), así que en un gráfico «parece que acierta». Pero se equivoca un 54 % más que el ingenuo, y está más cerca del precio de hoy que del futuro. Peor en todos los años, sobre todo en 2020 (2,02), con precios que el train apenas había visto.
+- **No copia el precio de hoy, lo copia con ruido:** se aparta de él 3,26 $ de media, cuando el precio se mueve 2,39 $ en una semana. Nuestra red, 0,29 $: casi el ingenuo.
+- **A 3 meses tira hacia el precio típico del train:** se aparta unos 10 $ del precio de hoy, casi siempre hacia arriba (+4,4 $ de media), porque en 2018-2021 el precio estuvo por debajo de la media de 2000-2017. Esa vuelta a la media acierta a veces la dirección (correlación de los cambios 0,45, por ejemplo tras el desplome de 2020), pero falla en el tamaño, y en 2021 queda muy mal (1,265).
+- **Con la regla fijada, H4 se cumple en los dos horizontes:** la red con precios no mejora a la de variaciones (1,544 frente a 0,993 y 1,028 frente a 0,938), y su previsión está más cerca del precio de hoy que del futuro (a 3 meses, por poco: 9,98 $ frente a 10,50 $).
+
+**Lo esperado frente a lo obtenido**
+- Nota: a 1 semana esperaba 1,00-1,10 y sale 1,544, mucho peor. A 3 meses, 1,028: dentro de lo previsto (1,00-1,30).
+- Correlación de niveles por encima de 0,9 a 1 semana: se cumple (0,949).
+- Correlación de los cambios por debajo de 0,1: **no se cumple** (0,16 y 0,45). Con precios, la red no solo copia: también tira hacia el precio típico del train, y eso a veces acierta la dirección.
+- H4 en los dos horizontes: se cumple.
+
+**Decisiones**
+- **H4 se cumple:** prever la variación, y no el precio, es la elección correcta. Es la justificación del diseño para el trabajo y una figura clara para las diapositivas (el espejismo).
+- **Notebook 03:** sección 13.5 (control con precios) y su lectura.
+- **Pruebas:** 2 nuevas de la regla del centro (D32). 109 en total, todas correctas (`poetry run python -m pytest`: Smart App Control bloquea ahora el lanzador `pytest.exe`).
+
+**Estado** (13/11/2026, tarde): lo previsto antes del test está hecho (rangos con D31, centro del rango D32, controles, D15). Pendiente: el visto bueno de Pablo al protocolo del test (D33). Red de la aplicación decidida: la mejor de cada horizonte (LSTM a 1 semana, RNN a 3 meses y a 1 año).
+

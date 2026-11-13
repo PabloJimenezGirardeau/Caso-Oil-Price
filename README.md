@@ -9,7 +9,7 @@ Comparativa de tres redes neuronales recurrentes (RNN simple, LSTM y GRU) para p
 - [x] Entorno y descarga de datos
 - [x] Análisis exploratorio (EDA)
 - [x] Preprocesamiento
-- [ ] Modelos (RNN, LSTM y GRU) y comparativa: *en curso* (fase A cerrada: datos elegidos para cada horizonte, sin tendencia; fase B cerrada en los tres horizontes; estabilidad cerrada: se promedian 5 semillas; la combinación de red y lineal no mejora; la validación hacia atrás (2010-2017) no confirma la ventaja de las redes; rango del 80 % elegido a 3 meses y a 1 año; antes del examen final, 1 semana)
+- [ ] Modelos (RNN, LSTM y GRU) y comparativa: *en curso* (fase A cerrada: datos elegidos para cada horizonte, sin tendencia; fase B cerrada en los tres horizontes; estabilidad cerrada: se promedian 5 semillas; la combinación de red y lineal no mejora; la validación hacia atrás (2010-2017) no confirma la ventaja de las redes en ningún horizonte; rango del 80 % elegido en los tres horizontes; redes de 1 año entrenadas con todo el entrenamiento)
 - [ ] Aplicación
 - [ ] Presentación (máximo 5 diapositivas)
 
@@ -40,7 +40,9 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   ├── importancia.py           Reentrena las redes elegidas y mide qué variables usan
 │   ├── hacia_atras.py           Evalúa las redes elegidas en 2010-2017, sin usar nada posterior
 │   ├── rango_redes.py           Entrena las redes que dan el rango (percentiles 10, 50 y 90)
-│   └── entreno_completo.py      Reentrena las redes con todo el entrenamiento y épocas fijas (D31)
+│   ├── entreno_completo.py      Reentrena las redes con todo el entrenamiento y épocas fijas (D31)
+│   ├── controles.py             Controles del procedimiento con el lineal: sin señal y con una señal plantada
+│   └── control_precios.py       Experimento de control (D15): la RNN entrenada para prever el precio
 ├── src/oil_price/               Código reutilizable (notebooks y aplicación)
 │   ├── config.py                Parámetros: fechas, variables, horizontes, partición…
 │   ├── datos.py                 Carga y limpieza
@@ -59,6 +61,8 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   ├── rango_redes.py           Redes que dan el rango (percentiles 10, 50 y 90)
 │   ├── entreno_completo.py      Redes entrenadas con todo el entrenamiento y épocas fijas (D31)
 │   ├── comprobaciones.py        Comprobaciones de robustez: bootstrap por bloques, otras métricas, Diebold-Mariano
+│   ├── controles.py             Controles del procedimiento: sin señal y con una señal plantada
+│   ├── control_precios.py       Experimento de control (D15): prever el precio en vez de la variación
 │   ├── evaluacion.py            Métricas, modelo ingenuo y comparación con él
 │   └── graficos.py              Estilo de los gráficos
 ├── tests/                       Pruebas automáticas (pytest)
@@ -126,9 +130,11 @@ python scripts/estabilidad.py                           # las 9 redes elegidas c
 
 python scripts/importancia.py                           # qué variables usan las redes, a 3 meses y a 1 año (unos 10 min)
 python scripts/hacia_atras.py                           # validación hacia atrás, 2010-2017 (unos 12 min)
-python scripts/hacia_atras.py --horizontes corto       # lo mismo a 1 semana (unas 2-4 h)
+python scripts/hacia_atras.py --horizontes corto       # lo mismo a 1 semana (unos 75 min)
 python scripts/rango_redes.py                           # redes que dan el rango, 2010-2021 (unos 55 min)
 python scripts/entreno_completo.py                      # redes entrenadas con todo (D31), 3 meses y 1 año (unos 8 min)
+python scripts/controles.py                             # controles sin señal y con señal plantada, con el lineal (unos 6 min)
+python scripts/control_precios.py                       # la RNN entrenada con precios (D15), 1 semana y 3 meses (unos 50 min)
 ```
 
 Los notebooks leen esos resultados y los analizan (`notebooks/03_modelado.ipynb`).

@@ -35,6 +35,7 @@ METODOS = ["ingenuo", "fijo", "volatilidad", "memoria", "centrado"]
 ALFA = 0.20          # rango del 80 %
 ALFAS_INFO = [0.50, 0.05]   # 50 % y 95 %, solo como información
 COBERTURA_MIN, COBERTURA_MAX, COBERTURA_TERCIO_MIN = 0.75, 0.85, 0.70
+MEJORA_CENTRO = 0.01   # D32: mejora mínima de la nota para centrar el rango en la previsión de las redes
 TERCIOS = ["calma", "normal", "tormenta"]
 
 
@@ -243,3 +244,42 @@ def regla(medidas, modelos=None, alfa=ALFA, candidatos=None):
         elegido[h] = posibles["nota (%)"].idxmin()[1]
     t["elegido"] = [elegido[h] == me for h, me in t.index]
     return t
+
+
+def centro_hoy(previsiones):
+    """Las mismas previsiones con la variación prevista a cero: el rango queda centrado en el precio de hoy."""
+    return previsiones.assign(**{"variación prevista": 0.0})
+
+
+def regla_centro(med_redes, med_hoy, elegidos, modelos=None, alfa=ALFA, mejora_min=MEJORA_CENTRO):
+    """Regla de D32 en cada horizonte, con el método elegido y la media de las redes: se mantiene el
+    centro de las redes si mejora la nota del rango al menos `mejora_min` con los años juntos y en
+    más de la mitad de los años; si no, el centro es el precio de hoy, salvo que así deje de cumplir
+    la regla de D30 y con las redes la cumpla. `elegidos`: {horizonte: método}."""
+    modelos = modelos or list(config.CELDAS)
+    filas = {}
+    for h, metodo in elegidos.items():
+        datos = {}
+        for centro, med in (("redes", med_redes), ("precio de hoy", med_hoy)):
+            m = med[(med["horizonte"] == h) & (med["metodo"] == metodo) & (med["alfa"] == alfa)
+                    & med["modelo"].isin(modelos)]
+            total = resumen(m).mean()
+            peor = (resumen(m, por=("tercio",))["cobertura"].groupby(level="tercio", observed=True).mean().min())
+            r = {"cobertura": total["cobertura"], "nota (%)": total["nota (%)"], "peor tercio": peor,
+                 "cumple": COBERTURA_MIN <= total["cobertura"] <= COBERTURA_MAX and peor >= COBERTURA_TERCIO_MIN}
+            por_año = resumen(m, por=("pliegue",))["nota (%)"].groupby(level="pliegue").mean()
+            datos[centro] = (r, por_año)
+        (r_red, año_red), (r_hoy, año_hoy) = datos["redes"], datos["precio de hoy"]
+        mejora = 1 - r_red["nota (%)"] / r_hoy["nota (%)"]
+        ganados, años = int((año_red < año_hoy).sum()), len(año_red)
+        redes = (mejora >= mejora_min and ganados > años / 2) or (r_red["cumple"] and not r_hoy["cumple"])
+        filas[(h, metodo)] = {
+            "cobertura (redes)": r_red["cobertura"], "cobertura (precio de hoy)": r_hoy["cobertura"],
+            "peor tercio (redes)": r_red["peor tercio"], "peor tercio (precio de hoy)": r_hoy["peor tercio"],
+            "nota (redes)": r_red["nota (%)"], "nota (precio de hoy)": r_hoy["nota (%)"],
+            "mejora de las redes": mejora, "años que mejoran las redes": f"{ganados} de {años}",
+            "centro elegido": "redes" if redes else "precio de hoy"}
+    t = pd.DataFrame(filas).T
+    t.index.names = ["horizonte", "metodo"]
+    return t
+

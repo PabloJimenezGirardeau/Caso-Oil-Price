@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 import torch
 
-from oil_price import entrenamiento as ent, incertidumbre as inc, preprocesado as pp
+from oil_price import config, entrenamiento as ent, incertidumbre as inc, preprocesado as pp
 
 H = "medio"
 AÑO = 2012
@@ -109,3 +109,29 @@ def test_red_con_cuantiles_da_tres_valores_ordenados():
     normal = ent.entrenar_red("GRU", c, {"unidades": 8}, semilla=0, dispositivo=torch.device("cpu"),
                               ajustes={"max_epocas": 3})
     assert ent.predecir(normal, c.X).shape == (len(c), 1)
+
+
+def _medidas_centro(nota_por_año, cubre=8):
+    """Medidas de un rango «centrado» a 3 meses: 10 fichas por red, año y tercio, `cubre` de ellas dentro."""
+    filas = [{"horizonte": "medio", "modelo": m, "metodo": "centrado", "alfa": inc.ALFA, "pliegue": a, "tercio": t,
+              "dentro": k < cubre, "anchura": 40.0, "nota": n}
+             for m in config.CELDAS for a, n in nota_por_año.items() for t in inc.TERCIOS for k in range(10)]
+    return pd.DataFrame(filas)
+
+
+def test_regla_del_centro():
+    hoy = _medidas_centro({2019: 100.0, 2020: 100.0, 2021: 100.0})
+    elegido = lambda redes: inc.regla_centro(redes, hoy, {"medio": "centrado"}).iloc[0]["centro elegido"]
+    assert elegido(_medidas_centro({2019: 95.0, 2020: 95.0, 2021: 95.0})) == "redes"               # un 5 % mejor siempre
+    assert elegido(_medidas_centro({2019: 99.5, 2020: 99.5, 2021: 99.5})) == "precio de hoy"       # mejora de menos del 1 %
+    assert elegido(_medidas_centro({2019: 80.0, 2020: 101.0, 2021: 101.0})) == "precio de hoy"     # solo en 1 de 3 años
+    # Excepción: si centrado en el precio de hoy deja de cumplir la regla de D30 y con las redes cumple
+    assert inc.regla_centro(_medidas_centro({2019: 101.0, 2020: 101.0, 2021: 101.0}),
+                            _medidas_centro({2019: 100.0, 2020: 100.0, 2021: 100.0}, cubre=6),
+                            {"medio": "centrado"}).iloc[0]["centro elegido"] == "redes"
+
+
+def test_centro_en_el_precio_de_hoy():
+    p = pd.DataFrame({"variación prevista": [0.1, -0.2], "variación real": [0.05, 0.0]})
+    assert (inc.centro_hoy(p)["variación prevista"] == 0).all()
+    assert p["variación prevista"].tolist() == [0.1, -0.2]                                         # no cambia el original
