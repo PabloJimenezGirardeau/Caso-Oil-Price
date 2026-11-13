@@ -118,5 +118,15 @@ N_SEMILLAS_PROMEDIO = 5
 PESO_RED_COMBINACION = 0.5
 PESOS_CURVA_COMBINACION = [0.0, 0.25, 0.5, 0.75, 1.0]
 
+# --- Reentrenar con todo el entrenamiento (D31) ------------------------------------------
+# Sin trozo de parada temprana y con un número fijo de épocas: la mediana (redondeada) de las
+# «mejores épocas» de cada red en la estabilidad (10 semillas × años de validación)
+EPOCAS_FIJAS = {
+    "corto": {"RNN": 31, "LSTM": 20, "GRU": 26},
+    "medio": {"RNN": 7, "LSTM": 4, "GRU": 6},
+    "largo": {"RNN": 1, "LSTM": 1, "GRU": 1},
+}
+EPOCAS_INFORMACION = [3, 10]   # solo como información, con la RNN
+
 # Núcleos de CPU para entrenar (de 8): deja margen para que el portátil vaya más fresco
 HILOS_CPU = 6

@@ -60,6 +60,45 @@ def test_criterio():
     assert ha.criterio(peor, "medio")["veredicto"] == "no se sostiene"
 
 
+def _previsiones_dos_redes(n=120):
+    rng = np.random.default_rng(1)
+    fichas = pd.DataFrame({"horizonte": "medio", "pliegue": np.repeat([2016, 2019], n // 2),
+                           "fecha": pd.date_range("2016-01-01", periods=n, freq="B"),
+                           "variación real": rng.normal(0, 0.1, n), "precio origen": rng.uniform(40, 90, n)})
+    return pd.concat([fichas.assign(modelo=m, **{"variación prevista": rng.normal(0, 0.05, n)}) for m in ("RNN", "GRU")],
+                     ignore_index=True)
+
+
+def test_media_de_las_redes_es_la_media_de_los_precios():
+    p = _previsiones_dos_redes()
+    media = ha.media_de_las_redes(p)
+    a = np.exp(p[p["modelo"] == "RNN"]["variación prevista"].to_numpy())
+    b = np.exp(p[p["modelo"] == "GRU"]["variación prevista"].to_numpy())
+    np.testing.assert_allclose(media["variación prevista"], np.log((a + b) / 2), rtol=1e-12)
+    with pytest.raises(ValueError):                    # una ficha sin una de las redes
+        ha.media_de_las_redes(p.iloc[:-1])
+
+
+def test_prudente_con_factor_0_es_el_ingenuo_y_con_1_no_cambia():
+    from oil_price import estabilidad as es
+    p = _previsiones_dos_redes()
+    años = [2016, 2019]
+    np.testing.assert_allclose(ha.nota_prudente(p, 0.0, años), 1.0, rtol=1e-12)
+    np.testing.assert_allclose(ha.nota_prudente(p, 1.0, años), es.nota(p), rtol=1e-12)
+
+
+def test_prudente_cruzado_elige_en_un_periodo_y_comprueba_en_el_otro():
+    filas = []
+    for periodo, mejor in (("2010-2017", 0.0), ("2018-2021", 1.0), ("todos", 0.5)):
+        for f in ha.FACTORES:
+            filas.append({"horizonte": "medio", "modelo": "RNN", "periodo": periodo, "factor": f,
+                          "MAE / ingenuo": 1 + abs(f - mejor) / 10})
+    r = ha.prudente_cruzado(pd.DataFrame(filas)).loc[("medio", "RNN")]
+    assert r["factor elegido con 2010-2017"] == 0.0 and r["factor elegido con 2018-2021"] == 1.0
+    assert r["mejor factor con todos"] == 0.5
+    assert not r["se adopta"]           # los dos periodos piden lo contrario: elegido en uno, empeora el otro
+
+
 def test_sumas_y_notas_coinciden_con_estabilidad():
     from oil_price import estabilidad as es
     rng = np.random.default_rng(0)

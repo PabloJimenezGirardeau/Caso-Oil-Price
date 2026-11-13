@@ -100,7 +100,8 @@ def leer_entrenos(dir_salida=config.DIR_RESULTADOS, archivos=ARCHIVOS):
 def leer_previsiones(dir_salida=config.DIR_RESULTADOS, archivos=ARCHIVOS):
     """Previsión de cada red, semilla y ficha, junto a lo que pasó (variación real y precio de partida).
     Con `archivos`, los de otra ejecución con el mismo formato (por ejemplo, la validación hacia atrás)."""
-    previsiones = pd.read_csv(dir_salida / archivos["previsiones"], parse_dates=["fecha"])
+    # on_bad_lines: si otro proceso está escribiendo, la última línea puede estar a medias
+    previsiones = pd.read_csv(dir_salida / archivos["previsiones"], parse_dates=["fecha"], on_bad_lines="skip")
     # Si el proceso se cortó entre guardar las previsiones y la fila de resultados, ese
     # entrenamiento se repitió: vale la última copia (es idéntica)
     previsiones = previsiones.drop_duplicates(["horizonte", "modelo", "intento", "semilla", "fecha"], keep="last")

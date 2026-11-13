@@ -71,15 +71,31 @@ def perdida_huber(prediccion, objetivo, delta):
     return nn.functional.huber_loss(prediccion[validas], objetivo[validas], delta=delta)
 
 
+def perdida_cuantiles(prediccion, objetivo, cuantiles):
+    """Pérdida por cuantiles («pinball»), media de los cuantiles: para el cuantil q, q·e si el error
+    e = objetivo − previsión es positivo y (q − 1)·e si es negativo. Su mínimo está en el cuantil q.
+    `objetivo` tiene una columna (un horizonte); `prediccion`, una por cuantil. Sin las purgadas (NaN)."""
+    validas = ~torch.isnan(objetivo[:, 0])
+    e = objetivo[validas] - prediccion[validas]
+    return torch.maximum(cuantiles * e, (cuantiles - 1) * e).mean()
+
+
 @torch.no_grad()
-def _perdida_media(modelo, X, Y, delta, lote=2048):
+def _perdida_media(modelo, X, Y, delta, lote=2048, perdida=None):
+    """Pérdida media en modo evaluación. Por defecto Huber; con `perdida`, esa función (por filas válidas)."""
     modelo.eval()
     total, n = 0.0, 0
     for i in range(0, len(X), lote):
-        validas = int((~torch.isnan(Y[i:i + lote])).sum())
-        if validas:
-            total += perdida_huber(modelo(X[i:i + lote]), Y[i:i + lote], delta).item() * validas
-            n += validas
+        if perdida is None:
+            validas = int((~torch.isnan(Y[i:i + lote])).sum())
+            if validas:
+                total += perdida_huber(modelo(X[i:i + lote]), Y[i:i + lote], delta).item() * validas
+                n += validas
+        else:
+            validas = int((~torch.isnan(Y[i:i + lote, 0])).sum())
+            if validas:
+                total += perdida(modelo(X[i:i + lote]), Y[i:i + lote]).item() * validas
+                n += validas
     return total / max(n, 1)
 
 
@@ -93,26 +109,48 @@ class Resultado:
     segundos: float
     parametros: int
     hiperparametros: dict
+    cuantiles: list | None = None  # con cuantiles, una salida por cuantil (un solo horizonte)
 
 
 def entrenar_red(celda, train, hiperparametros=None, semilla=config.SEMILLA, dispositivo=None,
                  ajustes=None):
-    """Entrena una red con las fichas de `train` y devuelve su mejor versión."""
+    """Entrena una red con las fichas de `train` y devuelve su mejor versión.
+
+    Con `ajustes={"cuantiles": [0.1, 0.5, 0.9]}` (un solo horizonte), la red da un valor por
+    cuantil y se entrena con la pérdida por cuantiles en lugar de Huber (rango de incertidumbre, D30).
+    Con `ajustes={"epocas_fijas": n}` (D31), se entrena con **todo** `train`, sin trozo de parada
+    temprana, durante n épocas, y se devuelve la red de la última.
+    Sin esos ajustes, el entrenamiento es exactamente el de siempre."""
     hp = {**config.HIPERPARAMETROS_BASE, **(hiperparametros or {})}
     ent = {**config.ENTRENAMIENTO, **(ajustes or {})}
     dispositivo = dispositivo or dispositivo_disponible()
     fijar_semilla(semilla)
 
-    ajuste, parada = dividir_parada_temprana(train, ent["fraccion_parada"])
+    epocas_fijas = ent.get("epocas_fijas")
+    if epocas_fijas:
+        ajuste, parada = train, None
+    else:
+        ajuste, parada = dividir_parada_temprana(train, ent["fraccion_parada"])
     escala = np.nanstd(ajuste.Y, axis=0).astype(np.float32)
     n_horizontes = ajuste.Y.shape[1]
     tendencia = (np.nanmean(ajuste.Y, axis=0) if ent["sin_tendencia"] else np.zeros(n_horizontes)).astype(np.float32)
     tensor = lambda a: torch.tensor(a, dtype=torch.float32, device=dispositivo)
     Xa, Ya = tensor(ajuste.X), tensor((ajuste.Y - tendencia) / escala)
-    Xp, Yp = tensor(parada.X), tensor((parada.Y - tendencia) / escala)
+    if parada is not None:
+        Xp, Yp = tensor(parada.X), tensor((parada.Y - tendencia) / escala)
+
+    cuantiles = ent.get("cuantiles")
+    if cuantiles and Ya.shape[1] != 1:
+        raise ValueError("Con cuantiles, la red se entrena para un solo horizonte")
+    q = tensor(np.asarray(cuantiles, np.float32)) if cuantiles else None
+
+    def perdida_lote(prediccion, objetivo):
+        if cuantiles:
+            return perdida_cuantiles(prediccion, objetivo, q)
+        return perdida_huber(prediccion, objetivo, ent["delta_huber"])
 
     modelo = RedRecurrente(celda, Xa.shape[2], hp["unidades"], hp["capas"], hp["dropout"],
-                           Ya.shape[1]).to(dispositivo)
+                           len(cuantiles) if cuantiles else Ya.shape[1]).to(dispositivo)
     optimizador = torch.optim.Adam(modelo.parameters(), lr=hp["lr"], weight_decay=hp["l2"])
     planificador = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizador, factor=ent["factor_lr"], patience=ent["paciencia_lr"])
@@ -120,19 +158,25 @@ def entrenar_red(celda, train, hiperparametros=None, semilla=config.SEMILLA, dis
 
     mejor, mejor_estado, mejor_epoca, sin_mejora, historial = np.inf, None, 0, 0, []
     inicio = time.perf_counter()
-    for epoca in range(1, ent["max_epocas"] + 1):
+    for epoca in range(1, (epocas_fijas or ent["max_epocas"]) + 1):
         modelo.train()
         for idx in torch.randperm(len(Xa), generator=generador).split(hp["lote"]):
             idx = idx.to(dispositivo)
             optimizador.zero_grad()
-            perdida = perdida_huber(modelo(Xa[idx]), Ya[idx], ent["delta_huber"])
+            perdida = perdida_lote(modelo(Xa[idx]), Ya[idx])
             perdida.backward()
             nn.utils.clip_grad_norm_(modelo.parameters(), ent["recorte_gradiente"])
             optimizador.step()
 
         # Ambas pérdidas en modo evaluación (sin dropout), para que las curvas sean comparables
-        perdida_ajuste = _perdida_media(modelo, Xa, Ya, ent["delta_huber"])
-        perdida_parada = _perdida_media(modelo, Xp, Yp, ent["delta_huber"])
+        medida = perdida_lote if cuantiles else None
+        perdida_ajuste = _perdida_media(modelo, Xa, Ya, ent["delta_huber"], perdida=medida)
+        if epocas_fijas:   # sin trozo de parada: se entrena hasta la última época
+            historial.append({"época": epoca, "pérdida train": perdida_ajuste, "pérdida parada": np.nan,
+                              "lr": optimizador.param_groups[0]["lr"]})
+            mejor_epoca, mejor_estado = epoca, copy.deepcopy(modelo.state_dict())
+            continue
+        perdida_parada = _perdida_media(modelo, Xp, Yp, ent["delta_huber"], perdida=medida)
         planificador.step(perdida_parada)
         historial.append({"época": epoca, "pérdida train": perdida_ajuste,
                           "pérdida parada": perdida_parada, "lr": optimizador.param_groups[0]["lr"]})
@@ -149,7 +193,7 @@ def entrenar_red(celda, train, hiperparametros=None, semilla=config.SEMILLA, dis
     return Resultado(modelo=modelo, escala_objetivo=escala, tendencia=tendencia,
                      historial=pd.DataFrame(historial),
                      mejor_epoca=mejor_epoca, segundos=time.perf_counter() - inicio,
-                     parametros=contar_parametros(modelo), hiperparametros=hp)
+                     parametros=contar_parametros(modelo), hiperparametros=hp, cuantiles=cuantiles)
 
 
 @torch.no_grad()
@@ -157,11 +201,15 @@ def predecir(resultado, X, lote=2048):
     """Variaciones logarítmicas previstas, en su escala original (muestras, horizontes).
 
     Si la red se entrenó sin tendencia, la subida media del train no se vuelve a sumar: se
-    supone tendencia cero para el futuro.
+    supone tendencia cero para el futuro. Con cuantiles, una columna por cuantil, ordenadas de menor
+    a mayor (si la red los da cruzados, se reordenan).
     """
     modelo = resultado.modelo
     modelo.eval()
     dispositivo = next(modelo.parameters()).device
     salidas = [modelo(torch.tensor(X[i:i + lote], dtype=torch.float32, device=dispositivo)).cpu().numpy()
                for i in range(0, len(X), lote)]
-    return np.concatenate(salidas) * resultado.escala_objetivo
+    prevision = np.concatenate(salidas) * resultado.escala_objetivo
+    if getattr(resultado, "cuantiles", None):
+        prevision = np.sort(prevision, axis=1)
+    return prevision

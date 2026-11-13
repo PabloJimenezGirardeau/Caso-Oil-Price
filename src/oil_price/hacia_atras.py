@@ -170,6 +170,89 @@ def intervalo(sumas, modelos, repeticiones=10_000, nivel=0.90, semilla=0):
     return float(np.quantile(notas, cola)), float(np.quantile(notas, 1 - cola))
 
 
+COLUMNAS = ["horizonte", "modelo", "pliegue", "fecha", "variación prevista", "variación real", "precio origen"]
+MEDIA = "media de las tres"
+FACTORES = np.round(np.arange(0, 1.01, 0.1), 1)
+PERIODOS = {"2010-2017": list(range(2010, 2018)), "2018-2021": [2018, 2019, 2020, 2021]}
+
+
+def media_de_las_redes(redes, nombre=MEDIA):
+    """Media de los precios que prevén las redes en cada ficha, como variación logarítmica."""
+    g = redes.assign(factor=np.exp(redes["variación prevista"])).groupby(
+        ["horizonte", "pliegue", "fecha"], as_index=False, sort=False)
+    t = g.agg(factor=("factor", "mean"), redes=("modelo", "nunique"),
+              **{"variación real": ("variación real", "first"), "precio origen": ("precio origen", "first")})
+    if (t["redes"] != t["redes"].max()).any():
+        raise ValueError("Hay fichas sin la previsión de todas las redes")
+    return t.assign(modelo=nombre, **{"variación prevista": np.log(t["factor"])}).drop(columns=["factor", "redes"])
+
+
+def previsiones_doce_años(bases=None, dir_salida=config.DIR_RESULTADOS):
+    """Previsión de cada ficha de 2010-2021 (hacia atrás y validación), a 3 meses y a 1 año: cada red
+    con el promedio de las semillas 42-46, el lineal de referencia y la media de las tres redes."""
+    semillas = config.SEMILLAS_ESTABILIDAD[:config.N_SEMILLAS_PROMEDIO]
+    bases = bases if bases is not None else ex._bases()
+    atras = es.promedio(leer_previsiones(dir_salida), semillas)
+    atras = atras[atras["horizonte"].isin(HORIZONTES)]   # 1 semana se añade aparte cuando está completa
+    validacion = es.promedio(es.leer_previsiones(dir_salida), semillas)
+    validacion = validacion[validacion["horizonte"].isin(HORIZONTES)]
+    redes = pd.concat([atras[COLUMNAS], validacion[COLUMNAS]], ignore_index=True)
+    lineal = pd.concat([previsiones_lineal(bases=bases), co.previsiones_lineal(HORIZONTES, dir_salida, bases)],
+                       ignore_index=True)
+    lineal["fecha"] = lineal["fecha"].astype(redes["fecha"].dtype)
+    return pd.concat([redes, lineal[COLUMNAS], media_de_las_redes(redes)[COLUMNAS]], ignore_index=True)
+
+
+def regla_media(sumas, horizonte, modelos=None, nombre=MEDIA):
+    """Se adopta la media de las tres redes si, con todos los años juntos, mejora a cada red y gana
+    al ingenuo en al menos tantos años como la mejor de ellas."""
+    modelos = modelos or list(config.CELDAS)
+    s = sumas.xs(horizonte, level="horizonte", drop_level=False)
+    juntos = nota_juntos(s).xs(horizonte, level="horizonte")
+    ganados = (notas_por_año(s).xs(horizonte, level="horizonte") < 1).sum(axis=1)
+    adopta = bool((juntos[nombre] < juntos[modelos]).all() and ganados[nombre] >= ganados[modelos].max())
+    return {"media de las tres": float(juntos[nombre]), "mejor red": juntos[modelos].idxmin(),
+            "nota de la mejor red": float(juntos[modelos].min()), "años que gana la media": int(ganados[nombre]),
+            "años que gana la mejor": int(ganados[modelos].max()), "se adopta": adopta}
+
+
+def nota_prudente(previsiones, factor, años):
+    """«MAE / ingenuo» por horizonte y modelo con la variación prevista multiplicada por `factor`
+    (0 es el ingenuo; 1, la previsión sin ajustar), en esos años."""
+    p = previsiones[previsiones["pliegue"].isin(años)]
+    return es.nota(p.assign(**{"variación prevista": factor * p["variación prevista"]}))
+
+
+def curvas_prudentes(previsiones, factores=FACTORES):
+    """Nota con cada factor, por horizonte, modelo y periodo (2010-2017, 2018-2021 y todos)."""
+    periodos = {**PERIODOS, "todos": PERIODOS["2010-2017"] + PERIODOS["2018-2021"]}
+    filas = [nota_prudente(previsiones, f, años).rename("MAE / ingenuo").reset_index().assign(periodo=p, factor=f)
+             for p, años in periodos.items() for f in factores]
+    return pd.concat(filas, ignore_index=True)
+
+
+def prudente_cruzado(curvas):
+    """Regla de la previsión prudente: el factor se elige con un periodo y se comprueba en el otro, en
+    los dos sentidos; se adopta si mejora a la previsión sin ajustar en los dos."""
+    t = curvas.pivot_table(index=["horizonte", "modelo", "periodo"], columns="factor", values="MAE / ingenuo",
+                           sort=False)
+    filas = []
+    for (h, m), g in t.groupby(level=["horizonte", "modelo"], sort=False):
+        g = g.droplevel(["horizonte", "modelo"])
+        fa, fb, ft = (float(g.loc[p].idxmin()) for p in ("2010-2017", "2018-2021", "todos"))
+        filas.append({"horizonte": h, "modelo": m,
+                      "factor elegido con 2010-2017": fa,
+                      "2018-2021 sin ajustar": g.loc["2018-2021", 1.0], "2018-2021 prudente": g.loc["2018-2021", fa],
+                      "factor elegido con 2018-2021": fb,
+                      "2010-2017 sin ajustar": g.loc["2010-2017", 1.0], "2010-2017 prudente": g.loc["2010-2017", fb],
+                      "mejor factor con todos": ft,
+                      "todos sin ajustar": g.loc["todos", 1.0], "todos con el mejor factor": g.loc["todos", ft]})
+    r = pd.DataFrame(filas).set_index(["horizonte", "modelo"])
+    r["se adopta"] = ((r["2018-2021 prudente"] < r["2018-2021 sin ajustar"])
+                      & (r["2010-2017 prudente"] < r["2010-2017 sin ajustar"]))
+    return r
+
+
 def criterio(sumas, horizonte, modelos=None):
     """Aplica el criterio de D29 a un horizonte con la media de las redes (todos los años que haya)."""
     modelos = modelos or list(config.CELDAS)
