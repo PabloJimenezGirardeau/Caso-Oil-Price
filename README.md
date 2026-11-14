@@ -42,7 +42,9 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   ├── rango_redes.py           Entrena las redes que dan el rango (percentiles 10, 50 y 90)
 │   ├── entreno_completo.py      Reentrena las redes con todo el entrenamiento y épocas fijas (D31)
 │   ├── controles.py             Controles del procedimiento con el lineal: sin señal y con una señal plantada
-│   └── control_precios.py       Experimento de control (D15): la RNN entrenada para prever el precio
+│   ├── control_precios.py       Experimento de control (D15): la RNN entrenada para prever el precio
+│   ├── examen_final.py          Examen final en test (D33): una sola vez (sin --ejecutar, solo el plan)
+│   └── exportar_web.py          Exporta a web/data/ los datos que lee la web (no entrena nada)
 ├── src/oil_price/               Código reutilizable (notebooks y aplicación)
 │   ├── config.py                Parámetros: fechas, variables, horizontes, partición…
 │   ├── datos.py                 Carga y limpieza
@@ -63,9 +65,11 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   ├── comprobaciones.py        Comprobaciones de robustez: bootstrap por bloques, otras métricas, Diebold-Mariano
 │   ├── controles.py             Controles del procedimiento: sin señal y con una señal plantada
 │   ├── control_precios.py       Experimento de control (D15): prever el precio en vez de la variación
+│   ├── examen_final.py          Examen final en test (D33): entrenamiento, tabla comparativa, conclusiones y rangos
 │   ├── evaluacion.py            Métricas, modelo ingenuo y comparación con él
 │   └── graficos.py              Estilo de los gráficos
 ├── tests/                       Pruebas automáticas (pytest)
+├── web/                         Web del proyecto (estática, GitHub Pages); ver web/README.md
 ├── pyproject.toml               Dependencias (Poetry)
 ├── poetry.lock                  Versiones exactas de las dependencias
 └── poetry.toml                  Configuración local de Poetry (entorno en .venv)
@@ -135,6 +139,8 @@ python scripts/rango_redes.py                           # redes que dan el rango
 python scripts/entreno_completo.py                      # redes entrenadas con todo (D31), 3 meses y 1 año (unos 8 min)
 python scripts/controles.py                             # controles sin señal y con señal plantada, con el lineal (unos 6 min)
 python scripts/control_precios.py                       # la RNN entrenada con precios (D15), 1 semana y 3 meses (unos 50 min)
+python scripts/examen_final.py                          # plan del examen final en test (no entrena nada)
+python scripts/examen_final.py --ejecutar               # el examen final en test, una sola vez (unos 55 min)
 ```
 
 Los notebooks leen esos resultados y los analizan (`notebooks/03_modelado.ipynb`).

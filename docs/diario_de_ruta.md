@@ -47,14 +47,17 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 | D30 | 12/11/2026 | **Rango de incertidumbre del 80 %.** Se comparan tres rangos, ajustados solo con errores ya conocidos al empezar cada año (previsiones fuera de muestra de 2010-2021): el **rango ingenuo** (percentiles 10-90 de las variaciones pasadas, alrededor del precio de hoy; la referencia), un rango fijo alrededor de la red y **A, el rango según la volatilidad** (D8: errores pasados divididos por la volatilidad de 21 días y multiplicados por la de hoy). Medidas: cobertura, anchura y la puntuación de intervalos (α = 0,2), por años y por tercios de volatilidad. **Regla, fijada antes de calcular:** en cada horizonte, con la media de las tres redes, gana el de mejor nota entre los que aciertan el 75-85 % en total y al menos el 70 % en cada tercio de volatilidad; si gana el ingenuo, la aplicación usa ese y lo dice. El 50 % y el 95 %, solo como información | El enunciado pide un rango para cada previsión. Si el precio no se puede prever (D29), lo útil es decir cuánto puede moverse, y la volatilidad sí se puede prever (H3). Ajustar solo con lo ya conocido evita mirar el futuro, y el rango ingenuo dice si el nuestro aporta algo **Resultado:** a 3 meses y a 1 año se adopta **A3, el rango centrado** (simétrico alrededor de la previsión, con la memoria aprendida de los días nerviosos y sin estrecharse por debajo de la volatilidad normal). A 3 meses cumple la regla (79 %, nota 0,873); a 1 año tiene la mejor nota (0,706), pero acierta el 71 % y se presenta como orientativo. A 1 semana gana **A2, el rango según la volatilidad con memoria** (82 %, nota 0,871): allí la calma sí dura, y el suelo de A3 lo deja demasiado ancho. Las redes que dan el rango (B) no se adoptan | ✅ | `incertidumbre.py`, `rango_redes.py`, Diario 12/11 (noche) y 13/11, notebook 03 §12 |
 | D31 | 12/11/2026 | **Reentrenar las redes con todo el entrenamiento.** Sin trozo de parada temprana y con un número fijo de épocas: la mediana de sus mejores épocas en la estabilidad (3 meses: RNN 7, LSTM 4, GRU 6; 1 año: 1). Se evalúa en 2010-2021. **Regla, fijada antes de calcular:** sustituye a la versión actual si, con todos los años, la media de las tres redes mejora la nota con los años juntos y gana al ingenuo en al menos tantos años | Hasta ahora la red no aprende de los últimos años del entrenamiento (15 % de parada más la purga): para prever 2020 a 1 año, aprende con fichas hasta mediados de 2015, y el lineal con todo. Es la única objeción que podría cambiar la conclusión, y afecta al modelo final de la aplicación. **Resultado:** se adopta a 1 año (de 0,984 a 0,956; gana 6 de 10 años en lugar de 4; el veredicto pasa a «dudosa»), y no a 3 meses (empeora de 1,023 a 1,048) | ✅ | Diario 12/11 (noche) y 13/11 |
 | D32 | 13/11/2026 | **El centro del rango.** Con el rango elegido en cada horizonte (A2 a 1 semana; A3 a 3 meses y a 1 año), se compara el rango centrado en la previsión de las redes con el mismo centrado en el precio de hoy. **Regla, fijada antes de calcular:** se mantiene el centro de las redes solo si mejora la nota al menos un 1 % con los años juntos y en más de la mitad de los años; si no, el precio de hoy (salvo que así deje de cumplir la regla de D30) | Las redes no ganan al ingenuo (D29), y el centro de un rango debe ser la mejor previsión disponible; en empate, lo más sencillo. **Resultado:** gana el precio de hoy en los tres horizontes (las redes empeoran la nota un 0,2 %, un 2,6 % y un 1,3 %). Notas finales frente al rango ingenuo: 0,870, 0,851 y 0,716 | ✅ | `incertidumbre.py`, Diario 13/11, notebook 03 §12.6 |
+| D33 | 13/11/2026 | **Protocolo del examen final en test**, fijado antes de tocarlo: se congela todo; cada red se entrena una vez con todo hasta el 31/12/2021 y prevé 2022-3/11/2026 (D7); se miden la nota, Diebold-Mariano y la cobertura del rango, sin contar años ganados; conclusiones fijadas («sin evidencia de ventaja», «ventaja posible, no confirmada», «peor que el ingenuo»). Red de la aplicación, elegida antes: la mejor de cada horizonte en 2010-2021 (LSTM a 1 semana, RNN a 3 meses y a 1 año) | Elegir o ajustar después de ver el test lo invalidaría; con 4-5 años, contar años ganados no sirve (controles) | ✅ aprobado, pendiente de ejecutar | Diario 13/11 |
+| D34 | 13/11/2026 | **Previsión del 10/11, después del test:** desde el último dato de la foto (3/11), con las redes del test y con las finales (reentrenadas con todo hasta el 3/11), guardada con commit antes de descargar datos nuevos. La actualización automática del CSV se descarta | Propuesta del profesor: ver el rendimiento con datos que nadie ha visto. Un solo dato: demostración, no evaluación | pendiente | Diario 13/11 |
+| D35 | 14/11/2026 | **Web del proyecto** (GitHub Pages, carpeta `web/`): estática, lee los JSON que genera `scripts/exportar_web.py` a partir de `resultados/`, con las mismas funciones que el notebook 03. Lo que no existe se enseña como pendiente (examen final, previsión del 10/11, previsión de cada red). El rango de hoy es **provisional**: el elegido en cada plazo, centrado en el precio de hoy, ajustado solo con lo conocido antes del 1/1/2022 | Presentar el proyecto a un público de inversores sin inventar ninguna cifra. El rango provisional permite enseñar el panel sin tocar el test: no usa ninguna respuesta de 2022-2026, solo la volatilidad del 3/11/2026, que es una entrada | ✅ hecha; provisional hasta D33 y D34 | `scripts/exportar_web.py`, `web/README.md`, Diario 14/11 |
 
 ### Hipótesis abiertas
 
 | ID | Hipótesis | Cómo se comprobará | Estado |
 |---|---|---|---|
 | H1 | Las redes mejorarán algo al ingenuo a 5 días, pero no a 63 ni a 252 | Tabla comparativa en test | abierta · en validación (fase A, confirmada con semillas) **no se cumple**: se mejora a 63 días (≈ 6 %) y apenas a 5 (≈ 1 %). Tras la fase B, igual: ≈ 1 % a 5 días, 6-8 % a 63 y 11-12 % a 252 (el lineal, 18 %) (Diario 11/11). Con el promedio de 5 semillas (D27): ≈ 1 % a 5 días, 5-8 % a 63 y 6-9 % a 252 (Diario 12/11). **Con 12 años (D29), ningún horizonte mejora al ingenuo de forma fiable:** a 63 días, dudosa (7 de 12 años, 1,023 con los años juntos); a 252, no se sostiene (4 de 10) |
-| H2 | La variación de ayer del WTI anticipa el Brent de hoy (correlación ≈ 0,17), probablemente porque EE. UU. cierra después que Londres | Comparar el modelo con y sin WTI a 5 días | abierta |
-| H3 | El modelo aportará más en la anchura del intervalo (riesgo) que en la dirección del precio | Cobertura y anchura de los intervalos frente a los empíricos | **se cumple en parte** (D30): un rango que se ensancha con la volatilidad (con memoria) mejora al rango fijo de las variaciones pasadas un 12 % a 3 meses y un 24 % a 1 año, sobre todo en las tormentas. Pero lo construye una regla sencilla; las redes que dan el rango no la mejoran. En calma, ningún rango cumple el 80 % (Diario 12/11, noche) |
+| H2 | La variación de ayer del WTI anticipa el Brent de hoy (correlación ≈ 0,17), probablemente porque EE. UU. cierra después que Londres | Comparar el modelo con y sin WTI a 5 días | **no se cumple** a 1 semana: sin el WTI, el lineal queda igual (0,9984 frente a 0,9987, empeora solo en 4 de 12 años), y la relación de partida (0,22 hasta 2017) desaparece en 2018-2021 (−0,04) (Diario 13/11) |
+| H3 | El modelo aportará más en la anchura del intervalo (riesgo) que en la dirección del precio | Cobertura y anchura de los intervalos frente a los empíricos | **se cumple en parte** (D30, D32): el rango elegido, centrado en el precio de hoy, mejora al rango ingenuo un 13 % a 1 semana, un 15 % a 3 meses y un 28 % a 1 año, sobre todo en las tormentas; la dirección no se mejora de forma fiable (D29) |
 | H4 | Predecir variaciones funciona mejor que predecir niveles; una red entrenada con precios tiende a copiar el precio de ayer | Experimento de control al final (D15) | **se cumple**: con precios, la RNN da 1,544 a 1 semana y 1,028 a 3 meses (con variaciones, 0,993 y 0,938); a 1 semana parece acertar (correlación de niveles 0,95) y está más cerca del precio de hoy que del futuro. A 3 meses, además, tira hacia el precio típico del train (Diario 13/11) |
 | H5 | Las conclusiones (red ganadora y horizontes en los que aporta) no dependen de la partición elegida | Prueba de robustez con la partición A (D10) | abierta |
 | H6 | El indicador de nivel (precio frente a su media anual) mejora sobre todo a 63 y 252 días, porque los precios muy altos o muy bajos tienden a corregir | Estudio con y sin el indicador, en validación | **no se cumple en las redes** (el indicador las empeora). La corrección sí existe a 252 días, pero el lineal la aprovecha sobre todo con la ventana de 252 días (Diario 09/11). Sin tendencia, tampoco: a 1 año las 11 mejores combinaciones son sin nivel (1,056 con él frente a 1,022 sin él, D21) |
@@ -174,9 +177,9 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 - [x] Revisar el EDA y validar las decisiones 🟡 (D3-D6, D8, D9).
 - [x] Decidir si `data/petroleo_dataset.csv` se versiona o se regenera con el script → se mantiene (D12).
 - [x] Commit del EDA, el diario, el README y las dependencias nuevas.
-- [ ] Commit de la elección de partición (EDA §8 y diario).
-- [ ] Documentar la causa del pico de 2026.
-- [ ] Al final del proyecto: prueba de robustez con la partición A (D10).
+- [x] Commit de la elección de partición (EDA §8 y diario).
+- [ ] ~~Documentar la causa del pico de 2026.~~ Se quita (13/11): necesitaría información de fuera sobre años del test.
+- [ ] Al final del proyecto: prueba de robustez con la partición A (D10). Solo después del test: su validación usa 2022.
 - [ ] En la universidad: ejecutar `nvidia-smi` para anotar el modelo de GPU y la versión de CUDA del driver.
 
 ### 06/11/2026 (tarde) · Preprocesamiento
@@ -216,8 +219,8 @@ Estados: ✅ vigente · 🟡 propuesta (pendiente de validar) · ❌ descartada.
 
 **Pendiente**
 - [x] Commit del preprocesamiento (08/11/2026).
-- [ ] Modelado: instalar PyTorch y definir las tres redes con una misma estructura.
-- [ ] Al final del proyecto: experimento de control «predecir precios» (D15, H4).
+- [x] Modelado: instalar PyTorch y definir las tres redes con una misma estructura.
+- [x] Al final del proyecto: experimento de control «predecir precios» (D15, H4). Hecho el 13/11: H4 se cumple.
 
 ### 08/11/2026 · Arranque del modelado
 
@@ -1574,7 +1577,7 @@ Ese sesgo favorece a los modelos. Como el resultado es negativo, la conclusión 
 
 ### 13/11/2026 · Antes del test (3): protocolo del examen final (D33, propuesta)
 
-> Propuesta, pendiente del visto bueno de Pablo. Se fija antes de tocar el test y no se cambia después de verlo.
+> Aprobado por Pablo el 13/11/2026, tras explicar los rangos y el contraste de Diebold-Mariano. Se fija antes de tocar el test y no se cambia después de verlo.
 
 **Qué se congela**
 - Los datos de cada horizonte y las configuraciones de las redes (fase B), con el promedio de las semillas 42-46 (D27).
@@ -1644,4 +1647,87 @@ Ese sesgo favorece a los modelos. Como el resultado es negativo, la conclusión 
 - **Pruebas:** 2 nuevas de la regla del centro (D32). 109 en total, todas correctas (`poetry run python -m pytest`: Smart App Control bloquea ahora el lanzador `pytest.exe`).
 
 **Estado** (13/11/2026, tarde): lo previsto antes del test está hecho (rangos con D31, centro del rango D32, controles, D15). Pendiente: el visto bueno de Pablo al protocolo del test (D33). Red de la aplicación decidida: la mejor de cada horizonte (LSTM a 1 semana, RNN a 3 meses y a 1 año).
+
+### 13/11/2026 · Cabos sueltos antes del test: H2
+
+**Diseño** (fijado antes de calcular)
+- **H2:** la variación de ayer del WTI anticipa el Brent de hoy, porque EE. UU. cierra después que Londres. Se prueba a 1 semana (el único horizonte donde podría notarse) con el lineal de referencia (misma regularización), en los 12 años de 2010-2021: con todas las variables y sin el WTI. Como información, también con solo el WTI.
+- **Regla:** H2 se cumple a 1 semana si quitar el WTI empeora la nota del lineal al menos 0,005 con los años juntos y en más de la mitad de los años. Si no, no se cumple: el efecto, si existe, no se nota a 5 sesiones.
+- **Lo esperado:** no se cumple. El WTI de ayer solo podría anticipar el primero de los 5 días, y la variación del Brent ya recoge parte. Cambio de la nota de menos de 0,005.
+
+**Resultados (H2)** (lineal a 1 semana, 2010-2021)
+
+| | Años juntos | Peor año | Mejor año |
+|---|---|---|---|
+| Todas las variables | 0,9987 | 2012 (1,025) | 2014 (0,946) |
+| Sin el WTI | 0,9984 | 2012 (1,024) | 2014 (0,948) |
+| Solo el WTI | 1,0003 | 2021 (1,002) | 2010 (0,998) |
+
+- **Quitar el WTI no empeora el lineal:** mejora 0,0003 con los años juntos y empeora solo en 4 de los 12 años. **H2 no se cumple a 1 semana.**
+- **Solo con el WTI, el lineal queda en 1,000:** no aporta nada.
+- **La relación de partida se desvanece:** la correlación entre la variación del WTI de ayer y la del Brent de hoy es 0,22 en 2000-2017, pero −0,04 en 2018-2021. Aunque hubiera servido para el primer día, en los años recientes ya no está.
+- **Lo esperado frente a lo obtenido:** se cumple (cambio de menos de 0,005, H2 no se cumple). No esperaba que la relación desapareciera en 2018-2021.
+
+**Otras comprobaciones de hoy**
+- **Los futuros del CSV son del vencimiento más cercano:** el del WTI casi coincide con el contado (diferencia mediana del 0,14 %; desde 2000) y el del Brent, desde 2007 (1,25 %). Sin vencimientos lejanos no hay curva de futuros que usar como referencia, y la criba ya probó futuro frente a contado sin resultado (sección 11).
+- **H3, con las cifras finales:** el rango elegido y centrado en el precio de hoy (D32) mejora la nota del rango ingenuo un 13 % a 1 semana, un 15 % a 3 meses y un 28 % a 1 año, sobre todo en las tormentas.
+
+### 13/11/2026 · Después del test: la previsión del 10/11 (D34)
+
+- **Propuesta del profesor:** ver el rendimiento real del modelo con datos que todavía no se conocían.
+- **La actualización automática del CSV se descarta:** complica más de lo que aporta. La foto del estudio (`data/petroleo_dataset.csv`, Brent hasta el 3/11/2026) no se toca.
+- **D34, la previsión del 10/11, después del test:**
+  - del 3/11 al 10/11 hay justo 5 sesiones: es la previsión a 1 semana desde el último dato de la foto. Ese precio no está en el CSV ni se ha mirado;
+  - se prevé con dos versiones: las redes del test (entrenadas hasta 2021) y las redes finales, reentrenadas con todo hasta el 3/11/2026 (las elegidas: LSTM a 1 semana, RNN a 3 meses y a 1 año). Después del test, sus años se pueden usar para entrenar, nunca para volver a evaluar;
+  - se guardan el precio previsto, el ingenuo (el precio del 3/11) y el rango del 80 %, y también las previsiones a 3 meses y a 1 año desde el 3/11;
+  - **todo se guarda con commit antes de descargar datos nuevos.** Después, una descarga a mano con el script del curso, en otro archivo, y la comparación;
+  - es un solo dato: sirve como demostración y para ver si el rango acierta, no para juzgar el modelo.
+- **Tiempos previstos:** el test, unos 45-75 minutos de cálculo (casi todo a 1 semana: la RNN tarda unos 6 minutos por entrenamiento), más la preparación del script; el modelo final, unos 10-15 minutos.
+
+**Estado al cerrar la sesión** (13/11/2026, tarde)
+- Todo cerrado antes del test, salvo H1 y H5, que dependen de él.
+- **Siguiente, cuando Pablo quiera:** programar y probar el test (D33, aprobado) y que Pablo lo lance; después, D34.
+- **Pablo se pone con la presentación.**
+- **Sin commit:** H2, H3 al día, tareas ordenadas, protocolo aprobado y D34 (solo el diario).
+
+### 13-14/11/2026 · Web del proyecto (D35)
+
+**Qué es.** Una web estática para presentar el proyecto a inversores y gestores de riesgo, con el mensaje «No sabemos adónde irá el Brent. Sabemos cuánto puede moverse». Se publica en GitHub Pages desde `web/` (la carpeta `docs/` no se toca).
+
+**Hecho**
+- **`scripts/exportar_web.py`:** genera los JSON de `web/data/` con las funciones del notebook 03 (`hacia_atras`, `incertidumbre`, `entreno_completo`, `control_precios`, `comprobaciones`). No entrena nada; menos de un minuto. Comprobado contra el diario: LSTM 0,997 a 1 semana, RNN 0,994 a 3 meses y 0,941 a 1 año; rango 82 %, 79 % y 70 %; mejoras del 13, 15 y 28 %; control con precios 1,544 y 0,993.
+- **La web** (`web/index.html`, estilos con Tailwind compilado, JavaScript por módulos, gráficos en SVG propio y fondo en WebGL): hero con la serie de 2000-2026 que termina en el abanico del 80 %, panel de la previsión por plazos, hallazgos, «Calma y tormenta» (2019-2021), «El espejismo» (D15), método, tabla comparativa, usos y preguntas.
+- **Flujo de publicación:** `.github/workflows/web.yml` (sube `web/` tal cual a GitHub Pages).
+- **Documentación:** `web/README.md` (verla en local, actualizar datos, recompilar estilos, publicar, formato de los JSON pendientes).
+
+**Decisiones de la web** (propuestas por Claude, aceptadas por Pablo el 13/11)
+- **El abanico se centra en el precio de hoy** (D32) y la previsión de la red va dentro, como marca; así lo dice la web.
+- **La tabla no colorea «menos de 1 = mejor»:** enseña la nota, los años ganados, el veredicto de la regla (D29) y que Diebold-Mariano no distingue ningún modelo del ingenuo (p más bajo, 0,07).
+- **La previsión en vivo se describe como «guardada antes de descargar datos posteriores al 3/11»,** no «antes de conocer el precio», y enlazará el commit.
+- **1 año, siempre «orientativo»,** con su cobertura (70 %) y su margen (± 16) a la vista.
+
+**Decisión nueva: el rango provisional de hoy.** Para que el panel y el hero no queden vacíos antes de D33 y D34, el exportador calcula el rango del 3/11/2026 con `incertidumbre.rangos` (A2 a 1 semana; A3 a 3 meses y a 1 año), centrado en el precio de hoy y **ajustado solo con respuestas conocidas antes del 1/1/2022**. No usa nada del test: de 2022-2026 solo entra la volatilidad de 21 días del 3/11/2026 (0,60), que es una entrada. Resultado: 96,81-117,66 $ a 1 semana, 75,51-151,70 $ a 3 meses y 55,61-205,98 $ a 1 año. La web lo rotula «provisional». El definitivo (D34) se ajustará con lo conocido hasta entonces y lo sustituirá.
+
+**Limitaciones**
+- Solo para ordenador: sin versión para móvil (decisión de Pablo, 14/11). Por debajo de 1.024 px de ancho no se recoloca.
+- Revisada con capturas automáticas de Edge sin pantalla (página entera, pestañas, interruptor y acordeón). Las animaciones de entrada al hacer scroll no se pueden comprobar así: hay que mirarlas en un navegador normal.
+- Sin medir con Lighthouse (no hay Node en el equipo).
+- En el pie quedan por rellenar el nombre del autor y la universidad.
+
+**Pendiente**
+- Tras D33: escribir `web/data/test.json` con las notas del examen final (formato en `web/README.md`).
+- Tras D34: ampliar `prevision()` del exportador con las previsiones de las redes finales y el rango definitivo, y rellenar `web/data/en_vivo.json` (con el commit).
+- Activar GitHub Pages (Settings → Pages → Source: «GitHub Actions») y publicar.
+- **Sin commit:** todo lo de la web está sin subir, a la espera del visto bueno de Pablo.
+
+### 14/11/2026 · Examen final en test (D33): preparación
+
+- **Hecho:** `examen_final.py` (entrenamiento reanudable según el protocolo, lectura, tabla comparativa del enunciado, Diebold-Mariano con las conclusiones fijadas, rangos centrados en el precio de hoy y si cumplen), `scripts/examen_final.py` y 6 pruebas nuevas (115 en total, todas correctas). Las pruebas no entrenan ni evalúan nada en el test: las medidas se prueban con datos inventados, y con los datos reales solo se comprueban las fechas de la partición.
+- **Salvaguarda:** sin `--ejecutar`, el script solo muestra el plan; no se puede lanzar el examen por accidente.
+- **El plan (sin tocar resultados):**
+  - 1 semana: 4.634 fichas de train y 1.218 evaluadas (del 3/1/2022 al 27/10/2026);
+  - 3 meses: 4.808 y 1.160 (hasta el 5/8/2026);
+  - 1 año: 4.619 y 971 (hasta el 4/11/2025), con todo el entrenamiento y épocas fijas (D31);
+  - 45 entrenamientos (3 redes × 5 semillas × 3 horizontes), unos 55 minutos, y el lineal.
+- **Pendiente:** commit del código antes de ejecutarlo, y que Pablo lance `python scripts/examen_final.py --ejecutar`.
 
