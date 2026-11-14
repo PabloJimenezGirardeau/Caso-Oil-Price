@@ -1,0 +1,32 @@
+{
+  "recorte": null,
+  "columnas_recorte": [
+    "r_brent",
+    "r_wti",
+    "r_cobre",
+    "r_oro",
+    "r_indice_dolar",
+    "r_vix"
+  ],
+  "inferior": null,
+  "superior": null,
+  "media": {
+    "r_brent": 0.000300032180012013,
+    "r_wti": 0.0002808257251160456,
+    "r_cobre": 0.0003854498654478991,
+    "r_oro": 0.00038825007329116554,
+    "r_indice_dolar": -3.966824576743578e-05,
+    "r_vix": -6.349760729473148e-05,
+    "log_vol_brent": -1.1903687867677988
+  },
+  "desviacion": {
+    "r_brent": 0.026831726746226442,
+    "r_wti": 0.029731323640482043,
+    "r_cobre": 0.017515249787779706,
+    "r_oro": 0.011375868652754088,
+    "r_indice_dolar": 0.004892788265725891,
+    "r_vix": 0.07345184333459644,
+    "log_vol_brent": 0.4471633210191794
+  },
+  "fecha_max": "2021-12-31"
+}

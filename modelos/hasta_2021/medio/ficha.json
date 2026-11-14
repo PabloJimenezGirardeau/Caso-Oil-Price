@@ -1,0 +1,43 @@
+{
+  "horizonte": "medio",
+  "sesiones": 63,
+  "celda": "RNN",
+  "intento": 1,
+  "hiperparametros": {
+    "unidades": 64,
+    "capas": 1,
+    "dropout": 0.2,
+    "lr": 0.001,
+    "lote": 64,
+    "l2": 0.0
+  },
+  "ventana": 20,
+  "recorte": null,
+  "nivel": false,
+  "variables": [
+    "r_brent",
+    "r_wti",
+    "r_cobre",
+    "r_oro",
+    "r_indice_dolar",
+    "r_vix",
+    "log_vol_brent"
+  ],
+  "fin_train": "2021-12-31",
+  "semillas": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "escala_objetivo": {
+    "42": 0.19280001521110535,
+    "43": 0.19280001521110535,
+    "44": 0.19280001521110535,
+    "45": 0.19280001521110535,
+    "46": 0.19280001521110535
+  },
+  "parametros": 4737,
+  "metodo_rango": "centrado"
+}
