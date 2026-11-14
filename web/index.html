@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1280">
+  <title>Previsión del Brent · Sabemos cuánto puede moverse</title>
+  <meta name="description" content="Proyecto académico de previsión del precio del Brent con redes neuronales (RNN, LSTM y GRU). Ninguna red mejora de forma fiable al modelo ingenuo; el rango del 80 % sí dice cuánto puede moverse el precio.">
+  <meta name="theme-color" content="#000000">
+  <meta name="color-scheme" content="dark">
+
+  <!-- Open Graph (las URL absolutas son las de GitHub Pages: cámbialas si cambia el repositorio) -->
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_ES">
+  <meta property="og:title" content="No sabemos adónde irá el Brent. Sabemos cuánto puede moverse.">
+  <meta property="og:description" content="Tres redes neuronales, doce años de pruebas y un rango del 80 % que se ensancha cuando el mercado se pone nervioso. Proyecto académico.">
+  <meta property="og:url" content="https://pablojimenezgirardeau.github.io/Caso-Oil-Price/">
+  <meta property="og:image" content="https://pablojimenezgirardeau.github.io/Caso-Oil-Price/assets/img/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/fonts/geist-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/css/estilos.css">
+
+  <!-- Marca si habrá animaciones antes de pintar, para que nada parpadee. Si el JavaScript
+       no arranca en 6 s, la clase «rescate» muestra todo el contenido. -->
+  <script>
+    (function () {
+      var raiz = document.documentElement;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      raiz.classList.add('mov');
+      setTimeout(function () { if (!window.__webLista) raiz.classList.add('rescate'); }, 6000);
+    })();
+  </script>
+  <noscript><style>.mov [data-revela], .mov [data-titulo], .mov [data-hero], .mov .hero-titulo { opacity: 1 !important; }</style></noscript>
+</head>
+<body>
+  <a class="salto" href="#contenido">Saltar al contenido</a>
+
+  <!-- ============================ 1. Barra superior ============================ -->
+  <header class="barra" id="barra">
+    <div class="contenedor barra-fila">
+      <a href="#inicio" class="marca" aria-label="Previsión del Brent: inicio">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+          <path d="M12 13 24 5.5v15L12 13Z" fill="#f2921d" fill-opacity=".28"/>
+          <path d="M2 13h10M12 13l12-7.5M12 13l12 7.5" stroke="#f2921d" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        <span>Previsión del Brent</span>
+      </a>
+      <nav class="barra-enlaces" aria-label="Secciones">
+        <a href="#prevision">La previsión</a>
+        <a href="#hallazgos">Hallazgos</a>
+        <a href="#calma">Calma y tormenta</a>
+        <a href="#espejismo">El espejismo</a>
+        <a href="#metodo">Método</a>
+        <a href="#preguntas">Preguntas</a>
+      </nav>
+      <a class="boton boton-ambar boton-s" href="#prevision">Ver la previsión</a>
+    </div>
+  </header>
+
+  <main id="contenido">
+
+    <!-- ================================ 2. Hero ================================ -->
+    <section id="inicio" class="hero-marco" aria-labelledby="hero-titulo">
+      <div class="hero" id="hero">
+        <!-- El crudo: un shader en WebGL (crudo.js). Decorativo. -->
+        <canvas class="hero-crudo" id="hero-crudo" aria-hidden="true"></canvas>
+        <div class="hero-velo" aria-hidden="true"></div>
+        <!-- La línea del Brent y el abanico del 80 % (hero.js) -->
+        <svg class="hero-grafico" id="hero-grafico" role="img" aria-label="Precio diario del Brent desde 2000, que termina abriéndose en el rango del 80 % a 1 semana, 3 meses y 1 año."></svg>
+
+        <div class="hero-contenido" id="hero-contenido">
+          <p class="pildora" data-hero>
+            <span class="pildora-etq" id="vivo-etiqueta">En curso</span>
+            <span id="vivo-resumen">Previsión del 10/11: se guardará antes de descargar el precio</span>
+          </p>
+          <p class="hero-kicker" data-hero>Previsión del Brent con redes neuronales</p>
+          <h1 class="hero-titulo" id="hero-titulo">
+            <span data-hero-linea>No sabemos adónde irá el Brent.</span>
+            <em data-hero-linea>Sabemos cuánto puede moverse.</em>
+          </h1>
+          <p class="hero-sub" data-hero>Tres redes neuronales, doce años de pruebas y un rango del 80&nbsp;% que se ensancha cuando el mercado se pone nervioso.</p>
+          <div class="hero-botones" data-hero>
+            <a class="boton boton-ambar" href="#prevision">Ver la previsión</a>
+            <a class="boton boton-linea" href="#metodo">Cómo lo hemos medido</a>
+          </div>
+        </div>
+
+        <div class="hero-pie" id="hero-pie">
+          <!-- Cinta de cotizaciones: último valor del CSV del proyecto (cinta.js). No es tiempo real. -->
+          <div class="cinta" id="cinta" role="group" aria-label="Últimos valores del conjunto de datos; no son cotizaciones en directo"></div>
+          <p class="leyenda hero-nota">Datos diarios <span data-d="calc.año_ini">2000</span>-<span data-d="calc.año_fin">2026</span> · <span data-d="calc.sesiones" data-f="entero">—</span> sesiones</p>
+        </div>
+      </div>
+
+      <!-- Tira de cifras -->
+      <div class="contenedor">
+        <dl class="cifras">
+          <div class="cifra" data-revela>
+            <dd class="cifra-n"><span data-cuenta="calc.años">—</span></dd>
+            <dt class="cifra-t">años de validación, 2010-2021</dt>
+          </div>
+          <div class="cifra" data-revela>
+            <dd class="cifra-n">3 × 3</dd>
+            <dt class="cifra-t">redes (RNN, LSTM, GRU) × plazos</dt>
+          </div>
+          <div class="cifra" data-revela>
+            <dd class="cifra-n">80&nbsp;%</dd>
+            <dt class="cifra-t">rango de incertidumbre</dt>
+          </div>
+          <div class="cifra" data-revela>
+            <dd class="cifra-n"><span data-cuenta="calc.sesiones">—</span></dd>
+            <dt class="cifra-t">sesiones de datos diarios</dt>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- ============================ 3. La previsión ============================ -->
+    <section id="prevision" class="seccion" aria-labelledby="prevision-titulo">
+      <div class="contenedor">
+        <header class="cabecera">
+          <span class="etiqueta" data-revela>La previsión</span>
+          <h2 class="titulo" id="prevision-titulo" data-titulo>Dónde está hoy el Brent <em>y cuánto puede moverse</em></h2>
+          <p class="entradilla" data-revela>El rango del 80&nbsp;% se centra en el precio de hoy: en nuestras pruebas, centrarlo en la previsión de las redes lo empeoraba. La previsión de la red se muestra dentro, junto al ingenuo.</p>
+        </header>
+
+        <div class="tarjeta" data-revela>
+          <div class="panel-cab">
+            <div>
+              <p class="leyenda">Brent · último dato · <span data-d="prevision.fecha" data-f="fecha">—</span></p>
+              <p class="panel-precio"><span data-d="prevision.precio" data-f="numero2">—</span><span class="unidad">$ por barril</span></p>
+            </div>
+            <div class="pestanas" role="tablist" aria-label="Plazo de la previsión" id="pv-pestanas">
+              <button type="button" role="tab" id="pv-tab-corto" data-plazo="corto" aria-selected="true" aria-controls="pv-panel">1 semana</button>
+              <button type="button" role="tab" id="pv-tab-medio" data-plazo="medio" aria-selected="false" aria-controls="pv-panel" tabindex="-1">3 meses</button>
+              <button type="button" role="tab" id="pv-tab-largo" data-plazo="largo" aria-selected="false" aria-controls="pv-panel" tabindex="-1">1 año</button>
+            </div>
+          </div>
+
+          <div class="panel-cuerpo" id="pv-panel" role="tabpanel" aria-labelledby="pv-tab-corto" tabindex="0">
+            <div class="panel-cifras">
+              <p class="leyenda">Rango del 80&nbsp;% · <span id="pv-cuando">—</span> <span class="chip" id="pv-orientativo" hidden>Orientativo</span></p>
+              <p class="panel-rango"><span id="pv-bajo">—</span><span class="guion">–</span><span id="pv-alto">—</span><span class="unidad">$</span></p>
+              <p class="panel-nota" id="pv-ancho">&nbsp;</p>
+              <dl class="panel-lista">
+                <div>
+                  <dt>Ingenuo <span>el precio de hoy, sin cambios</span></dt>
+                  <dd id="pv-ingenuo">—</dd>
+                </div>
+                <div>
+                  <dt>Red <span id="pv-red-nombre">—</span></dt>
+                  <dd id="pv-red">—</dd>
+                </div>
+                <div>
+                  <dt>Cobertura histórica <span id="pv-cob-periodo">—</span></dt>
+                  <dd id="pv-cobertura">—</dd>
+                </div>
+              </dl>
+              <p class="panel-aviso" id="pv-provisional" hidden></p>
+            </div>
+            <div class="panel-grafico">
+              <svg class="grafico" id="pv-grafico" role="img" aria-label="Precio reciente del Brent y rango del 80 % hacia el futuro"></svg>
+            </div>
+          </div>
+
+          <div class="panel-pie">
+            <!-- Previsión en vivo (D34): la rellena prevision.js según data/en_vivo.json -->
+            <article class="vivo" id="vivo" aria-live="polite"></article>
+            <p class="aviso-legal">Proyecto académico. No es asesoramiento financiero ni una recomendación de inversión.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= 4. Lo que descubrimos ========================= -->
+    <section id="hallazgos" class="seccion" aria-labelledby="hallazgos-titulo">
+      <canvas class="relieve" data-relieve="7" aria-hidden="true"></canvas>
+      <div class="contenedor">
+        <header class="cabecera">
+          <span class="etiqueta" data-revela>Lo que descubrimos</span>
+          <h2 class="titulo" id="hallazgos-titulo" data-titulo>Cuatro hallazgos, <em>contados sin adornos</em></h2>
+        </header>
+
+        <div class="bento">
+          <article class="tarjeta hallazgo bento-4" data-revela>
+            <p class="leyenda">01 · La dirección</p>
+            <p class="hallazgo-n"><span data-d="calc.años">—</span><small>años de pruebas</small></p>
+            <h3>Nadie, con estos datos, sabe adónde irá el precio</h3>
+            <p>De 2010 a 2021, cada año se previó con redes entrenadas solo con lo anterior. Ninguna mejora al ingenuo de forma fiable en ningún plazo, y las diferencias entre RNN, LSTM y GRU no se distinguen del azar.</p>
+            <div class="hallazgo-grafico">
+              <svg class="grafico" id="hz-notas" role="img" aria-label="Nota de la red a 3 meses en cada año de 2010 a 2021: queda unas veces por debajo y otras por encima del ingenuo"></svg>
+            </div>
+          </article>
+
+          <article class="tarjeta hallazgo bento-2" data-revela>
+            <p class="leyenda">02 · La amplitud</p>
+            <p class="hallazgo-n trio ambar"><span data-d="calc.mejora_corto">—</span><i>·</i><span data-d="calc.mejora_medio">—</span><i>·</i><span data-d="calc.mejora_largo">—</span><small>%</small></p>
+            <h3>Sí se sabe cuánto puede moverse</h3>
+            <p>El rango del 80&nbsp;% se ensancha con el mercado nervioso y se estrecha en calma. Es mejor que un rango fijo a 1 semana, a 3 meses y a 1 año, sobre todo en las tormentas.</p>
+          </article>
+
+          <article class="tarjeta hallazgo bento-2" data-revela>
+            <p class="leyenda">03 · El espejismo</p>
+            <p class="hallazgo-n">+<span data-d="calc.exceso">—</span><small>% de error</small></p>
+            <h3>Parecer que acierta no es acertar</h3>
+            <p>Una red entrenada con precios se parece mucho al precio real (correlación <span data-d="espejismo.medidas.precios.correlacion" data-f="numero2">—</span>), pero se equivoca más que el ingenuo: en el fondo, copia el precio de hoy con retraso.</p>
+          </article>
+
+          <article class="tarjeta hallazgo bento-4" data-revela>
+            <p class="leyenda">04 · El método</p>
+            <p class="hallazgo-n">1<small>sola vez</small></p>
+            <h3>El examen final no se repite</h3>
+            <p>Reglas fijadas antes de calcular, nada del futuro en el entrenamiento y un periodo, 2022-2026, reservado para un único examen. Además, una previsión guardada con fecha y comprobada después.</p>
+            <p style="margin-top:auto;padding-top:22px"><span class="chip chip-gris" id="hz-examen">Examen final · pendiente</span></p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================== 5. Calma y tormenta =========================== -->
+    <section id="calma" class="calma" aria-labelledby="calma-titulo">
+      <div class="calma-fija">
+        <div class="contenedor">
+          <header class="cabecera">
+            <span class="etiqueta" data-revela>Calma y tormenta</span>
+            <h2 class="titulo" id="calma-titulo" data-titulo>Un rango que respira <em>con el mercado</em></h2>
+            <p class="entradilla" data-revela>De 2019 a 2021, el rango del 80&nbsp;% de cada día frente al precio que llegó después. En el desplome de 2020 se abre; un rango fijo no se entera.</p>
+          </header>
+
+          <div class="calma-rejilla">
+            <div class="tarjeta calma-tarjeta" data-revela>
+              <canvas class="calma-crudo" id="calma-crudo" aria-hidden="true"></canvas>
+              <div class="calma-cab">
+                <p class="leyenda">Brent · 2019-2021 · en la fecha prevista · escala logarítmica</p>
+                <div class="pestanas" role="group" aria-label="Plazo del rango" id="cl-plazos">
+                  <button type="button" data-plazo="corto" aria-pressed="true">1 semana</button>
+                  <button type="button" data-plazo="medio" aria-pressed="false">3 meses</button>
+                </div>
+              </div>
+              <dl class="calma-lectura">
+                <div><dt class="leyenda">Fecha</dt><dd id="cl-fecha">—</dd></div>
+                <div><dt class="leyenda">Precio real</dt><dd id="cl-real">—</dd></div>
+                <div><dt class="leyenda">Nuestro rango</dt><dd id="cl-rango" class="ambar">—</dd></div>
+                <div><dt class="leyenda">Rango fijo</dt><dd id="cl-fijo">—</dd></div>
+              </dl>
+              <div class="calma-grafico">
+                <svg class="grafico" id="cl-grafico" role="img" aria-label="Precio real del Brent de 2019 a 2021 con el rango del 80 % de cada día, que se ensancha en el desplome de 2020, y el rango fijo de referencia"></svg>
+              </div>
+              <div class="leyenda-grafico" aria-hidden="true">
+                <span><i></i>Precio real</span>
+                <span><i class="relleno"></i>Nuestro rango (de calma a tormenta)</span>
+                <span><i class="discontinua"></i>Rango fijo</span>
+              </div>
+            </div>
+
+            <aside class="tarjeta cobertura" data-revela aria-label="Cobertura del rango en calma, normal y tormenta">
+              <p class="leyenda">Cobertura · <span id="cb-periodo">—</span></p>
+              <p class="hallazgo-n trio ambar" style="margin-top:12px"><span id="cb-mejora">—</span><small>% mejor que el rango fijo</small></p>
+              <div id="cb-medidores"></div>
+              <p class="cobertura-resumen" id="cb-resumen"></p>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= 6. El espejismo ============================= -->
+    <section id="espejismo" class="seccion" aria-labelledby="espejismo-titulo">
+      <div class="contenedor">
+        <header class="cabecera">
+          <span class="etiqueta" data-revela>El espejismo</span>
+          <h2 class="titulo" id="espejismo-titulo" data-titulo>En el gráfico acierta. <em>En las cuentas, no.</em></h2>
+          <p class="entradilla" data-revela>Lo habitual es entrenar la red con precios. El resultado se parece tanto al precio real que convence a cualquiera, hasta que se mide.</p>
+        </header>
+
+        <div class="espejismo-rejilla">
+          <div class="tarjeta espejismo-cifra" data-revela>
+            <p class="leyenda">Red entrenada con precios · 1 semana</p>
+            <p class="hallazgo-n ambar">+<span data-d="calc.exceso">—</span><small>% de error</small></p>
+            <h3 style="margin-top:18px;font-size:1.25rem;letter-spacing:-0.015em">Más error que no hacer nada</h3>
+            <p class="vivo-texto" style="margin-top:10px">Frente al ingenuo, su nota es <span data-d="espejismo.medidas.precios.nota" data-f="numero3">—</span>. La misma red, entrenada con variaciones en lugar de precios, queda en <span data-d="espejismo.medidas.variaciones.nota" data-f="numero3">—</span>. Por eso este proyecto prevé variaciones.</p>
+            <dl class="panel-lista" style="margin-top:auto">
+              <div>
+                <dt>Correlación con el precio real <span>lo que se ve en el gráfico</span></dt>
+                <dd data-d="espejismo.medidas.precios.correlacion" data-f="numero2">—</dd>
+              </div>
+              <div>
+                <dt>Nota frente al ingenuo <span>lo que importa; 1 es empatar</span></dt>
+                <dd data-d="espejismo.medidas.precios.nota" data-f="numero3">—</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div class="tarjeta" data-revela>
+            <div class="calma-cab" style="padding-bottom:6px">
+              <p class="leyenda" id="es-tramo">Brent · previsión a 1 semana</p>
+              <button type="button" class="interruptor" role="switch" aria-checked="false" id="es-interruptor">
+                <span class="interruptor-pista" aria-hidden="true"></span>
+                Ver con retraso
+              </button>
+            </div>
+            <div class="espejismo-grafico">
+              <svg class="grafico" id="es-grafico" role="img" aria-label="Precio real del Brent, modelo ingenuo y red entrenada con precios: la red sigue al precio real con unos días de retraso"></svg>
+            </div>
+            <div class="leyenda-grafico" aria-hidden="true">
+              <span><i></i>Precio real</span>
+              <span class="ambar"><i></i>Red con precios</span>
+              <span><i class="discontinua"></i>Ingenuo (precio de una semana antes)</span>
+            </div>
+            <p class="espejismo-lectura" id="es-lectura" aria-live="polite"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== 7. Cómo lo hemos comprobado ====================== -->
+    <section id="metodo" class="seccion" aria-labelledby="metodo-titulo">
+      <canvas class="relieve" data-relieve="21" aria-hidden="true"></canvas>
+      <div class="contenedor">
+        <header class="cabecera">
+          <span class="etiqueta" data-revela>Cómo lo hemos comprobado</span>
+          <h2 class="titulo" id="metodo-titulo" data-titulo>Primero las reglas, <em>después los resultados</em></h2>
+          <p class="entradilla" data-revela>Cada decisión se fijó por escrito antes de hacer el cálculo que la ponía a prueba, y ningún modelo vio nunca datos posteriores a la fecha que preveía.</p>
+        </header>
+
+        <div class="tiempo" id="tiempo">
+          <!-- El eje real de los datos, de 2000 a 2026, con sus tramos (metodo.js) -->
+          <div class="tiempo-eje" id="tiempo-eje" aria-hidden="true"></div>
+          <ol class="pasos">
+            <li class="tarjeta paso" data-paso="datos">
+              <p class="leyenda">01 · <span data-d="calc.año_ini">2000</span>-<span data-d="calc.año_fin">2026</span></p>
+              <h3>Datos</h3>
+              <p><span data-d="calc.sesiones" data-f="entero">—</span> sesiones del Brent y cinco series más: WTI, cobre, oro, dólar y VIX. Solo días en que el Brent cotizó de verdad.</p>
+            </li>
+            <li class="tarjeta paso" data-paso="entrenamiento">
+              <p class="leyenda">02 · Solo con el pasado</p>
+              <h3>Entrenamiento</h3>
+              <p>Cada red aprende únicamente con datos anteriores a lo que tiene que prever. Nada del futuro entra en el entrenamiento, ni siquiera para escalar las cifras.</p>
+            </li>
+            <li class="tarjeta paso" data-paso="prueba">
+              <p class="leyenda">03 · 2010-2021</p>
+              <h3>Prueba año a año</h3>
+              <p>Doce exámenes en lugar de uno: cada año se prevé con redes entrenadas solo con los anteriores, y se compara con el ingenuo.</p>
+            </li>
+            <li class="tarjeta paso" data-paso="examen">
+              <p class="leyenda">04 · 2022-2026</p>
+              <h3>Examen final</h3>
+              <p>Un periodo que no se ha tocado y que se usa una sola vez, con todo ya decidido. <span id="mt-examen">Todavía no se ha hecho.</span></p>
+            </li>
+            <li class="tarjeta paso" data-paso="vivo">
+              <p class="leyenda">05 · <span data-d="en_vivo.fecha_objetivo" data-f="fecha">—</span></p>
+              <h3>Previsión en vivo</h3>
+              <p>Una previsión guardada con fecha antes de descargar el precio real, para comprobarla después a la vista de todos.</p>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================== 8. Tabla comparativa =========================== -->
+    <section id="tabla" class="seccion" aria-labelledby="tabla-titulo" style="padding-top:0">
+      <div class="contenedor">
+        <header class="cabecera">
+          <span class="etiqueta" data-revela>Tabla comparativa</span>
+          <h2 class="titulo" id="tabla-titulo" data-titulo>Todos los modelos, <em>frente al ingenuo</em></h2>
+          <p class="entradilla" data-revela>La nota es el error del modelo dividido por el del ingenuo: 1 es empatar. Quedar por debajo de 1 en doce años no basta para decir que un modelo es mejor.</p>
+        </header>
+
+        <div class="tarjeta" data-revela>
+          <table class="tabla" id="tabla-modelos"></table>
+          <div class="tabla-notas" id="tabla-notas"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ 9. Para qué sirve ============================ -->
+    <section id="usos" class="seccion" aria-labelledby="usos-titulo" style="padding-top:0">
+      <div class="contenedor">
+        <header class="cabecera">
+          <span class="etiqueta" data-revela>Para qué sirve</span>
+          <h2 class="titulo" id="usos-titulo" data-titulo>No para adivinar el precio. <em>Para dimensionar el riesgo.</em></h2>
+        </header>
+
+        <div class="usos">
+          <article class="tarjeta uso" data-revela>
+            <p class="leyenda">Uso 01</p>
+            <h3>Presupuestos por escenarios</h3>
+            <p>Los dos extremos del rango sirven de escenario bajo y alto. Un presupuesto que aguanta ambos aguanta lo que ocurre 8 de cada 10 veces.</p>
+          </article>
+          <article class="tarjeta uso" data-revela>
+            <p class="leyenda">Uso 02</p>
+            <h3>Coberturas</h3>
+            <p>La anchura del rango dice cuánto precio hay en juego en cada plazo. Cuando se ensancha, el mercado está avisando de que hace falta más protección.</p>
+          </article>
+          <article class="tarjeta uso" data-revela>
+            <p class="leyenda">Uso 03</p>
+            <h3>Márgenes de seguridad</h3>
+            <p>Colchones de liquidez y límites de exposición a la medida de lo que el precio puede moverse, no de un promedio histórico que ignora el momento.</p>
+          </article>
+        </div>
+        <div class="uso-no" data-revela>
+          <div>
+            <span class="chip chip-gris">Para esto no sirve</span>
+            <h3>Apostar por la dirección</h3>
+          </div>
+          <p>Ningún modelo de este estudio sabe si el Brent subirá o bajará mejor que suponer que seguirá donde está. Quien necesite una opinión sobre la dirección no la encontrará aquí, y debería desconfiar de quien se la prometa con estos datos.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== 10. Preguntas frecuentes y límites ====================== -->
+    <section id="preguntas" class="seccion" aria-labelledby="preguntas-titulo" style="padding-top:0">
+      <div class="contenedor">
+        <header class="cabecera">
+          <span class="etiqueta" data-revela>Preguntas y límites</span>
+          <h2 class="titulo" id="preguntas-titulo" data-titulo>Lo que conviene saber <em>antes de fiarse</em></h2>
+        </header>
+
+        <div class="preguntas" data-revela>
+          <details name="preguntas">
+            <summary>¿Por qué las redes no ganan al ingenuo?</summary>
+            <div class="respuesta">
+              <p>Porque el precio de hoy ya recoge casi toda la información que hay en estos datos. Probadas año a año de 2010 a 2021, las redes quedan unas veces por debajo del ingenuo y otras por encima, y ninguna diferencia se distingue del azar.</p>
+              <p>A 3 meses, por ejemplo, las redes ganaron <span data-d="validacion.plazos.medio.criterio.ganados">—</span> de <span data-d="validacion.plazos.medio.criterio.años">—</span> años. Sin tener ninguna ventaja, eso ocurre el <span data-d="validacion.plazos.medio.criterio.prob_sin_ventaja" data-f="pct0">—</span> de las veces. No es un fallo del modelo: es lo que cabe esperar de un mercado tan seguido como el del petróleo.</p>
+            </div>
+          </details>
+          <details name="preguntas">
+            <summary>¿Por qué la previsión a 1 año es «orientativa»?</summary>
+            <div class="respuesta">
+              <p>Porque hay muy pocos años independientes para comprobarla. En los <span data-d="calc.años_largo">—</span> años evaluados, el rango a 1 año cubrió el <span data-d="rango.plazos.largo.elegido.cobertura" data-f="pct0">—</span> de las veces, no el 80&nbsp;%, con un margen de ±<span data-d="rango.plazos.largo.elegido.margen" data-f="puntos">—</span> puntos.</p>
+              <p>Sigue siendo un <span data-d="calc.mejora_largo">—</span>&nbsp;% mejor que un rango fijo, pero no cumple su promesa con la misma garantía que a 1 semana y a 3 meses, y así se dice.</p>
+            </div>
+          </details>
+          <details name="preguntas">
+            <summary>¿Qué es exactamente el rango del 80&nbsp;%?</summary>
+            <div class="respuesta">
+              <p>Dos precios, uno bajo y otro alto, entre los que el Brent debería quedar 8 de cada 10 veces al acabar el plazo. Está centrado en el precio de hoy, y su anchura depende de la volatilidad reciente: se ensancha con el mercado nervioso y se estrecha en calma.</p>
+              <p>Cada año se ajusta solo con lo que ya se conocía al empezar ese año. Que 2 de cada 10 veces el precio quede fuera no es un error: es lo que promete.</p>
+            </div>
+          </details>
+          <details name="preguntas">
+            <summary>¿Qué datos se usan?</summary>
+            <div class="respuesta">
+              <p>Datos diarios desde <span data-d="calc.año_ini">2000</span> hasta el <span data-d="prevision.fecha" data-f="fecha">—</span>: <span data-d="calc.sesiones" data-f="entero">—</span> sesiones del Brent. Los modelos usan seis series (Brent, WTI, cobre, oro, índice del dólar y VIX) y la volatilidad reciente del propio Brent.</p>
+              <p>El conjunto de datos incluye también el gas natural y los tipos de interés, que se descartaron en el análisis previo y no entran en los modelos.</p>
+            </div>
+          </details>
+          <details name="preguntas">
+            <summary>¿Puedo usarlo para invertir?</summary>
+            <div class="respuesta">
+              <p>No. Es un proyecto académico: no es asesoramiento financiero ni una recomendación de inversión. Sirve para entender qué se puede saber del precio del Brent con datos públicos y qué no.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================================= 11. Pie ================================= -->
+  <footer class="pie">
+    <div class="contenedor pie-fila">
+      <div>
+        <a href="#inicio" class="marca" aria-label="Previsión del Brent: volver al inicio">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+            <path d="M12 13 24 5.5v15L12 13Z" fill="#f2921d" fill-opacity=".28"/>
+            <path d="M2 13h10M12 13l12-7.5M12 13l12 7.5" stroke="#f2921d" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+          <span>Previsión del Brent</span>
+        </a>
+        <p style="margin-top:14px;max-width:44ch">Proyecto académico. No es asesoramiento financiero ni una recomendación de inversión.</p>
+      </div>
+      <div>
+        <p class="leyenda">Autoría</p>
+        <p style="margin-top:8px">[Pablo Jiménez Girardeau]<br>Aprendizaje Automático · [UAX]</p>
+      </div>
+      <div>
+        <p class="leyenda">Código y datos</p>
+        <p style="margin-top:8px"><a href="https://github.com/PabloJimenezGirardeau/Caso-Oil-Price" rel="noopener">Repositorio en GitHub</a></p>
+        <p class="leyenda" style="margin-top:14px">Datos a <span data-d="prevision.fecha" data-f="fecha">—</span></p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Librerías, con versión fija y alojadas en el repositorio (ver web/README.md) -->
+  <script defer src="assets/vendor/gsap.min.js"></script>
+  <script defer src="assets/vendor/ScrollTrigger.min.js"></script>
+  <script defer src="assets/vendor/SplitText.min.js"></script>
+  <script defer src="assets/vendor/lenis.min.js"></script>
+  <script type="module" src="assets/js/principal.js"></script>
+</body>
+</html>

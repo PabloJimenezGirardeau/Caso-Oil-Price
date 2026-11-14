@@ -1,0 +1,43 @@
+# Publica la carpeta web/ en GitHub Pages.
+# La web es estática y ya está compilada (el CSS de Tailwind se sube al repositorio),
+# así que aquí no se instala ni se construye nada: solo se sube la carpeta.
+#
+# Requisito, una sola vez: en GitHub, Settings → Pages → Build and deployment → Source: «GitHub Actions».
+name: Publicar la web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - ".github/workflows/web.yml"
+  workflow_dispatch:   # permite lanzarlo a mano desde la pestaña Actions
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Si llegan dos publicaciones seguidas, vale la última
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+      - name: Preparar GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Subir la carpeta web/
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+      - name: Publicar
+        id: despliegue
+        uses: actions/deploy-pages@v4
