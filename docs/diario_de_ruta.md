@@ -1830,4 +1830,35 @@ Pablo lanzó `python scripts/examen_final.py --ejecutar`: 45 entrenamientos en 4
 - **A 1 semana se cumple lo esperado:** las dos versiones, a menos de un 2 % del precio del 3/11.
 - **El rango a 1 semana es más ancho de lo esperado** (−9,5 % / +10 %, frente a ±6-8 %): el mercado de finales de octubre estaba muy nervioso.
 - **A 3 meses y a 1 año, las redes prevén subidas grandes** (+11 % y +23 %). No es una señal fiable: en el test, a esos plazos se equivocaron más que el ingenuo (D33). Por eso la aplicación las muestra siempre con su rango y con su fiabilidad.
+- **Congelada en GitHub** (`33a79ec`, junto con los resultados del examen) antes de descargar nada.
+
+**La comprobación del 10/11** (datos descargados en `data/actual/` con `descarga.py`; la foto no se toca)
+- **FRED:** Brent hasta el 11/11/2026. Los 6.364 días que ya teníamos son idénticos a la foto (ningún cambio).
+- **Yahoo Finance no respondió desde este entorno** (error de conexión): sin cobre, oro ni índice del dólar no se puede prever con los datos nuevos. `descarga.py` ahora lo avisa con claridad. Falta probarlo desde la terminal de Pablo.
+- **El 10/11/2026 el Brent cerró a 90,16 $:** un 15,8 % menos que el 3/11, casi todo en un día (el 4/11, de 107,03 a 91,84 $).
+
+| | Previsión | Error | ¿Dentro del rango (96,90-117,75 $)? |
+|---|---|---|---|
+| Ingenuo (el precio del 3/11) | 107,03 $ | 16,87 $ | — |
+| Red final (LSTM, hasta el 3/11) | 107,13 $ | 16,97 $ | no |
+| Red del test (LSTM, hasta 2021) | 108,79 $ | 18,63 $ | no |
+
+- **Nadie lo vio venir,** ni las redes ni el ingenuo: un choque del 14 % en un día no se puede anticipar con estos datos. Es la conclusión del estudio, en directo.
+- **El precio se salió del rango por abajo** (6,74 $ por debajo del límite inferior). El rango promete acertar 8 de cada 10 veces; 1 de cada 10, el precio debe caer por debajo. Con un solo dato no se puede saber si fue mala suerte o si el rango es estrecho: eso lo dice el test (a 1 semana, el 79 %).
+- **Lo esperado frente a lo obtenido:** las redes, a menos de un 2 % del precio del 3/11 (se cumple); el resultado, imposible de prever con un solo dato. Fue uno de los casos en que el precio se sale del rango.
+- Guardado en `resultados/en_vivo_comprobacion.csv`. `data/actual/` no se sube a GitHub: la aplicación descargará los datos cuando haga falta.
+
+**Pendiente:** la previsión de la semana que viene con los datos nuevos (falta que Yahoo responda); la sección 14 del notebook; `test.json` y `en_vivo.json` para la web; la aplicación en Hugging Face.
+
+### 14/11/2026 · Previsión en vivo de una semana entera: del 12 al 18/11
+
+- **Yahoo Finance, arreglado:** en este ordenador falla la conexión que usa `yfinance` (error de DNS de su componente `curl_cffi`), aunque Yahoo responde. `descarga.py` ahora, si `yfinance` no trae datos, los pide directamente a la API de gráficos de Yahoo Finance (la misma fuente). Comprobado: en los días comunes, el cobre, el oro y el índice del dólar coinciden exactamente con la foto (0 diferencias en más de 6.800 días). 1 prueba nueva.
+- **Datos nuevos** (descargados el 14/11, en `data/actual/`): Brent hasta el 11/11; el resto, hasta el 13/11.
+
+**Diseño** (fijado antes de calcular; propuesta de Pablo: una semana entera mejor que un día suelto)
+- **Cinco previsiones a 1 semana (5 sesiones),** una por día: del 5/11 para el 12/11, del 6/11 para el 13/11, del 9/11 para el 16/11, del 10/11 para el 17/11 y del 11/11 para el 18/11. Cada una usa solo datos hasta su día de origen.
+- **Ninguno de esos cinco precios está publicado** al hacerlas (el último Brent de FRED es del 11/11).
+- **Modelos:** los finales (LSTM, hasta el 3/11) y, como referencia, los del test (hasta 2021). Sin reentrenar. Rango del 80 % (A2) centrado en el precio de cada día de origen, ajustado con lo conocido hasta ese día.
+- **Se congela con commit y push antes de que se publiquen,** y se compara cuando FRED publique el 18/11. **Se muestran todas, también la del 10/11:** es un historial de previsiones en vivo.
+- **Lo esperado:** las redes, cerca del precio de cada día de origen (como el ingenuo). Cada precio debería caer dentro de su rango 8 de cada 10 veces, pero las cinco se solapan: si llega otro choque, puede salirse más de una a la vez.
 

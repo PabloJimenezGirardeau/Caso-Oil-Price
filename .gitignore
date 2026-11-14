@@ -218,3 +218,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Compilador de Tailwind para la web (se descarga aparte, ver web/README.md)
+herramientas/
+
+# Datos descargados para la previsión en vivo y la aplicación (la foto del estudio sí se versiona)
+data/actual/

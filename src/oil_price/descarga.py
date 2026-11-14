@@ -26,11 +26,10 @@ def descargar_fred(serie, inicio=INICIO, fin=None):
     return pd.read_csv(url, index_col=0, parse_dates=True, na_values=".").iloc[:, 0].rename(SERIES_FRED[serie])
 
 
-def descargar_yahoo(inicio=INICIO, fin=None):
-    """Futuros del Brent y del WTI (apertura, máximo, mínimo, cierre y volumen) y cierres del cobre,
-    el oro y el índice del dólar, como en el script del curso."""
+def _yfinance(inicio, fin):
+    """Futuros del Brent y del WTI (OHLCV) y cierres del cobre, el oro y el índice del dólar con
+    yfinance, exactamente como en el script del curso."""
     import yfinance as yf
-    fin = fin or datetime.now().strftime("%Y-%m-%d")
 
     def ohlcv(ticker, prefijo):
         df = yf.download(ticker, start=inicio, end=fin, auto_adjust=False, progress=False)
@@ -41,6 +40,60 @@ def descargar_yahoo(inicio=INICIO, fin=None):
     cierres = yf.download(list(OTROS_YAHOO), start=inicio, end=fin, auto_adjust=False, progress=False)["Close"]
     return ohlcv("BZ=F", "brent_fut").join(ohlcv("CL=F", "wti_fut"), how="outer").join(
         cierres.rename(columns=OTROS_YAHOO), how="outer")
+
+
+def tabla_grafico(respuesta):
+    """La respuesta de la API de gráficos de Yahoo Finance → OHLCV diario, con la fecha del día en la
+    zona horaria del mercado (como hace yfinance) y el cierre sin ajustar."""
+    r = respuesta["chart"]["result"][0]
+    zona = r["meta"].get("exchangeTimezoneName", "UTC")
+    fechas = (pd.to_datetime(r["timestamp"], unit="s", utc=True).tz_convert(zona).normalize().tz_localize(None))
+    q = r["indicators"]["quote"][0]
+    t = pd.DataFrame({"Open": q["open"], "High": q["high"], "Low": q["low"], "Close": q["close"],
+                      "Volume": q["volume"]}, index=pd.DatetimeIndex(fechas, name="Date"), dtype=float)
+    return t[~t.index.duplicated(keep="last")].dropna(subset=["Close"])
+
+
+def _grafico(ticker, inicio, fin):
+    """Una serie diaria pedida directamente a la API de gráficos de Yahoo Finance (la misma fuente que
+    usa yfinance), solo con la biblioteca estándar."""
+    import json
+    import urllib.parse
+    import urllib.request
+    desde = int(pd.Timestamp(inicio).timestamp())
+    hasta = int((pd.Timestamp(fin) + pd.Timedelta(days=1)).timestamp())
+    url = (f"https://query1.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(ticker)}"
+           f"?period1={desde}&period2={hasta}&interval=1d&events=history")
+    peticion = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(peticion, timeout=30) as r:
+        return tabla_grafico(json.load(r))
+
+
+def _directo(inicio, fin):
+    """Lo mismo que `_yfinance`, pidiendo cada serie directamente a Yahoo Finance."""
+    tabla = _grafico("BZ=F", inicio, fin).add_prefix("brent_fut_").join(
+        _grafico("CL=F", inicio, fin).add_prefix("wti_fut_"), how="outer")
+    for ticker, nombre in OTROS_YAHOO.items():
+        tabla = tabla.join(_grafico(ticker, inicio, fin)["Close"].rename(nombre), how="outer")
+    return tabla
+
+
+def _completa(tabla):
+    return tabla is not None and all(v in tabla and not tabla[v].dropna().empty for v in OTROS_YAHOO.values())
+
+
+def descargar_yahoo(inicio=INICIO, fin=None, registrar=print):
+    """Datos de Yahoo Finance como en el script del curso. Primero con yfinance; si no devuelve datos
+    (en algunos equipos su conexión falla), se piden directamente a la API de Yahoo Finance."""
+    fin = fin or datetime.now().strftime("%Y-%m-%d")
+    try:
+        tabla = _yfinance(inicio, fin)
+        if _completa(tabla):
+            return tabla
+        registrar("yfinance no ha devuelto datos: se piden directamente a Yahoo Finance")
+    except Exception as error:
+        registrar(f"yfinance ha fallado ({error}): se piden directamente a Yahoo Finance")
+    return _directo(inicio, fin)
 
 
 def combinar(fred, yahoo, inicio=INICIO):
@@ -58,10 +111,14 @@ def actualizar(directorio=DIR_ACTUAL, registrar=print):
     dias_brent.csv). Si Yahoo falla, avisa: sin cobre, oro e índice del dólar no se puede prever."""
     fred_crudo = {s: descargar_fred(s) for s in SERIES_FRED}
     try:
-        yahoo = descargar_yahoo()
+        yahoo = descargar_yahoo(registrar=registrar)
     except Exception as error:                     # como el script del curso: se sigue sin Yahoo
         registrar(f"Aviso: no se pudo descargar Yahoo Finance ({error})")
         yahoo = None
+    faltan = [v for v in OTROS_YAHOO.values() if yahoo is None or v not in yahoo or yahoo[v].dropna().empty]
+    if faltan:
+        registrar(f"Aviso: Yahoo Finance no ha devuelto datos de {', '.join(faltan)}. Sin ellos no se puede "
+                  "prever con estos datos; se puede volver a intentar más tarde")
     tabla = combinar(pd.concat(fred_crudo.values(), axis=1), yahoo)
     dias = fred_crudo["DCOILBRENTEU"].dropna().index
     directorio.mkdir(parents=True, exist_ok=True)
