@@ -5,8 +5,11 @@ import pandas as pd
 import pytest
 import torch
 
-from oil_price import entrenamiento as ent, incertidumbre as inc, modelo_final as mf, preprocesado as pp
-from oil_price.modelos import RedRecurrente
+from oil_price.training import entrenamiento as ent
+from oil_price.evaluation import incertidumbre as inc
+from oil_price.inference import modelo_final as mf
+from oil_price.data import preprocesado as pp
+from oil_price.training.modelos import RedRecurrente
 
 
 def _ctx(h="medio", sesiones=63):

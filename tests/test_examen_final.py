@@ -7,7 +7,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from oil_price import config, examen_final as exa, experimentos as ex
+from oil_price.utils import config
+from oil_price.evaluation import examen_final as exa
+from oil_price.training import experimentos as ex
 
 
 def test_particion_del_examen_sin_mirar_el_futuro():

@@ -3,7 +3,7 @@ poetry run python -m pytest"""
 import numpy as np
 import pandas as pd
 
-from oil_price import descarga
+from oil_price.data import descarga
 
 
 def test_combinar_como_el_script_del_curso():

@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from oil_price import experimentos as ex
+from oil_price.training import experimentos as ex
 
 
 def test_reanudar_reconoce_lo_ya_guardado(tmp_path):

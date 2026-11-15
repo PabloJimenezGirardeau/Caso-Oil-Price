@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from oil_price import combinacion as co, estabilidad as es
+from oil_price.training import combinacion as co, estabilidad as es
 
 SEMILLAS = list(range(42, 52))
 

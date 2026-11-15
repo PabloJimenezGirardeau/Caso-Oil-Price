@@ -3,7 +3,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from oil_price import controles as ct, preprocesado as pp
+from oil_price.evaluation import controles as ct
+from oil_price.data import preprocesado as pp
 
 
 def _conjunto(n, rng, inicio):

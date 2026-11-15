@@ -225,5 +225,8 @@ herramientas/
 # Datos descargados para la previsión en vivo y la aplicación (la foto del estudio sí se versiona)
 data/actual/
 
-# Space de Hugging Face montado por scripts/preparar_space.py
-hf/space/
+# Los pesos de los modelos viven en Hugging Face (ver README); aquí solo la copia local y su ficha
+/modelos/
+
+# Diario de trabajo: es de uso personal, no se sube
+/docs/diario_de_ruta.md

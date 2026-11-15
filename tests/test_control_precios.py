@@ -3,7 +3,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from oil_price import config, control_precios as cpr
+from oil_price.utils import config
+from oil_price.evaluation import control_precios as cpr
 
 
 def _limpio(n=600):

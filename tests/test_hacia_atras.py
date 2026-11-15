@@ -3,7 +3,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from oil_price import busqueda as bu, experimentos as ex, hacia_atras as ha
+from oil_price.training import busqueda as bu, experimentos as ex
+from oil_price.evaluation import hacia_atras as ha
 
 
 def test_pliegues_de_2010_a_2017_sin_nada_despues_de_2017():
@@ -80,7 +81,7 @@ def test_media_de_las_redes_es_la_media_de_los_precios():
 
 
 def test_prudente_con_factor_0_es_el_ingenuo_y_con_1_no_cambia():
-    from oil_price import estabilidad as es
+    from oil_price.training import estabilidad as es
     p = _previsiones_dos_redes()
     años = [2016, 2019]
     np.testing.assert_allclose(ha.nota_prudente(p, 0.0, años), 1.0, rtol=1e-12)
@@ -100,7 +101,7 @@ def test_prudente_cruzado_elige_en_un_periodo_y_comprueba_en_el_otro():
 
 
 def test_sumas_y_notas_coinciden_con_estabilidad():
-    from oil_price import estabilidad as es
+    from oil_price.training import estabilidad as es
     rng = np.random.default_rng(0)
     n = 200
     p = pd.DataFrame({"horizonte": "medio", "modelo": "GRU", "pliegue": np.repeat([2010, 2011], n // 2),

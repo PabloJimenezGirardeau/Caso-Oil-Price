@@ -2,7 +2,7 @@
 
 Web estática que presenta el proyecto: «No sabemos adónde irá el Brent. Sabemos cuánto puede moverse.» Se publica en GitHub Pages desde esta carpeta.
 
-No calcula nada: lee los JSON de `data/`, que genera `scripts/exportar_web.py` a partir de `resultados/`. Todas las cifras que se ven salen de ahí.
+No calcula nada: lee los JSON de `data/`, que genera `scripts/inference/exportar_web.py` a partir de `resultados/`. Todas las cifras que se ven salen de ahí.
 
 ## Verla en local
 
@@ -17,7 +17,7 @@ y abrir <http://localhost:8000>. Para pararlo, `Ctrl + C`.
 ## Actualizar los datos
 
 ```
-poetry run python scripts/exportar_web.py
+poetry run python scripts/inference/exportar_web.py
 ```
 
 Tarda menos de un minuto y no entrena nada. Escribe en `web/data/`:
@@ -33,12 +33,12 @@ Tarda menos de un minuto y no entrena nada. Escribe en `web/data/`:
 | `test.json` | Examen final (D33): nota, MAE, RMSE y p de cada modelo, conclusión de la red elegida y rango de cada plazo |
 | `en_vivo.json` | Historial de previsiones en vivo a 1 semana (D34), todas, cada una con el commit que la guardó y su precio real cuando existe |
 
-Si hay datos descargados en `data/actual/` (`python -c "from oil_price import descarga; descarga.actualizar()"`), el histórico y las cotizaciones llegan hasta el último Brent publicado. Las cifras del estudio salen siempre de la foto del estudio.
+Si hay datos descargados en `data/actual/` (`python -c "from oil_price.data import descarga; descarga.actualizar()"`), el histórico y las cotizaciones llegan hasta el último Brent publicado. Las cifras del estudio salen siempre de la foto del estudio.
 
 ### Cómo se añade una previsión en vivo
 
 1. Descargar datos nuevos (comando de arriba).
-2. `python scripts/prever.py --desde AAAA-MM-DD` con el día de origen (el último con Brent): la añade a `resultados/en_vivo.csv`.
+2. `python scripts/inference/prever.py --desde AAAA-MM-DD` con el día de origen (el último con Brent): la añade a `resultados/en_vivo.csv`.
 3. **Commit y push antes de que se publique el precio que prevé.** El exportador busca en la historia de git el commit que guardó cada previsión y la web lo enlaza; sin commit, sale como «sin guardar».
 4. Cuando se publique, añadir el precio real a `resultados/en_vivo_comprobacion.csv` y volver a exportar.
 
@@ -50,7 +50,7 @@ Si un JSON lleva `"ejemplo": true`, la web lo avisa en una esquina («Datos de e
 web/
 ├── index.html
 ├── favicon.svg
-├── data/                 Los JSON (los genera scripts/exportar_web.py)
+├── data/                 Los JSON (los genera scripts/inference/exportar_web.py)
 └── assets/
     ├── css/
     │   ├── fuente.css    Estilos: tema de Tailwind y componentes. Es lo que se edita

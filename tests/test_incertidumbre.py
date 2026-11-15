@@ -4,7 +4,10 @@ import pandas as pd
 import pytest
 import torch
 
-from oil_price import config, entrenamiento as ent, incertidumbre as inc, preprocesado as pp
+from oil_price.utils import config
+from oil_price.training import entrenamiento as ent
+from oil_price.evaluation import incertidumbre as inc
+from oil_price.data import preprocesado as pp
 
 H = "medio"
 AÑO = 2012

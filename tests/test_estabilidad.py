@@ -5,7 +5,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from oil_price import busqueda as bq, config, estabilidad as es, evaluacion as ev, experimentos as ex
+from oil_price.training import busqueda as bq, estabilidad as es, experimentos as ex
+from oil_price.utils import config
+from oil_price.evaluation import evaluacion as ev
 
 AÑOS = (2018, 2019)
 FICHAS = 30

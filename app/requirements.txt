@@ -1,4 +1,5 @@
-# Dependencias del Space (Gradio lo pone Hugging Face según sdk_version, en el README)
+# Dependencias de la aplicación, además de las del proyecto: pip install -r app/requirements.txt
+gradio
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch
 numpy

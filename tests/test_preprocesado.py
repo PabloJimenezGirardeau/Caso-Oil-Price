@@ -3,7 +3,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from oil_price import config, datos, preprocesado as pp, validaciones as v
+from oil_price.utils import config
+from oil_price.data import datos, preprocesado as pp, validaciones as v
 
 
 @pytest.fixture(scope="module")

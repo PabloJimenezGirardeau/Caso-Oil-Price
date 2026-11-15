@@ -4,9 +4,10 @@ import pandas as pd
 import pytest
 import torch
 
-from oil_price import entrenamiento as ent, evaluacion
-from oil_price.modelos import ModeloLineal, RedRecurrente
-from oil_price.preprocesado import Conjunto
+from oil_price.training import entrenamiento as ent
+from oil_price.evaluation import evaluacion
+from oil_price.training.modelos import ModeloLineal, RedRecurrente
+from oil_price.data.preprocesado import Conjunto
 
 
 def conjunto_sintetico(n=400, ventana=10, variables=3, semilla=0):

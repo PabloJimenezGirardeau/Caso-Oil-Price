@@ -4,7 +4,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from oil_price import aplicacion as ap, config, datos
+from oil_price.inference import aplicacion as ap
+from oil_price.utils import config
+from oil_price.data import datos
 
 
 def test_formato_espanol():
@@ -37,7 +39,7 @@ def test_limite_del_abanico_empieza_en_cero_y_pasa_por_los_rangos():
 
 def test_la_descarga_incompleta_no_se_guarda(tmp_path, monkeypatch):
     """Si Yahoo no devuelve cobre, oro o dólar, la descarga avisa y no pisa los datos buenos."""
-    from oil_price import descarga
+    from oil_price.data import descarga
     dias = pd.date_range("2024-01-01", periods=5)
     monkeypatch.setattr(descarga, "descargar_fred", lambda s, *a, **k: pd.Series(1.0, index=dias, name=descarga.SERIES_FRED[s]))
     monkeypatch.setattr(descarga, "descargar_yahoo", lambda *a, **k: None)

@@ -5,8 +5,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from oil_price import estabilidad as es, explicacion as xp, preprocesado as pp
-from oil_price.modelos import ModeloLineal
+from oil_price.training import estabilidad as es
+from oil_price.evaluation import explicacion as xp
+from oil_price.data import preprocesado as pp
+from oil_price.training.modelos import ModeloLineal
 
 VARIABLES = ["r_brent", "r_wti", "r_cobre", "log_vol_brent"]
 

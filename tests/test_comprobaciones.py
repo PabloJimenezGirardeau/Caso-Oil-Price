@@ -4,7 +4,10 @@ import pandas as pd
 import pytest
 import torch
 
-from oil_price import comprobaciones as cp, config, entrenamiento as ent, entreno_completo as ec, preprocesado as pp
+from oil_price.evaluation import comprobaciones as cp
+from oil_price.utils import config
+from oil_price.training import entrenamiento as ent, entreno_completo as ec
+from oil_price.data import preprocesado as pp
 
 
 def _sumas(notas, fichas=100):

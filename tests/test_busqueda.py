@@ -4,7 +4,8 @@ import optuna
 import pandas as pd
 import pytest
 
-from oil_price import busqueda as bq, config, experimentos as ex
+from oil_price.training import busqueda as bq, experimentos as ex
+from oil_price.utils import config
 
 
 def test_lo_que_propone_optuna_coincide_con_los_rangos_guardados():

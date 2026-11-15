@@ -13,8 +13,6 @@ Comparativa de tres redes neuronales recurrentes (RNN simple, LSTM y GRU) para p
 - [ ] Aplicación
 - [ ] Presentación (máximo 5 diapositivas)
 
-El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en el [diario de ruta](docs/diario_de_ruta.md).
-
 ## Estructura del repositorio
 
 ```
@@ -22,80 +20,64 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   ├── petroleo_dataset.csv     Foto de los datos usada en el proyecto (solo lectura)
 │   └── dias_brent.csv           Días reales de cotización del Brent (desde FRED)
 ├── docs/
-│   ├── assignment/              Enunciado del caso
-│   └── diario_de_ruta.md        Registro de decisiones, problemas e hipótesis
+│   └── assignment/              Enunciado del caso
 ├── notebooks/
 │   ├── 01_eda.ipynb             Análisis exploratorio
 │   ├── 02_preprocesamiento.ipynb  Del CSV a las fichas de entrenamiento
 │   └── 03_modelado.ipynb        Entrenamiento y comparación de RNN, LSTM y GRU
 ├── resultados/                  Resultados de los experimentos (CSV versionados; los lee el notebook 03)
-├── scripts/
-│   ├── download_data.py         Descarga de datos (FRED + Yahoo Finance), del curso
-│   ├── generar_dias_brent.py    Genera data/dias_brent.csv
-│   ├── fase_a.py                Lanza la fase A del estudio (ventana × recorte × nivel)
-│   ├── fase_a_semillas.py       Repite las finalistas de la fase A con otras semillas
-│   ├── tendencia.py             Repite las combinaciones elegidas sin la subida media del train
-│   ├── fase_b.py                Fase B: busca la mejor configuración de cada red (Optuna)
-│   ├── estabilidad.py           Entrena las redes elegidas con 10 semillas para medir el efecto de promediarlas
-│   ├── importancia.py           Reentrena las redes elegidas y mide qué variables usan
-│   ├── hacia_atras.py           Evalúa las redes elegidas en 2010-2017, sin usar nada posterior
-│   ├── rango_redes.py           Entrena las redes que dan el rango (percentiles 10, 50 y 90)
-│   ├── entreno_completo.py      Reentrena las redes con todo el entrenamiento y épocas fijas (D31)
-│   ├── controles.py             Controles del procedimiento con el lineal: sin señal y con una señal plantada
-│   ├── control_precios.py       Experimento de control (D15): la RNN entrenada para prever el precio
-│   ├── examen_final.py          Examen final en test (D33): una sola vez (sin --ejecutar, solo el plan)
-│   ├── prevision_en_vivo.py     Modelos finales (D34): los entrena, los guarda en modelos/ y prevé desde el 3/11/2026
-│   ├── prever.py                Previsión con los modelos guardados y los datos descargados, desde cualquier día
-│   ├── exportar_web.py          Exporta a web/data/ los datos que lee la web (no entrena nada)
-│   ├── subir_modelo_hf.py       Sube los modelos finales a Hugging Face (repositorio de modelo)
-│   └── preparar_space.py        Monta la aplicación como Space de Hugging Face y, con --subir, la sube
-├── src/oil_price/               Código reutilizable (notebooks y aplicación)
-│   ├── config.py                Parámetros: fechas, variables, horizontes, partición…
-│   ├── datos.py                 Carga y limpieza
-│   ├── preprocesado.py          Entradas, objetivos, recorte y escalado, fichas, particiones
-│   ├── validaciones.py          Comprobaciones automáticas (huecos, fugas de información)
-│   ├── modelos.py               Las tres redes (misma estructura, cambia la celda) y modelo lineal
-│   ├── entrenamiento.py         Entrenamiento común: pérdida Huber, parada temprana, semillas
-│   ├── experimentos.py          Fase A, su confirmación y experimento sin tendencia: ejecución reanudable, resumen y regla de elección
-│   ├── busqueda.py              Fase B con Optuna: búsqueda por red y horizonte, poda, confirmación y elección
-│   ├── estabilidad.py           Promedio de semillas (D27): entrenamiento, previsiones y medidas de estabilidad
-│   ├── combinacion.py           Combinación de red y lineal (D28): previsiones del lineal, mezcla y regla
-│   ├── explicacion.py           Qué ve cada modelo: aportación e importancia de cada variable, situaciones típicas
-│   ├── hacia_atras.py           Validación hacia atrás (D29): las redes elegidas, evaluadas en 2010-2017
-│   ├── cribado.py               Criba de información nueva solo con datos hasta 2017
-│   ├── incertidumbre.py         Rango de incertidumbre del 80 % (D30): rangos, cobertura y regla
-│   ├── rango_redes.py           Redes que dan el rango (percentiles 10, 50 y 90)
-│   ├── entreno_completo.py      Redes entrenadas con todo el entrenamiento y épocas fijas (D31)
-│   ├── comprobaciones.py        Comprobaciones de robustez: bootstrap por bloques, otras métricas, Diebold-Mariano
-│   ├── controles.py             Controles del procedimiento: sin señal y con una señal plantada
-│   ├── control_precios.py       Experimento de control (D15): prever el precio en vez de la variación
-│   ├── examen_final.py          Examen final en test (D33): entrenamiento, tabla comparativa, conclusiones y rangos
-│   ├── modelo_final.py          Modelos finales: entrenar, reentrenar, guardar, cargar y prever con su rango del 80 % (D34)
-│   ├── aplicacion.py            Lógica de la aplicación: datos, previsión, explicación, ciclo económico y gráficos
-│   ├── descarga.py              Datos nuevos (FRED y Yahoo, como el script del curso) en data/actual/, sin tocar la foto
-│   ├── evaluacion.py            Métricas, modelo ingenuo y comparación con él
-│   └── graficos.py              Estilo de los gráficos
-├── app/                         Aplicación (Gradio): app.py, dependencias y ficha del Space de Hugging Face
-├── hf/modelo/README.md          Ficha del modelo en Hugging Face
+├── src/oil_price/               Código reutilizable (notebooks, scripts y aplicación), por funcionalidad
+│   ├── data/                    Datos
+│   │   ├── datos.py             Carga y limpieza
+│   │   ├── preprocesado.py      Entradas, objetivos, recorte y escalado, fichas, particiones
+│   │   ├── validaciones.py      Comprobaciones automáticas (huecos, fugas de información)
+│   │   └── descarga.py          Datos nuevos (FRED y Yahoo, como el script del curso) en data/actual/, sin tocar la foto
+│   ├── training/                Modelos y entrenamiento
+│   │   ├── modelos.py           Las tres redes (misma estructura, cambia la celda) y modelo lineal
+│   │   ├── entrenamiento.py     Entrenamiento común: pérdida Huber, parada temprana, semillas
+│   │   ├── experimentos.py      Fase A, su confirmación y experimento sin tendencia
+│   │   ├── busqueda.py          Fase B con Optuna: búsqueda por red y horizonte, poda, confirmación y elección
+│   │   ├── estabilidad.py       Promedio de semillas (D27)
+│   │   ├── combinacion.py       Combinación de red y lineal (D28)
+│   │   ├── cribado.py           Criba de información nueva solo con datos hasta 2017
+│   │   └── entreno_completo.py  Redes entrenadas con todo el entrenamiento y épocas fijas (D31)
+│   ├── evaluation/              Evaluación, rangos y controles
+│   │   ├── evaluacion.py        Métricas, modelo ingenuo y comparación con él
+│   │   ├── hacia_atras.py       Validación hacia atrás (D29): las redes elegidas, evaluadas en 2010-2017
+│   │   ├── incertidumbre.py     Rango de incertidumbre del 80 % (D30): rangos, cobertura y regla
+│   │   ├── rango_redes.py       Redes que dan el rango (percentiles 10, 50 y 90)
+│   │   ├── explicacion.py       Qué ve cada modelo: aportación e importancia de cada variable
+│   │   ├── comprobaciones.py    Robustez: bootstrap por bloques, otras métricas, Diebold-Mariano
+│   │   ├── controles.py         Controles del procedimiento: sin señal y con una señal plantada
+│   │   ├── control_precios.py   Experimento de control (D15): prever el precio en vez de la variación
+│   │   └── examen_final.py      Examen final en test (D33): entrenamiento, tabla comparativa y conclusiones
+│   ├── inference/               Modelos finales y aplicación
+│   │   ├── modelo_final.py      Entrenar, reentrenar, guardar, cargar y prever con su rango del 80 % (D34)
+│   │   └── aplicacion.py        Lógica de la aplicación: datos, previsión, explicación, ciclo económico y gráficos
+│   └── utils/
+│       ├── config.py            Parámetros: fechas, variables, horizontes, partición…
+│       └── graficos.py          Estilo de los gráficos
+├── scripts/                     Programas que se lanzan desde la terminal, con la misma división
+│   ├── data/                    download_data.py (datos del curso: FRED + Yahoo), generar_dias_brent.py
+│   ├── training/                fase_a.py, fase_a_semillas.py, tendencia.py, fase_b.py, estabilidad.py, entreno_completo.py
+│   ├── evaluation/              importancia.py, hacia_atras.py, rango_redes.py, controles.py, control_precios.py, examen_final.py
+│   └── inference/               prevision_en_vivo.py, prever.py, exportar_web.py, subir_modelo_hf.py
+├── app/                         Aplicación de previsión en Python (Gradio): se ejecuta en local y calcula con los modelos
+├── web/                         Web del proyecto (HTML estático, GitHub Pages): solo muestra resultados ya calculados; ver web/README.md
 ├── tests/                       Pruebas automáticas (pytest)
-├── web/                         Web del proyecto (estática, GitHub Pages); ver web/README.md
 ├── pyproject.toml               Dependencias (Poetry)
 ├── poetry.lock                  Versiones exactas de las dependencias
 └── poetry.toml                  Configuración local de Poetry (entorno en .venv)
 ```
 
-A medida que avance el proyecto se añadirán:
+`app/` y `web/` son cosas distintas: `app/` es el programa en Python que ejecuta los modelos (previsión, datos nuevos, reentrenamiento) y `web/` es una página estática que enseña los resultados del estudio y las previsiones congeladas.
 
-| Carpeta | Contenido |
-|---|---|
-| `app/` | Aplicación de predicción |
-| `models/` | Modelos entrenados |
-| `reports/figures/` | Figuras para la presentación |
+Los pesos de los modelos entrenados (`modelos/`) no están en el repositorio: se publican en Hugging Face (<https://huggingface.co/PabloJimenezGirardeau/brent-rnn-lstm-gru>) y la aplicación los descarga sola si no los encuentra en local. En el código y los notebooks, `D27`, `D30`… son las decisiones numeradas del diario de trabajo, que no se sube.
 
 **Convenciones**
 - Los notebooks se numeran por orden de ejecución (`01_`, `02_`…) y se guardan **ejecutados**, para que los resultados se lean directamente en GitHub.
 - El código que se usa en más de un sitio vive en `src/oil_price/`, no se copia entre notebooks.
-- Todos los parámetros están en `src/oil_price/config.py`.
+- Todos los parámetros están en `src/oil_price/utils/config.py`.
 
 ## Puesta en marcha
 
@@ -108,12 +90,12 @@ poetry install          # crea .venv, instala las dependencias y el paquete oil_
 poetry run pytest       # comprueba que todo funciona
 ```
 
-Los datos con los que se obtuvieron los resultados ya están en `data/`, así que no hace falta descargarlos. Para descargar datos actualizados: `poetry run python scripts/download_data.py`. Esto cambia las cifras, porque el periodo llega hasta el día de la descarga.
+Los datos con los que se obtuvieron los resultados ya están en `data/`, así que no hace falta descargarlos. Para descargar datos actualizados: `poetry run python scripts/data/download_data.py`. Esto cambia las cifras, porque el periodo llega hasta el día de la descarga.
 
 **La aplicación** (previsión, ciclo del petróleo, actualización de datos y reentrenamiento) usa tres paquetes que no necesita el resto del proyecto:
 
 ```bash
-pip install gradio plotly huggingface_hub     # dentro del entorno .venv
+pip install -r app/requirements.txt           # gradio, plotly y huggingface_hub (dentro del entorno .venv)
 python app/app.py                              # http://127.0.0.1:7860
 ```
 
@@ -130,43 +112,42 @@ Para trabajar con los notebooks, selecciona el kernel del entorno `.venv` en VS 
 Los entrenamientos largos se lanzan con scripts, no desde los notebooks. Cada resultado se guarda en `resultados/` en cuanto termina; si el proceso se interrumpe, al volver a lanzarlo continúa donde se quedó.
 
 ```bash
-python scripts/fase_a.py                        # fase A completa (6 núcleos de CPU)
-python scripts/fase_a.py --ventanas 10 20 40 60 # solo algunas ventanas
-python scripts/fase_a.py --help                 # todas las opciones
+python scripts/training/fase_a.py                        # fase A completa (6 núcleos de CPU)
+python scripts/training/fase_a.py --ventanas 10 20 40 60 # solo algunas ventanas
+python scripts/training/fase_a.py --help                 # todas las opciones
 
-python scripts/fase_a_semillas.py --solo-mostrar # finalistas de la fase A y tiempo previsto
-python scripts/fase_a_semillas.py                # las repite con las semillas 43 y 44
+python scripts/training/fase_a_semillas.py --solo-mostrar # finalistas de la fase A y tiempo previsto
+python scripts/training/fase_a_semillas.py                # las repite con las semillas 43 y 44
 
-python scripts/tendencia.py --solo-mostrar       # qué se entrena sin tendencia y tiempo previsto
-python scripts/tendencia.py                      # combinaciones elegidas sin la subida media del train
+python scripts/training/tendencia.py --solo-mostrar       # qué se entrena sin tendencia y tiempo previsto
+python scripts/training/tendencia.py                      # combinaciones elegidas sin la subida media del train
 
-python scripts/fase_a.py --horizontes largo --sin-tendencia           # fase A de 1 año sin tendencia
-python scripts/fase_a_semillas.py --horizontes largo --sin-tendencia  # y su confirmación con semillas
+python scripts/training/fase_a.py --horizontes largo --sin-tendencia           # fase A de 1 año sin tendencia
+python scripts/training/fase_a_semillas.py --horizontes largo --sin-tendencia  # y su confirmación con semillas
 
-python scripts/fase_b.py --solo-mostrar                 # fase B: plan y tiempo previsto
-python scripts/fase_b.py --horizontes largo medio       # 1 año y 3 meses, 40 intentos por red (unas 2,5 h)
-python scripts/fase_b.py --horizontes corto             # 1 semana, 20 intentos por red (la más lenta, unas 12-15 h)
+python scripts/training/fase_b.py --solo-mostrar                 # fase B: plan y tiempo previsto
+python scripts/training/fase_b.py --horizontes largo medio       # 1 año y 3 meses, 40 intentos por red (unas 2,5 h)
+python scripts/training/fase_b.py --horizontes corto             # 1 semana, 20 intentos por red (la más lenta, unas 12-15 h)
 
-python scripts/estabilidad.py --solo-mostrar            # estabilidad (D27): plan y tiempo previsto
-python scripts/estabilidad.py                           # las 9 redes elegidas con 10 semillas (unas 5 h)
+python scripts/training/estabilidad.py --solo-mostrar            # estabilidad (D27): plan y tiempo previsto
+python scripts/training/estabilidad.py                           # las 9 redes elegidas con 10 semillas (unas 5 h)
 
-python scripts/importancia.py                           # qué variables usan las redes, a 3 meses y a 1 año (unos 10 min)
-python scripts/hacia_atras.py                           # validación hacia atrás, 2010-2017 (unos 12 min)
-python scripts/hacia_atras.py --horizontes corto       # lo mismo a 1 semana (unos 75 min)
-python scripts/rango_redes.py                           # redes que dan el rango, 2010-2021 (unos 55 min)
-python scripts/entreno_completo.py                      # redes entrenadas con todo (D31), 3 meses y 1 año (unos 8 min)
-python scripts/controles.py                             # controles sin señal y con señal plantada, con el lineal (unos 6 min)
-python scripts/control_precios.py                       # la RNN entrenada con precios (D15), 1 semana y 3 meses (unos 50 min)
-python scripts/examen_final.py                          # plan del examen final en test (no entrena nada)
-python scripts/examen_final.py --ejecutar               # el examen final en test, una sola vez (unos 40-55 min)
-python scripts/prevision_en_vivo.py                     # modelos finales y previsión desde el 3/11/2026 (unos 12 min)
-python -c "from oil_price import descarga; descarga.actualizar()"   # datos nuevos en data/actual/
-python scripts/prever.py --desde 2026-11-11             # previsión con los modelos guardados desde ese día
-python scripts/exportar_web.py                          # datos de la web (web/data/), sin entrenar nada
+python scripts/evaluation/importancia.py                           # qué variables usan las redes, a 3 meses y a 1 año (unos 10 min)
+python scripts/evaluation/hacia_atras.py                           # validación hacia atrás, 2010-2017 (unos 12 min)
+python scripts/evaluation/hacia_atras.py --horizontes corto       # lo mismo a 1 semana (unos 75 min)
+python scripts/evaluation/rango_redes.py                           # redes que dan el rango, 2010-2021 (unos 55 min)
+python scripts/training/entreno_completo.py                      # redes entrenadas con todo (D31), 3 meses y 1 año (unos 8 min)
+python scripts/evaluation/controles.py                             # controles sin señal y con señal plantada, con el lineal (unos 6 min)
+python scripts/evaluation/control_precios.py                       # la RNN entrenada con precios (D15), 1 semana y 3 meses (unos 50 min)
+python scripts/evaluation/examen_final.py                          # plan del examen final en test (no entrena nada)
+python scripts/evaluation/examen_final.py --ejecutar               # el examen final en test, una sola vez (unos 40-55 min)
+python scripts/inference/prevision_en_vivo.py                     # modelos finales y previsión desde el 3/11/2026 (unos 12 min)
+python -c "from oil_price.data import descarga; descarga.actualizar()"   # datos nuevos en data/actual/
+python scripts/inference/prever.py --desde 2026-11-11             # previsión con los modelos guardados desde ese día
+python scripts/inference/exportar_web.py                          # datos de la web (web/data/), sin entrenar nada
 python app/app.py                                       # la aplicación en local: http://127.0.0.1:7860 (necesita gradio y plotly)
 python app/app.py --compartir                           # lo mismo, con un enlace público temporal para enseñarla
-python scripts/subir_modelo_hf.py                       # sube los modelos a Hugging Face (con la sesión iniciada o HF_TOKEN)
-python scripts/preparar_space.py --subir                # monta y sube la aplicación como Space (Hugging Face exige PRO para Gradio)
+python scripts/inference/subir_modelo_hf.py                       # sube los modelos a Hugging Face (con la sesión iniciada o HF_TOKEN)
 ```
 
 Los notebooks leen esos resultados y los analizan (`notebooks/03_modelado.ipynb`).
@@ -180,9 +161,8 @@ Datos diarios desde el 1 de enero de 2000, descargados de fuentes gratuitas:
 | FRED (EIA, BCE, Fed, Cboe) | Brent spot (**variable objetivo**), WTI spot, gas natural Henry Hub, tipo de depósito del BCE, USD/EUR, CNY/USD, VIX |
 | Yahoo Finance | Futuros del Brent y del WTI (OHLC y volumen), cobre, oro, índice del dólar |
 
-El proyecto usa la foto descargada el 05/11/2026 (último Brent real: 03/11/2026). El modelo trabaja con Brent, WTI, cobre, oro, índice del dólar y VIX desde el 30/08/2000; el porqué de cada elección está en el diario de ruta.
+El proyecto usa la foto descargada el 05/11/2026 (último Brent real: 03/11/2026). El modelo trabaja con Brent, WTI, cobre, oro, índice del dólar y VIX desde el 30/08/2000; el porqué de cada elección está en los notebooks.
 
 ## Documentación
 
 - [Enunciado del caso](docs/assignment/ENUNCIADO.pdf)
-- [Diario de ruta](docs/diario_de_ruta.md)

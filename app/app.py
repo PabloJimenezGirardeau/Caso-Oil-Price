@@ -4,24 +4,20 @@ del 80 %, una explicación en lenguaje sencillo y el ciclo económico. Descarga 
 Uso local:    python app/app.py
 Enlace público temporal (para enseñarla; dura unos días y solo mientras el programa siga abierto):
               python app/app.py --compartir
-Como Space de Hugging Face (exige suscripción PRO): `scripts/preparar_space.py` (ver el README).
 """
 import sys
 import threading
 import time
 from pathlib import Path
 
-RAIZ = Path(__file__).resolve().parent
-for carpeta in (RAIZ / "src", RAIZ.parent / "src"):      # en el Space, src/ está al lado; en el repositorio, un nivel arriba
-    if carpeta.exists():
-        sys.path.insert(0, str(carpeta))
-        break
+RAIZ = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(RAIZ / "src"))                    # funciona sin instalar el paquete
 
 import gradio as gr
 
-from oil_price import aplicacion as ap
+from oil_price.inference import aplicacion as ap
 
-ESTUDIO = next(c for c in (RAIZ / "estudio", RAIZ.parent / "web" / "data") if c.exists())
+ESTUDIO = RAIZ / "web" / "data"                          # resultados del estudio (los lee también la web)
 WEB = "https://pablojimenezgirardeau.github.io/Caso-Oil-Price/"
 GITHUB = "https://github.com/PabloJimenezGirardeau/Caso-Oil-Price"
 MODELO = f"https://huggingface.co/{ap.REPO_MODELO}"

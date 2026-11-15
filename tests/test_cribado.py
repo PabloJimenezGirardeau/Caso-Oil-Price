@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from oil_price import cribado as cr
+from oil_price.training import cribado as cr
 
 
 @pytest.fixture(scope="module")
@@ -34,7 +34,7 @@ def test_nada_pasa_de_2017_y_se_aprende_solo_con_lo_anterior(datos_criba, horizo
 def test_las_medidas_solo_usan_el_pasado(datos_criba, monkeypatch):
     """Las candidatas de un día no dependen de los días siguientes: calculadas solo con datos hasta
     2015 salen exactamente iguales."""
-    from oil_price import datos
+    from oil_price.data import datos
     m, _ = datos_criba
     corte = "2015-12-31"
     limpio, bruto = datos.cargar_datos_limpios(), datos.cargar_dataset().sort_index()
