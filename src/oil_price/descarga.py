@@ -108,7 +108,7 @@ def combinar(fred, yahoo, inicio=INICIO):
 
 def actualizar(directorio=DIR_ACTUAL, registrar=print):
     """Descarga todo desde 2000 hasta hoy y lo guarda en `directorio` (petroleo_dataset.csv y
-    dias_brent.csv). Si Yahoo falla, avisa: sin cobre, oro e índice del dólar no se puede prever."""
+    dias_brent.csv). Si Yahoo no devuelve cobre, oro o índice del dólar, avisa y no guarda nada."""
     fred_crudo = {s: descargar_fred(s) for s in SERIES_FRED}
     try:
         yahoo = descargar_yahoo(registrar=registrar)
@@ -117,8 +117,10 @@ def actualizar(directorio=DIR_ACTUAL, registrar=print):
         yahoo = None
     faltan = [v for v in OTROS_YAHOO.values() if yahoo is None or v not in yahoo or yahoo[v].dropna().empty]
     if faltan:
+        # No se guarda nada: un archivo sin cobre, oro o dólar estropearía los datos buenos que ya hubiera
         registrar(f"Aviso: Yahoo Finance no ha devuelto datos de {', '.join(faltan)}. Sin ellos no se puede "
                   "prever con estos datos; se puede volver a intentar más tarde")
+        raise RuntimeError(f"Yahoo Finance no ha devuelto {', '.join(faltan)}: no se guardan datos incompletos")
     tabla = combinar(pd.concat(fred_crudo.values(), axis=1), yahoo)
     dias = fred_crudo["DCOILBRENTEU"].dropna().index
     directorio.mkdir(parents=True, exist_ok=True)

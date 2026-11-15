@@ -44,7 +44,11 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   ├── controles.py             Controles del procedimiento con el lineal: sin señal y con una señal plantada
 │   ├── control_precios.py       Experimento de control (D15): la RNN entrenada para prever el precio
 │   ├── examen_final.py          Examen final en test (D33): una sola vez (sin --ejecutar, solo el plan)
-│   └── exportar_web.py          Exporta a web/data/ los datos que lee la web (no entrena nada)
+│   ├── prevision_en_vivo.py     Modelos finales (D34): los entrena, los guarda en modelos/ y prevé desde el 3/11/2026
+│   ├── prever.py                Previsión con los modelos guardados y los datos descargados, desde cualquier día
+│   ├── exportar_web.py          Exporta a web/data/ los datos que lee la web (no entrena nada)
+│   ├── subir_modelo_hf.py       Sube los modelos finales a Hugging Face (repositorio de modelo)
+│   └── preparar_space.py        Monta la aplicación como Space de Hugging Face y, con --subir, la sube
 ├── src/oil_price/               Código reutilizable (notebooks y aplicación)
 │   ├── config.py                Parámetros: fechas, variables, horizontes, partición…
 │   ├── datos.py                 Carga y limpieza
@@ -66,8 +70,13 @@ El detalle del trabajo (decisiones, problemas, hipótesis y soluciones) está en
 │   ├── controles.py             Controles del procedimiento: sin señal y con una señal plantada
 │   ├── control_precios.py       Experimento de control (D15): prever el precio en vez de la variación
 │   ├── examen_final.py          Examen final en test (D33): entrenamiento, tabla comparativa, conclusiones y rangos
+│   ├── modelo_final.py          Modelos finales: entrenar, reentrenar, guardar, cargar y prever con su rango del 80 % (D34)
+│   ├── aplicacion.py            Lógica de la aplicación: datos, previsión, explicación, ciclo económico y gráficos
+│   ├── descarga.py              Datos nuevos (FRED y Yahoo, como el script del curso) en data/actual/, sin tocar la foto
 │   ├── evaluacion.py            Métricas, modelo ingenuo y comparación con él
 │   └── graficos.py              Estilo de los gráficos
+├── app/                         Aplicación (Gradio): app.py, dependencias y ficha del Space de Hugging Face
+├── hf/modelo/README.md          Ficha del modelo en Hugging Face
 ├── tests/                       Pruebas automáticas (pytest)
 ├── web/                         Web del proyecto (estática, GitHub Pages); ver web/README.md
 ├── pyproject.toml               Dependencias (Poetry)
@@ -100,6 +109,15 @@ poetry run pytest       # comprueba que todo funciona
 ```
 
 Los datos con los que se obtuvieron los resultados ya están en `data/`, así que no hace falta descargarlos. Para descargar datos actualizados: `poetry run python scripts/download_data.py`. Esto cambia las cifras, porque el periodo llega hasta el día de la descarga.
+
+**La aplicación** (previsión, ciclo del petróleo, actualización de datos y reentrenamiento) usa tres paquetes que no necesita el resto del proyecto:
+
+```bash
+pip install gradio plotly huggingface_hub     # dentro del entorno .venv
+python app/app.py                              # http://127.0.0.1:7860
+```
+
+Si no encuentra los modelos en `modelos/final/`, los descarga de Hugging Face (<https://huggingface.co/PabloJimenezGirardeau/brent-rnn-lstm-gru>). Con `python app/app.py --compartir` genera además un enlace público temporal.
 
 Para trabajar con los notebooks, selecciona el kernel del entorno `.venv` en VS Code o Jupyter.
 
@@ -140,7 +158,15 @@ python scripts/entreno_completo.py                      # redes entrenadas con t
 python scripts/controles.py                             # controles sin señal y con señal plantada, con el lineal (unos 6 min)
 python scripts/control_precios.py                       # la RNN entrenada con precios (D15), 1 semana y 3 meses (unos 50 min)
 python scripts/examen_final.py                          # plan del examen final en test (no entrena nada)
-python scripts/examen_final.py --ejecutar               # el examen final en test, una sola vez (unos 55 min)
+python scripts/examen_final.py --ejecutar               # el examen final en test, una sola vez (unos 40-55 min)
+python scripts/prevision_en_vivo.py                     # modelos finales y previsión desde el 3/11/2026 (unos 12 min)
+python -c "from oil_price import descarga; descarga.actualizar()"   # datos nuevos en data/actual/
+python scripts/prever.py --desde 2026-11-11             # previsión con los modelos guardados desde ese día
+python scripts/exportar_web.py                          # datos de la web (web/data/), sin entrenar nada
+python app/app.py                                       # la aplicación en local: http://127.0.0.1:7860 (necesita gradio y plotly)
+python app/app.py --compartir                           # lo mismo, con un enlace público temporal para enseñarla
+python scripts/subir_modelo_hf.py                       # sube los modelos a Hugging Face (con la sesión iniciada o HF_TOKEN)
+python scripts/preparar_space.py --subir                # monta y sube la aplicación como Space (Hugging Face exige PRO para Gradio)
 ```
 
 Los notebooks leen esos resultados y los analizan (`notebooks/03_modelado.ipynb`).

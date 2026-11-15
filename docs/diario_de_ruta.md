@@ -1862,3 +1862,64 @@ Pablo lanzó `python scripts/examen_final.py --ejecutar`: 45 entrenamientos en 4
 - **Se congela con commit y push antes de que se publiquen,** y se compara cuando FRED publique el 18/11. **Se muestran todas, también la del 10/11:** es un historial de previsiones en vivo.
 - **Lo esperado:** las redes, cerca del precio de cada día de origen (como el ingenuo). Cada precio debería caer dentro de su rango 8 de cada 10 veces, pero las cinco se solapan: si llega otro choque, puede salirse más de una a la vez.
 
+**Notebook 03, sección 14** («Examen final en test, tabla comparativa y previsiones en vivo»): el protocolo, la tabla comparativa del enunciado (MAE, RMSE, MSE, mejora frente al ingenuo, parámetros y tiempo de entrenamiento, junto a la nota de 2010-2021), las notas de cada año con su gráfico, Diebold-Mariano con las conclusiones fijadas, el rango del 80 % en el test y las previsiones en vivo con su gráfico. 229 celdas, ejecutado sin errores. `examen_final.previsiones_examen` devuelve ahora los horizontes en su orden (1 semana, 3 meses, 1 año).
+- **Smart App Control bloquea ahora el lanzador de `poetry` y el de `nbconvert`.** Se usa directamente el Python del entorno: `.venv/Scripts/python.exe -m pytest` y `.venv/Scripts/python.exe -m nbconvert …`.
+
+### 14/11/2026 · La web, con el examen y el historial en vivo
+
+- **Previsión desde el 11/11 a 3 meses y a 1 año** con los modelos finales (para el panel de la web): 104,50 $ (+13 %) y 120,32 $ (+31 %), con rangos muy anchos por la volatilidad de esos días (56,66-149,84 $ y 38,55-220,21 $). Como en el test esas redes no tuvieron ventaja, la web las muestra con ese aviso.
+- **`scripts/exportar_web.py` ampliado:**
+  - si hay datos descargados (`data/actual/`), el histórico y las cotizaciones llegan hasta el último Brent publicado (11/11);
+  - `prevision.json` pasa a «definitiva»: la de los modelos finales desde el último día de origen con los tres plazos;
+  - `test.json`: nota, MAE, RMSE y p de cada modelo, la conclusión fijada y el rango de cada plazo;
+  - `en_vivo.json`: el historial completo a 1 semana (decisión de Pablo: se muestran todas, también la del 10/11), cada previsión con el commit que la guardó, buscado en la historia de git.
+- **La web** (`web/assets/js/prevision.js` e `index.html`):
+  - la tarjeta en vivo es ahora un historial (tabla con el día previsto, la red, el ingenuo, el rango, el precio real y el enlace al commit) y explica cada previsión comprobada (la del 10/11: −15,8 %, fuera del rango; la red, 16,97 $ de error; el ingenuo, 16,87 $);
+  - el panel de la previsión avisa de lo que dijo el examen en cada plazo («sin evidencia de ventaja»: la previsión de la red es orientativa, el dato fiable es el rango);
+  - los hallazgos 01 y 02 recogen el examen: tampoco hay ventaja en 2022-2026, y el rango acertó lo prometido en los tres plazos, pero solo a 1 semana siguió siendo mejor que un rango fijo (un 7 %).
+- **Comprobado con Edge sin ventana:** la página carga sin errores, la tarjeta pinta las 6 previsiones con sus commits y el distintivo del hero dice «6 previsiones guardadas antes de conocer el precio · 1 comprobada, 5 pendientes».
+- **README del proyecto y de la web,** al día (módulos y scripts nuevos, y cómo se añade una previsión en vivo).
+- **Pendiente:** que Pablo revise la web en local y decida publicarla (al hacer push se publica sola); el commit de todo lo de hoy; comprobar la semana del 12 al 18/11 cuando FRED publique; la aplicación en Hugging Face.
+
+**Revisión a fondo de la web** (petición de Pablo: ponerla al día y en lenguaje de inversor)
+- **Anticuado, corregido con las cifras del examen** (siempre leídas de `test.json`, nunca escritas a mano):
+  - hallazgo 02: los números grandes pasan de la mejora de 2010-2021 (13 · 15 · 28 %) al acierto en el examen (79 · 84 · 89 %); el texto dice que a 1 semana es un 7 % más preciso que un rango fijo y a 3 meses y a 1 año, tanto como el fijo;
+  - panel de la previsión: el acierto del rango es el del examen (79 % ± 2,6 a 1 semana); a 1 año, el aviso de «orientativo» da las dos coberturas (70 % y 89 %) con sus márgenes;
+  - pie de la tabla: la conclusión del examen («sin evidencia de ventaja») en lugar del veredicto de 2010-2021, que queda como aclaración; nota nueva con Diebold-Mariano en el examen (solo la LSTM y la GRU a 3 meses se distinguen, y peores);
+  - método, paso 04: «Ya se ha hecho: ninguna red mejora al ingenuo, y el rango acierta lo prometido en los tres plazos»;
+  - calma y tormenta: una línea con el examen (a 1 semana, 79 % y un 7 % mejor que el fijo; a 3 meses, igual que el fijo);
+  - preguntas: «¿Por qué las redes no ganan?» y «¿Por qué 1 año es orientativo?» recogen el examen; «¿Qué datos se usan?» explica que las cifras del estudio usan la foto hasta el 3/11 y la previsión, los datos posteriores; pregunta nueva: «¿Por qué la red prevé subidas tan grandes a 3 meses y a 1 año?» (+13,4 % y +30,6 %: lo aprendido tras caídas con el mercado nervioso; en el examen, esas redes se equivocaron más que el ingenuo);
+  - hero, hallazgo 04, descripción y Open Graph: mencionan el examen final y las previsiones en vivo.
+- **Lenguaje:** el ingenuo se define la primera vez que aparece («suponer que el precio no cambia»); la tarjeta del espejismo deja la «nota» y habla de «un error medio un 54 % mayor que el de quien dice "será el de hoy"», con los dos errores en dólares (3,68 $ y 2,39 $); el aviso del panel dice «prácticamente lo mismo que el ingenuo (un 0,5 % más)» en lugar de «más que el ingenuo».
+- **Pie:** sin corchetes: «Pablo Jiménez Girardeau · Aprendizaje Automático · Universidad Alfonso X el Sabio».
+- **Comprobado con Edge sin ventana:** todos los textos nuevos se pintan con sus cifras.
+- **Sin cambiar, para decidir:** la web es solo de escritorio (por debajo de 1.024 px aparece barra horizontal), y falta el botón a la aplicación de Hugging Face cuando exista.
+
+**Mejoras de la web** (Pablo eligió los puntos 4, 6, 9, 10 y 12 de la revisión; lo del móvil se deja)
+- **La variación esperada en %** (lo pide el enunciado): la previsión de la red se muestra con su variación respecto al último precio («92,47 $ · +0,4 %»).
+- **Nueva sección «El ciclo del petróleo»** (`ciclo.js`): el precio diario de 2000 a 2026 con seis episodios marcados y explicados (el máximo de 2008, la crisis financiera, el exceso de oferta de 2014-2016, la pandemia, la invasión de Ucrania y lo más reciente). La fecha y el precio de cada uno se buscan en los datos: 143,95 $ el 3/7/2008, 33,73 $ en diciembre de 2008, de 115,19 a 26,01 $ entre 2014 y 2016, 9,12 $ el 21/4/2020, 133,18 $ en marzo de 2022 y 138,21 $ el 7/4/2026, con una caída del 15,4 % en un día el 17/4/2026. De 2026 solo se describe lo que muestran los datos: sus causas no se han buscado.
+- **Hallazgo 01:** el minigráfico de la RNN a 3 meses añade los cinco años del examen, en ámbar (gana al ingenuo en 2 de 5).
+- **Historial en vivo:** además de la tabla, un gráfico con el precio reciente y, en cada día previsto, el rango del 80 %, la previsión de la red y el precio real cuando se conoce.
+- **El examen en dólares** (la tabla del enunciado): debajo de la tabla comparativa, con una pestaña por plazo: MAE y RMSE en $, el porcentaje de error frente al ingenuo, los parámetros y los segundos de entrenamiento. `test.json` incluye ahora la nota de cada año, los parámetros, los segundos y la fila del ingenuo.
+- **Comprobado con Edge sin ventana** (página completa y piezas sueltas): todo se pinta, sin errores.
+- **Petición de Pablo, después:**
+  - fuera la columna del commit de la tabla del historial en vivo (el texto sigue diciendo que cada previsión se guarda con fecha en el repositorio antes de conocer el precio);
+  - **lectura sobre el fondo de crudo:** las tarjetas pasan de un cristal casi transparente (3-6 % de opacidad, desenfoque de 3 px) a un cristal oscuro del 80-88 % con 14 px de desenfoque, y el bloque «Para esto no sirve» recibe el mismo fondo; el fondo fijo de toda la página baja su brillo de 1,9 a 1,2 (después, a petición de Pablo, 1,8). Estilos recompilados con Tailwind (`fuente.css` → `estilos.css`). Comprobado con WebGL en la captura: las etiquetas se leen;
+  - **imagen para compartir (`og.jpg`):** sustituida por una captura del hero actual (1200 × 630). La anterior decía «Previsión del 10/11: se guardará antes de descargar el precio» y «Rango provisional». Habrá que repetirla cuando cambie el historial en vivo.
+
+### 15/11/2026 · Hugging Face: el modelo y la aplicación
+
+- **Decisión** (clase y profesor): alojar el modelo en Hugging Face. El enunciado no lo pide, pero resuelve lo que la web estática no puede: calcular. Dos piezas distintas: el **modelo** (los pesos, un repositorio público) y la **aplicación** (un Space de Gradio, que calcula, explica y reentrena).
+- **El modelo, subido:** <https://huggingface.co/PabloJimenezGirardeau/brent-rnn-lstm-gru>. 22 archivos (327 KB): una carpeta por plazo (LSTM a 1 semana; RNN a 3 meses y a 1 año), con los cinco entrenamientos, el escalado y la ficha, más la ficha del modelo (`hf/modelo/README.md`) con las cifras honestas del examen. Pablo lo subió con `scripts/subir_modelo_hf.py`, con su token en la variable `HF_TOKEN` (no se maneja ninguna clave desde aquí). **Comprobado:** se descarga sin sesión, los 23 archivos son idénticos a los locales y se cargan bien.
+- **`modelo_final.reentrenar`:** reentrena los modelos desde sus fichas, sin los resultados de la fase B (que no estarán en el Space). Reproduce el modelo guardado con diferencia 0,0.
+- **`descarga.actualizar` ya no guarda datos incompletos:** si Yahoo no devuelve cobre, oro o dólar, avisa y lanza un error, para no estropear unos datos buenos.
+- **Aplicación (`app/app.py`, lógica en `aplicacion.py`):** tema negro y ámbar como la web. Pestañas:
+  - **La previsión:** elige el plazo (1 semana, 3 meses, 1 año) y ve el último precio, la previsión de la red con su variación en %, el rango del 80 %, el ingenuo, un gráfico con el abanico, y una explicación en lenguaje sencillo (qué significa, qué fiabilidad tiene según el examen final y qué puede invalidarla). **Actualizar datos** descarga FRED y Yahoo;
+  - **El ciclo del petróleo:** el histórico con los seis grandes episodios y su explicación (2008, crisis, 2014-2016, pandemia, Ucrania y lo más reciente), con fechas y precios buscados en los datos;
+  - **Reentrenar:** reentrena las tres redes con los datos de hoy (1 a 5 semillas; con 1, unos 35 s en este portátil);
+  - **El estudio:** la comparativa del examen final (MAE, RMSE, parámetros, entrenamiento) de cada plazo.
+  Si la descarga falla, usa los últimos datos o la foto del estudio y lo avisa.
+- **Comprobado en local,** con descarga real: Brent hasta el 11/11 y las mismas previsiones que las congeladas en GitHub (92,47 $ a 1 semana; 120,32 $ a 1 año). Y ejecutando la carpeta del Space montada (`scripts/preparar_space.py`) aparte del repositorio, cargando los modelos del Hub: igual.
+- **Pruebas:** 6 nuevas (formato, episodios, abanico, descarga incompleta, aplicación completa con los modelos y la foto, gráficos). Dependencias de la aplicación en `app/requirements.txt` (no se toca `pyproject.toml` ni `poetry.lock`, que son los del curso).
+- **Pendiente:** subir el Space (`python scripts/preparar_space.py --subir`, con Pablo), enlazar el botón «Abrir la aplicación» en la web y comprobar el Space en línea.
+

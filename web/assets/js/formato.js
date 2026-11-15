@@ -69,6 +69,7 @@ const FORMATOS = {
   puntos: (v) => numero(100 * v, 0),   // proporción → puntos porcentuales, sin signo %
   fecha,
   dolares: (v) => dolares(v),
+  variacion1: (v) => variacion(v, 1),   // ya en % → «+13,4 %»
 };
 
 /** Rellena todos los [data-d="ruta"] con el dato correspondiente, con el formato de data-f. */

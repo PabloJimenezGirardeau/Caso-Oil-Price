@@ -10,21 +10,23 @@ Archivos:
 - validacion.json     nota de cada modelo en 2010-2021 (MAE / ingenuo), por años y con todos juntos;
 - rango.json          cobertura, anchura y nota del rango del 80 %, y su serie diaria de 2019-2021;
 - espejismo.json      control con precios (D15): serie de 2018-2019 y medidas;
-- prevision.json      precio de hoy y rango del 80 % de cada plazo (ver «Lo pendiente»);
-- test.json           examen final (D33);
-- en_vivo.json        previsión del 10/11/2026 (D34).
+- prevision.json      la previsión publicada: la de los modelos finales desde el último día de origen
+                      con los tres plazos (resultados/en_vivo.csv), con su rango del 80 % (D34);
+- test.json           examen final (D33): nota de cada modelo, conclusiones y rango;
+- en_vivo.json        historial de previsiones en vivo a 1 semana, cada una con el commit que la
+                      guardó antes de conocer el precio, y su comprobación cuando existe (D34).
 
-Lo pendiente. El examen final (D33) y la previsión del 10/11 (D34) no están hechos: `test.json` y
-`en_vivo.json` se crean con `"estado": "pendiente"` y este script **no los pisa** si ya tienen otro
-estado (los rellena quien ejecute D33 y D34; el formato está en web/README.md). En `prevision.json`,
-la previsión de cada red queda en `null` hasta que existan las redes finales, y el rango es
-**provisional**: el elegido en cada plazo (D30), centrado en el precio de hoy (D32), con el ancho
-ajustado solo con lo conocido antes del 1/1/2022, para no usar ninguna respuesta del periodo de test.
+Precios recientes. Si hay datos descargados (data/actual/, con `descarga.actualizar`), el histórico
+y las cotizaciones llegan hasta el último Brent publicado; si no, hasta el 3/11/2026 (la foto del
+estudio, que no se toca). Las cifras del estudio (validación, rango, espejismo, test) salen siempre
+de la foto.
 
 Uso:
     python scripts/exportar_web.py
 """
+import io
 import json
+import subprocess
 
 import numpy as np
 import pandas as pd
@@ -33,7 +35,9 @@ from oil_price import comprobaciones as cp
 from oil_price import config
 from oil_price import control_precios as cpr
 from oil_price import datos
+from oil_price import descarga
 from oil_price import entreno_completo as ec
+from oil_price import examen_final as exa
 from oil_price import estabilidad as es
 from oil_price import experimentos as ex
 from oil_price import hacia_atras as ha
@@ -48,7 +52,9 @@ RANGO_ELEGIDO = {"corto": "memoria", "medio": "centrado", "largo": "centrado"}
 RED_ELEGIDA = {"corto": "LSTM", "medio": "RNN", "largo": "RNN"}
 # A 1 año el rango no cumple la regla de D30 (cubre menos del 75 %): se presenta como orientativo
 ORIENTATIVO = {"corto": False, "medio": False, "largo": True}
-FIN_AJUSTE_PROVISIONAL = 2022   # el rango de hoy se ajusta con lo conocido antes del 1/1 de este año
+EN_VIVO = config.DIR_RESULTADOS / "en_vivo.csv"
+COMPROBACION = config.DIR_RESULTADOS / "en_vivo_comprobacion.csv"
+FINALES = "modelos finales"   # comienzo del nombre de la versión de los modelos finales en en_vivo.csv
 COTIZACIONES = {"brent": "Brent", "wti": "WTI", "gas_natural": "Gas natural", "oro": "Oro",
                 "cobre": "Cobre", "vix": "VIX"}
 SERIE_RANGO = ("2019-01-01", "2021-12-31")        # sección «Calma y tormenta»
@@ -87,7 +93,12 @@ def guardar_pendiente(nombre, contenido):
 # --- Datos --------------------------------------------------------------------------------------
 
 def brent_real():
-    """Tabla del CSV solo en los días en que cotizó el Brent, hasta el último dato real."""
+    """Tabla del CSV solo en los días en que cotizó el Brent, hasta el último dato real. Con datos
+    descargados (data/actual/), esos, hasta el último Brent publicado; si no, la foto del estudio."""
+    if (descarga.DIR_ACTUAL / "petroleo_dataset.csv").exists():
+        tabla = datos.cargar_dataset(descarga.DIR_ACTUAL / "petroleo_dataset.csv")
+        dias = datos.cargar_dias_brent(descarga.DIR_ACTUAL / "dias_brent.csv")
+        return tabla.loc[tabla.index.isin(dias)].dropna(subset=["brent"])
     tabla = datos.cargar_dataset()
     tabla = tabla.loc[tabla.index.isin(datos.cargar_dias_brent())]
     return tabla.loc[:config.FECHA_CORTE].dropna(subset=["brent"])
@@ -190,34 +201,96 @@ def rango(finales, ctx):
     return salida
 
 
-def rango_de_hoy(ctx, h, precio, volatilidad):
-    """Rango provisional del último dato: el método elegido, centrado en el precio de hoy, con el
-    ancho ajustado solo con las respuestas conocidas antes del 1/1/2022 (nada del test)."""
-    # «fecha fin» vacía: la respuesta de esta ficha aún no se conoce (y el método elegido no la usa)
-    ficha = pd.DataFrame({"horizonte": [h], "pliegue": [FIN_AJUSTE_PROVISIONAL], "fecha": [config.FECHA_CORTE],
-                          "fecha fin": [pd.NaT], "variación prevista": [0.0], "volatilidad": [volatilidad]})
-    r = inc.rangos(ficha, ctx, RANGO_ELEGIDO[h], años=[FIN_AJUSTE_PROVISIONAL]).iloc[0]
-    return precio * float(np.exp(r["bajo"])), precio * float(np.exp(r["alto"]))
-
-
-def prevision(tabla, ctx, datos_rango):
-    precio, fecha = float(tabla["brent"].iloc[-1]), tabla.index[-1]
-    volatilidad = float(ctx.loc[fecha, "volatilidad"])
+def prevision(datos_rango, tabla):
+    """La previsión publicada (D34): la de los modelos finales desde el último día de origen que tiene
+    los tres plazos en resultados/en_vivo.csv (guardada allí antes de conocer los precios), con su
+    rango del 80 %, el elegido en cada plazo centrado en el precio de ese día (D30, D32)."""
+    v = pd.read_csv(EN_VIVO, parse_dates=["fecha origen", "fecha objetivo (estimada)"])
+    v = v[v["version"].str.startswith(FINALES)]
+    completos = v.groupby("fecha origen")["horizonte"].nunique()
+    dia = completos[completos == len(HORIZONTES)].index.max()
+    filas = v[v["fecha origen"] == dia].drop_duplicates("horizonte", keep="last").set_index("horizonte")
+    precio = float(filas["precio hoy"].iloc[0])
+    r = np.log(tabla["brent"].loc[:dia]).diff().iloc[-config.DIAS_VOLATILIDAD:]
     plazos = {}
     for h in HORIZONTES:
-        bajo, alto = rango_de_hoy(ctx, h, precio, volatilidad)
-        medido = datos_rango["plazos"][h]["elegido"]
-        plazos[h] = {"sesiones": config.HORIZONTES[h],
-                     # días laborables: aproximada salvo a 1 semana (3/11 + 5 sesiones = 10/11, D34)
-                     "fecha_objetivo": _fecha(fecha + pd.offsets.BDay(config.HORIZONTES[h])),
-                     "fecha_aproximada": h != "corto",
-                     "red": RED_ELEGIDA[h], "prevision_red": None, "ingenuo": _num(precio, 2),
-                     "bajo": _num(bajo, 2), "alto": _num(alto, 2),
-                     "cobertura": medido["cobertura"], "margen": medido["margen"],
-                     "orientativo": ORIENTATIVO[h]}
-    return {"estado": "provisional", "fecha": _fecha(fecha), "precio": _num(precio, 2),
-            "volatilidad": _num(volatilidad, 3), "ajuste_hasta": f"{FIN_AJUSTE_PROVISIONAL - 1}-12-31",
-            "plazos": plazos}
+        f, medido = filas.loc[h], datos_rango["plazos"][h]["elegido"]
+        plazos[h] = {"sesiones": config.HORIZONTES[h], "fecha_objetivo": _fecha(f["fecha objetivo (estimada)"]),
+                     # días laborables: exacta a 1 semana salvo festivo; aproximada a 3 meses y a 1 año
+                     "fecha_aproximada": h != "corto", "red": RED_ELEGIDA[h],
+                     "prevision_red": _num(f["precio previsto"], 2), "ingenuo": _num(precio, 2),
+                     "bajo": _num(f["rango bajo"], 2), "alto": _num(f["rango alto"], 2),
+                     "cobertura": medido["cobertura"], "margen": medido["margen"], "orientativo": ORIENTATIVO[h]}
+    return {"estado": "definitiva", "fecha": _fecha(dia), "precio": _num(precio, 2),
+            "volatilidad": _num(r.std() * np.sqrt(252), 3), "ajuste_hasta": _fecha(dia), "plazos": plazos}
+
+
+def test(ctx):
+    """El examen final (D33): nota, MAE, RMSE y p de cada modelo, la conclusión fijada para la red
+    elegida y el rango elegido de cada plazo (cobertura, margen, mejora frente al rango fijo)."""
+    p = exa.previsiones_examen()
+    tabla = exa.tabla_comparativa(p, exa.leer_entrenos())
+    concl = exa.conclusiones(p)
+    rangos = exa.resumen_rangos(exa.rangos_examen(p, ctx))
+    por_año = ha.notas_por_año(ha.sumas_por_año(p))
+    plazos = {}
+    for h in HORIZONTES:
+        modelos = {}
+        for m in [*MODELOS, ha.MEDIA, "ingenuo"]:
+            f = tabla.loc[(h, m)]
+            modelos[m] = {"nota": _num(f["MAE / ingenuo"]), "mae": _num(f["MAE ($)"], 2), "rmse": _num(f["RMSE ($)"], 2),
+                          "mejora": _num(f["mejora frente al ingenuo (MAE)"]),
+                          "parametros": None if pd.isna(f["parámetros"]) else int(f["parámetros"]),
+                          "segundos": _num(f["segundos por entrenamiento"], 1)}
+            if m != "ingenuo":
+                modelos[m] |= {"p": _num(concl.loc[(h, m), "p (dos colas)"], 3), "conclusion": concl.loc[(h, m), "en el test"],
+                               "por_año": {str(a): _num(v, 3) for a, v in por_año.loc[(h, m)].dropna().items()}}
+        r = rangos.loc[(h, RANGO_ELEGIDO[h])]
+        mejora = 1 - float(r["nota / ingenuo"])
+        plazos[h] = {"sesiones": config.HORIZONTES[h], "red_elegida": RED_ELEGIDA[h],
+                     "conclusion": concl.loc[(h, RED_ELEGIDA[h]), "conclusión final"], "modelos": modelos,
+                     "rango": {"cobertura": _num(r["cobertura"]), "margen": _num(r["margen (±)"]),
+                               "tercios": {t_: _num(r[t_]) for t_ in inc.TERCIOS}, "mejora": _num(mejora),
+                               "mejora_pct": int(round(100 * mejora)), "veredicto": r["veredicto"]}}
+    return {"estado": "hecho", "periodo": "2022-2026", "plazos": plazos}
+
+
+def _commits(ruta):
+    """{(versión, horizonte, origen, creada): commit que guardó esa fila por primera vez}, recorriendo la
+    historia de git del archivo. Una previsión sin commit no se ha guardado todavía."""
+    rel = ruta.relative_to(config.RAIZ).as_posix()
+    git = lambda *a: subprocess.run(["git", *a], cwd=config.RAIZ, capture_output=True, check=True).stdout.decode("utf-8")
+    primero = {}
+    for sha in git("log", "--reverse", "--format=%H", "--", rel).split():
+        t_ = pd.read_csv(io.StringIO(git("show", f"{sha}:{rel}")))
+        for clave in zip(t_["version"], t_["horizonte"], t_["fecha origen"].astype(str), t_["creada"]):
+            primero.setdefault(clave, sha)
+    return primero
+
+
+def en_vivo():
+    """Historial de previsiones en vivo a 1 semana de los modelos finales (D34): todas, también las
+    que fallaron, con el commit que las guardó y, cuando existe, el precio real."""
+    v = pd.read_csv(EN_VIVO)
+    c = pd.read_csv(COMPROBACION) if COMPROBACION.exists() else pd.DataFrame(columns=["version", "fecha origen"])
+    commits = _commits(EN_VIVO)
+    sel = v[v["version"].str.startswith(FINALES) & (v["horizonte"] == "corto")].sort_values("fecha origen")
+    previsiones = []
+    for _, f in sel.iterrows():
+        comp = c[(c["version"] == f["version"]) & (c["fecha origen"].astype(str) == str(f["fecha origen"]))]
+        real = float(comp["precio real"].iloc[0]) if len(comp) else None
+        commit = commits.get((f["version"], f["horizonte"], str(f["fecha origen"]), f["creada"]))
+        previsiones.append({
+            "fecha_origen": _fecha(f["fecha origen"]), "fecha_objetivo": _fecha(f["fecha objetivo (estimada)"]),
+            "guardada": str(f["creada"])[:10], "commit": commit, "red": f["red"],
+            "prevision_red": _num(f["precio previsto"], 2), "precio_origen": _num(f["precio hoy"], 2),
+            "bajo": _num(f["rango bajo"], 2), "alto": _num(f["rango alto"], 2), "precio_real": _num(real, 2),
+            "dentro": None if real is None else bool(f["rango bajo"] <= real <= f["rango alto"]),
+            "estado": "comprobada" if real is not None else "guardada" if commit else "sin guardar"})
+    return {"estado": "historial", "red": RED_ELEGIDA["corto"], "sesiones": config.HORIZONTES["corto"],
+            "fecha_objetivo": previsiones[-1]["fecha_objetivo"],
+            "comprobadas": sum(x["estado"] == "comprobada" for x in previsiones),
+            "previsiones": previsiones}
 
 
 # --- El espejismo (D15) --------------------------------------------------------------------------
@@ -252,7 +325,7 @@ def main():
     ctx = inc.contexto(bases)
     finales = previsiones_finales(bases)
     datos_rango = rango(finales, ctx)
-    datos_prevision = prevision(tabla, ctx, datos_rango)
+    datos_prevision = prevision(datos_rango, tabla)
 
     guardar("historico.json", historico(tabla))
     guardar("cotizaciones.json", cotizaciones(tabla))
@@ -260,12 +333,8 @@ def main():
     guardar("rango.json", datos_rango)
     guardar("espejismo.json", espejismo())
     guardar("prevision.json", datos_prevision)
-    guardar_pendiente("test.json", {"estado": "pendiente"})
-    guardar_pendiente("en_vivo.json", {
-        "estado": "pendiente", "fecha_origen": datos_prevision["fecha"],
-        "fecha_objetivo": datos_prevision["plazos"]["corto"]["fecha_objetivo"],
-        "precio_origen": datos_prevision["precio"], "guardada": None, "commit": None,
-        "red": RED_ELEGIDA["corto"], "prevision_red": None, "bajo": None, "alto": None, "precio_real": None})
+    guardar("test.json", test(ctx))
+    guardar("en_vivo.json", en_vivo())
     print("Hecho.")
 
 

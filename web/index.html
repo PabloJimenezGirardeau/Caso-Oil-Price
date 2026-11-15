@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=1280">
   <title>Previsión del Brent · Sabemos cuánto puede moverse</title>
-  <meta name="description" content="Proyecto académico de previsión del precio del Brent con redes neuronales (RNN, LSTM y GRU). Ninguna red mejora de forma fiable al modelo ingenuo; el rango del 80 % sí dice cuánto puede moverse el precio.">
+  <meta name="description" content="Proyecto académico de previsión del precio del Brent con redes neuronales (RNN, LSTM y GRU). Ni en doce años de pruebas ni en el examen final mejoran a suponer que el precio no cambia; el rango del 80 % sí dice cuánto puede moverse.">
   <meta name="theme-color" content="#000000">
   <meta name="color-scheme" content="dark">
 
@@ -12,7 +12,7 @@
   <meta property="og:type" content="website">
   <meta property="og:locale" content="es_ES">
   <meta property="og:title" content="No sabemos adónde irá el Brent. Sabemos cuánto puede moverse.">
-  <meta property="og:description" content="Tres redes neuronales, doce años de pruebas y un rango del 80 % que se ensancha cuando el mercado se pone nervioso. Proyecto académico.">
+  <meta property="og:description" content="Tres redes neuronales, doce años de pruebas, un examen final y previsiones en vivo. Y un rango del 80 % que se ensancha cuando el mercado se pone nervioso. Proyecto académico.">
   <meta property="og:url" content="https://pablojimenezgirardeau.github.io/Caso-Oil-Price/">
   <meta property="og:image" content="https://pablojimenezgirardeau.github.io/Caso-Oil-Price/assets/img/og.jpg">
   <meta property="og:image:width" content="1200">
@@ -39,6 +39,9 @@
 <body>
   <a class="salto" href="#contenido">Saltar al contenido</a>
 
+  <!-- El flujo de crudo, fijo detrás de toda la página: se ve a través de las tarjetas y entre secciones (principal.js) -->
+  <canvas class="fondo-crudo" id="fondo-crudo" aria-hidden="true"></canvas>
+
   <!-- ============================ 1. Barra superior ============================ -->
   <header class="barra" id="barra">
     <div class="contenedor barra-fila">
@@ -52,6 +55,7 @@
       <nav class="barra-enlaces" aria-label="Secciones">
         <a href="#prevision">La previsión</a>
         <a href="#hallazgos">Hallazgos</a>
+        <a href="#ciclo">El ciclo</a>
         <a href="#calma">Calma y tormenta</a>
         <a href="#espejismo">El espejismo</a>
         <a href="#metodo">Método</a>
@@ -75,14 +79,14 @@
         <div class="hero-contenido" id="hero-contenido">
           <p class="pildora" data-hero>
             <span class="pildora-etq" id="vivo-etiqueta">En curso</span>
-            <span id="vivo-resumen">Previsión del 10/11: se guardará antes de descargar el precio</span>
+            <span id="vivo-resumen">Previsiones en vivo, guardadas antes de conocer el precio</span>
           </p>
           <p class="hero-kicker" data-hero>Previsión del Brent con redes neuronales</p>
           <h1 class="hero-titulo" id="hero-titulo">
             <span data-hero-linea>No sabemos adónde irá el Brent.</span>
             <em data-hero-linea>Sabemos cuánto puede moverse.</em>
           </h1>
-          <p class="hero-sub" data-hero>Tres redes neuronales, doce años de pruebas y un rango del 80&nbsp;% que se ensancha cuando el mercado se pone nervioso.</p>
+          <p class="hero-sub" data-hero>Tres redes neuronales, doce años de pruebas, un examen final y previsiones en vivo. Y un rango del 80&nbsp;% que se ensancha cuando el mercado se pone nervioso.</p>
           <div class="hero-botones" data-hero>
             <a class="boton boton-ambar" href="#prevision">Ver la previsión</a>
             <a class="boton boton-linea" href="#metodo">Cómo lo hemos medido</a>
@@ -125,7 +129,7 @@
         <header class="cabecera">
           <span class="etiqueta" data-revela>La previsión</span>
           <h2 class="titulo" id="prevision-titulo" data-titulo>Dónde está hoy el Brent <em>y cuánto puede moverse</em></h2>
-          <p class="entradilla" data-revela>El rango del 80&nbsp;% se centra en el precio de hoy: en nuestras pruebas, centrarlo en la previsión de las redes lo empeoraba. La previsión de la red se muestra dentro, junto al ingenuo.</p>
+          <p class="entradilla" data-revela>El rango del 80&nbsp;% se centra en el precio de hoy: en nuestras pruebas, centrarlo en la previsión de las redes lo empeoraba. Dentro se ven la previsión de la red y la del ingenuo, la referencia de todo el estudio: suponer que el precio no cambia.</p>
         </header>
 
         <div class="tarjeta" data-revela>
@@ -156,7 +160,7 @@
                   <dd id="pv-red">—</dd>
                 </div>
                 <div>
-                  <dt>Cobertura histórica <span id="pv-cob-periodo">—</span></dt>
+                  <dt>Acierto del rango <span id="pv-cob-periodo">—</span></dt>
                   <dd id="pv-cobertura">—</dd>
                 </div>
               </dl>
@@ -190,7 +194,7 @@
             <p class="leyenda">01 · La dirección</p>
             <p class="hallazgo-n"><span data-d="calc.años">—</span><small>años de pruebas</small></p>
             <h3>Nadie, con estos datos, sabe adónde irá el precio</h3>
-            <p>De 2010 a 2021, cada año se previó con redes entrenadas solo con lo anterior. Ninguna mejora al ingenuo de forma fiable en ningún plazo, y las diferencias entre RNN, LSTM y GRU no se distinguen del azar.</p>
+            <p>De 2010 a 2021, cada año se previó con redes entrenadas solo con lo anterior. Ninguna mejora al ingenuo de forma fiable en ningún plazo, y las diferencias entre RNN, LSTM y GRU no se distinguen del azar. En el examen final, de 2022 a 2026, tampoco.</p>
             <div class="hallazgo-grafico">
               <svg class="grafico" id="hz-notas" role="img" aria-label="Nota de la red a 3 meses en cada año de 2010 a 2021: queda unas veces por debajo y otras por encima del ingenuo"></svg>
             </div>
@@ -198,26 +202,44 @@
 
           <article class="tarjeta hallazgo bento-2" data-revela>
             <p class="leyenda">02 · La amplitud</p>
-            <p class="hallazgo-n trio ambar"><span data-d="calc.mejora_corto">—</span><i>·</i><span data-d="calc.mejora_medio">—</span><i>·</i><span data-d="calc.mejora_largo">—</span><small>%</small></p>
+            <p class="hallazgo-n trio ambar"><span data-d="test.plazos.corto.rango.cobertura" data-f="puntos">—</span><i>·</i><span data-d="test.plazos.medio.rango.cobertura" data-f="puntos">—</span><i>·</i><span data-d="test.plazos.largo.rango.cobertura" data-f="puntos">—</span><small>% de acierto</small></p>
             <h3>Sí se sabe cuánto puede moverse</h3>
-            <p>El rango del 80&nbsp;% se ensancha con el mercado nervioso y se estrecha en calma. Es mejor que un rango fijo a 1 semana, a 3 meses y a 1 año, sobre todo en las tormentas.</p>
+            <p>El rango del 80&nbsp;% se ensancha con el mercado nervioso y se estrecha en calma. En el examen final (2022-2026) acertó lo prometido a 1 semana, 3 meses y 1 año (arriba). A 1 semana, además, es un <span data-d="test.plazos.corto.rango.mejora_pct">—</span>&nbsp;% más preciso que un rango fijo y acierta igual en las tormentas; a 3 meses y a 1 año, tanto como el fijo.</p>
           </article>
 
           <article class="tarjeta hallazgo bento-2" data-revela>
             <p class="leyenda">03 · El espejismo</p>
             <p class="hallazgo-n">+<span data-d="calc.exceso">—</span><small>% de error</small></p>
             <h3>Parecer que acierta no es acertar</h3>
-            <p>Una red entrenada con precios se parece mucho al precio real (correlación <span data-d="espejismo.medidas.precios.correlacion" data-f="numero2">—</span>), pero se equivoca más que el ingenuo: en el fondo, copia el precio de hoy con retraso.</p>
+            <p>Una red entrenada con precios se parece mucho al precio real (correlación <span data-d="espejismo.medidas.precios.correlacion" data-f="numero2">—</span>), pero se equivoca más que suponer que el precio no cambia: en el fondo, copia el precio de hoy con retraso.</p>
           </article>
 
           <article class="tarjeta hallazgo bento-4" data-revela>
             <p class="leyenda">04 · El método</p>
             <p class="hallazgo-n">1<small>sola vez</small></p>
             <h3>El examen final no se repite</h3>
-            <p>Reglas fijadas antes de calcular, nada del futuro en el entrenamiento y un periodo, 2022-2026, reservado para un único examen. Además, una previsión guardada con fecha y comprobada después.</p>
+            <p>Reglas fijadas antes de calcular, nada del futuro en el entrenamiento y un periodo, 2022-2026, reservado para un único examen. Además, previsiones guardadas con fecha antes de conocer el precio y comprobadas después.</p>
             <p style="margin-top:auto;padding-top:22px"><span class="chip chip-gris" id="hz-examen">Examen final · pendiente</span></p>
           </article>
         </div>
+      </div>
+    </section>
+
+    <!-- ========================= 4 bis. El ciclo del petróleo ========================= -->
+    <section id="ciclo" class="seccion" aria-labelledby="ciclo-titulo" style="padding-top:0">
+      <div class="contenedor">
+        <header class="cabecera">
+          <span class="etiqueta" data-revela>El ciclo del petróleo</span>
+          <h2 class="titulo" id="ciclo-titulo" data-titulo>Un cuarto de siglo de picos y caídas, <em>y lo que los provocó</em></h2>
+          <p class="entradilla" data-revela>El Brent sigue al ciclo económico mundial, pero sus movimientos más bruscos los desatan las sorpresas: una crisis financiera, una guerra de precios, una pandemia, una invasión. Ningún modelo con datos de mercado las ve venir; el rango, sí, se ensancha cuando llegan.</p>
+        </header>
+        <div class="tarjeta" data-revela>
+          <div class="calma-cab"><p class="leyenda">Brent · precio diario · <span data-d="calc.año_ini">2000</span>-<span data-d="calc.año_fin">2026</span> · en $ por barril</p></div>
+          <div style="height:380px;padding:8px 14px 12px">
+            <svg class="grafico" id="ci-grafico" role="img" aria-label="Precio diario del Brent con sus grandes picos y caídas"></svg>
+          </div>
+        </div>
+        <div class="usos" id="ci-episodios" style="margin-top:16px"></div>
       </div>
     </section>
 
@@ -228,7 +250,7 @@
           <header class="cabecera">
             <span class="etiqueta" data-revela>Calma y tormenta</span>
             <h2 class="titulo" id="calma-titulo" data-titulo>Un rango que respira <em>con el mercado</em></h2>
-            <p class="entradilla" data-revela>De 2019 a 2021, el rango del 80&nbsp;% de cada día frente al precio que llegó después. En el desplome de 2020 se abre; un rango fijo no se entera.</p>
+            <p class="entradilla" data-revela>De 2019 a 2021, en las pruebas año a año, el rango del 80&nbsp;% de cada día frente al precio que llegó después. En el desplome de 2020 se abre; un rango fijo no se entera.</p>
           </header>
 
           <div class="calma-rejilla">
@@ -281,16 +303,16 @@
           <div class="tarjeta espejismo-cifra" data-revela>
             <p class="leyenda">Red entrenada con precios · 1 semana</p>
             <p class="hallazgo-n ambar">+<span data-d="calc.exceso">—</span><small>% de error</small></p>
-            <h3 style="margin-top:18px;font-size:1.25rem;letter-spacing:-0.015em">Más error que no hacer nada</h3>
-            <p class="vivo-texto" style="margin-top:10px">Frente al ingenuo, su nota es <span data-d="espejismo.medidas.precios.nota" data-f="numero3">—</span>. La misma red, entrenada con variaciones en lugar de precios, queda en <span data-d="espejismo.medidas.variaciones.nota" data-f="numero3">—</span>. Por eso este proyecto prevé variaciones.</p>
+            <h3 style="margin-top:18px;font-size:1.25rem;letter-spacing:-0.015em">Más error que suponer que el precio no cambia</h3>
+            <p class="vivo-texto" style="margin-top:10px">Prevé el precio de dentro de una semana con un error medio un <span data-d="calc.exceso">—</span>&nbsp;% mayor que el de quien dice «será el de hoy». La misma red, entrenada con lo que cambia el precio en lugar del precio, se equivoca prácticamente lo mismo que esa suposición. Por eso este proyecto prevé variaciones.</p>
             <dl class="panel-lista" style="margin-top:auto">
               <div>
-                <dt>Correlación con el precio real <span>lo que se ve en el gráfico</span></dt>
+                <dt>Parecido con el precio real <span>lo que se ve en el gráfico (correlación)</span></dt>
                 <dd data-d="espejismo.medidas.precios.correlacion" data-f="numero2">—</dd>
               </div>
               <div>
-                <dt>Nota frente al ingenuo <span>lo que importa; 1 es empatar</span></dt>
-                <dd data-d="espejismo.medidas.precios.nota" data-f="numero3">—</dd>
+                <dt>Error medio <span>red con precios · «será el de hoy»</span></dt>
+                <dd><span data-d="espejismo.medidas.precios.error_futuro" data-f="dolares">—</span> · <span data-d="espejismo.medidas.ingenuo.error_futuro" data-f="dolares">—</span></dd>
               </div>
             </dl>
           </div>
@@ -354,7 +376,7 @@
             <li class="tarjeta paso" data-paso="vivo">
               <p class="leyenda">05 · <span data-d="en_vivo.fecha_objetivo" data-f="fecha">—</span></p>
               <h3>Previsión en vivo</h3>
-              <p>Una previsión guardada con fecha antes de descargar el precio real, para comprobarla después a la vista de todos.</p>
+              <p>Previsiones guardadas con fecha antes de descargar el precio real, para comprobarlas después a la vista de todos. Se muestran todas, también las que fallan.</p>
             </li>
           </ol>
         </div>
@@ -367,12 +389,29 @@
         <header class="cabecera">
           <span class="etiqueta" data-revela>Tabla comparativa</span>
           <h2 class="titulo" id="tabla-titulo" data-titulo>Todos los modelos, <em>frente al ingenuo</em></h2>
-          <p class="entradilla" data-revela>La nota es el error del modelo dividido por el del ingenuo: 1 es empatar. Quedar por debajo de 1 en doce años no basta para decir que un modelo es mejor.</p>
+          <p class="entradilla" data-revela>La nota es el error del modelo dividido por el del ingenuo (suponer que el precio no cambia): 1 es empatar, por encima de 1 es equivocarse más. Quedar por debajo de 1 en doce años no basta para decir que un modelo es mejor; por eso hay un examen final.</p>
         </header>
 
         <div class="tarjeta" data-revela>
           <table class="tabla" id="tabla-modelos"></table>
           <div class="tabla-notas" id="tabla-notas"></div>
+        </div>
+
+        <!-- El examen final en dólares: la tabla del enunciado (secciones.js) -->
+        <div class="tarjeta" id="examen-detalle" style="margin-top:16px" data-revela hidden>
+          <div class="calma-cab" style="padding:20px 22px 6px">
+            <p class="leyenda">Examen final <span data-d="test.periodo">—</span> · en dólares por barril</p>
+            <div class="pestanas" role="group" aria-label="Plazo" id="ex-plazos">
+              <button type="button" data-plazo="corto" aria-pressed="true">1 semana</button>
+              <button type="button" data-plazo="medio" aria-pressed="false">3 meses</button>
+              <button type="button" data-plazo="largo" aria-pressed="false">1 año</button>
+            </div>
+          </div>
+          <table class="tabla" id="tabla-examen"></table>
+          <div class="tabla-notas">
+            <p>Error medio (MAE): cuánto se equivoca de media al prever el precio, en dólares. RMSE: lo mismo, castigando más los errores grandes. Los dos, con el promedio de cinco entrenamientos de cada red.</p>
+            <p>Parámetros: los números que aprende cada red. Entrenamiento: segundos por entrenamiento en un portátil sin tarjeta gráfica. Con contorno, la red elegida en cada plazo.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -425,14 +464,15 @@
             <summary>¿Por qué las redes no ganan al ingenuo?</summary>
             <div class="respuesta">
               <p>Porque el precio de hoy ya recoge casi toda la información que hay en estos datos. Probadas año a año de 2010 a 2021, las redes quedan unas veces por debajo del ingenuo y otras por encima, y ninguna diferencia se distingue del azar.</p>
-              <p>A 3 meses, por ejemplo, las redes ganaron <span data-d="validacion.plazos.medio.criterio.ganados">—</span> de <span data-d="validacion.plazos.medio.criterio.años">—</span> años. Sin tener ninguna ventaja, eso ocurre el <span data-d="validacion.plazos.medio.criterio.prob_sin_ventaja" data-f="pct0">—</span> de las veces. No es un fallo del modelo: es lo que cabe esperar de un mercado tan seguido como el del petróleo.</p>
+              <p>A 3 meses, por ejemplo, las redes ganaron <span data-d="validacion.plazos.medio.criterio.ganados">—</span> de <span data-d="validacion.plazos.medio.criterio.años">—</span> años. Sin tener ninguna ventaja, eso ocurre el <span data-d="validacion.plazos.medio.criterio.prob_sin_ventaja" data-f="pct0">—</span> de las veces.</p>
+              <p>En el examen final, de 2022 a 2026, tampoco ganan: a 1 semana empatan con el ingenuo, y a 3 meses y a 1 año se equivocan más, sobre todo en 2022, un año de choque distinto de todo lo anterior. No es un fallo del modelo: es lo que cabe esperar de un mercado tan seguido como el del petróleo.</p>
             </div>
           </details>
           <details name="preguntas">
             <summary>¿Por qué la previsión a 1 año es «orientativa»?</summary>
             <div class="respuesta">
-              <p>Porque hay muy pocos años independientes para comprobarla. En los <span data-d="calc.años_largo">—</span> años evaluados, el rango a 1 año cubrió el <span data-d="rango.plazos.largo.elegido.cobertura" data-f="pct0">—</span> de las veces, no el 80&nbsp;%, con un margen de ±<span data-d="rango.plazos.largo.elegido.margen" data-f="puntos">—</span> puntos.</p>
-              <p>Sigue siendo un <span data-d="calc.mejora_largo">—</span>&nbsp;% mejor que un rango fijo, pero no cumple su promesa con la misma garantía que a 1 semana y a 3 meses, y así se dice.</p>
+              <p>Porque hay muy pocos movimientos anuales independientes para comprobarla. En las pruebas año a año, el rango a 1 año acertó el <span data-d="rango.plazos.largo.elegido.cobertura" data-f="pct0">—</span> de las veces (margen de ±<span data-d="rango.plazos.largo.elegido.margen" data-f="puntos">—</span> puntos); en el examen final, el <span data-d="test.plazos.largo.rango.cobertura" data-f="pct0">—</span> (±<span data-d="test.plazos.largo.rango.margen" data-f="puntos">—</span>).</p>
+              <p>Con márgenes así no se puede garantizar el 80&nbsp;%. Además, en el examen final no fue más preciso que un rango fijo. Por eso, a 1 año, el rango es una referencia de escenarios, no una promesa.</p>
             </div>
           </details>
           <details name="preguntas">
@@ -445,8 +485,16 @@
           <details name="preguntas">
             <summary>¿Qué datos se usan?</summary>
             <div class="respuesta">
-              <p>Datos diarios desde <span data-d="calc.año_ini">2000</span> hasta el <span data-d="prevision.fecha" data-f="fecha">—</span>: <span data-d="calc.sesiones" data-f="entero">—</span> sesiones del Brent. Los modelos usan seis series (Brent, WTI, cobre, oro, índice del dólar y VIX) y la volatilidad reciente del propio Brent.</p>
+              <p>Datos diarios desde <span data-d="calc.año_ini">2000</span> hasta el <span data-d="prevision.fecha" data-f="fecha">—</span>: <span data-d="calc.sesiones" data-f="entero">—</span> sesiones del Brent, de FRED y Yahoo Finance. Los modelos usan seis series (Brent, WTI, cobre, oro, índice del dólar y VIX) y la volatilidad reciente del propio Brent.</p>
+              <p>Todas las cifras del estudio (las pruebas año a año y el examen final) se calcularon con los datos hasta el 3/11/2026, que no se han vuelto a tocar. La previsión de esta página y el historial en vivo usan los datos publicados después.</p>
               <p>El conjunto de datos incluye también el gas natural y los tipos de interés, que se descartaron en el análisis previo y no entran en los modelos.</p>
+            </div>
+          </details>
+          <details name="preguntas">
+            <summary>¿Por qué la red prevé subidas tan grandes a 3 meses y a 1 año?</summary>
+            <div class="respuesta">
+              <p>Hoy la red a 3 meses prevé un <span data-d="calc.cambio_medio" data-f="variacion1">—</span> y la de 1 año un <span data-d="calc.cambio_largo" data-f="variacion1">—</span> frente al precio de hoy. En el pasado, tras caídas fuertes y con el mercado nervioso, el precio solía recuperarse, y eso es lo que la red ha aprendido.</p>
+              <p>Pero en el examen final esas mismas redes se equivocaron más que suponer que el precio no cambia. Su previsión es orientativa: lo que sí ha cumplido es el rango, y a esos plazos es muy ancho.</p>
             </div>
           </details>
           <details name="preguntas">
@@ -475,11 +523,11 @@
       </div>
       <div>
         <p class="leyenda">Autoría</p>
-        <p style="margin-top:8px">[Pablo Jiménez Girardeau]<br>Aprendizaje Automático · [UAX]</p>
+        <p style="margin-top:8px">Pablo Jiménez Girardeau<br>Aprendizaje Automático · Universidad Alfonso X el Sabio</p>
       </div>
       <div>
         <p class="leyenda">Código y datos</p>
-        <p style="margin-top:8px"><a href="https://github.com/PabloJimenezGirardeau/Caso-Oil-Price" rel="noopener">Repositorio en GitHub</a></p>
+        <p style="margin-top:8px"><a href="https://github.com/PabloJimenezGirardeau/Caso-Oil-Price" rel="noopener">Repositorio en GitHub</a> · <a href="https://huggingface.co/PabloJimenezGirardeau/brent-rnn-lstm-gru" rel="noopener">Modelos en Hugging Face</a> · <a href="https://github.com/PabloJimenezGirardeau/Caso-Oil-Price#puesta-en-marcha" rel="noopener">Cómo ejecutar la aplicación</a></p>
         <p class="leyenda" style="margin-top:14px">Datos a <span data-d="prevision.fecha" data-f="fecha">—</span></p>
       </div>
     </div>

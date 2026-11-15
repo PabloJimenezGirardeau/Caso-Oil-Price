@@ -9,7 +9,8 @@ import { iniciarHero } from './hero.js';
 import { iniciarPrevision } from './prevision.js';
 import { iniciarCalma } from './calma.js';
 import { iniciarEspejismo } from './espejismo.js';
-import { iniciarHallazgos, iniciarMetodo, iniciarTabla } from './secciones.js';
+import { iniciarHallazgos, iniciarMetodo, iniciarTabla, iniciarExamen } from './secciones.js';
+import { iniciarCiclo } from './ciclo.js';
 import { iniciarRelieve } from './relieve.js';
 import { iniciarMovimiento } from './movimiento.js';
 
@@ -53,14 +54,25 @@ async function iniciar() {
   await fuentesListas();
 
   const crudo = probar('crudo', () => crearCrudo(document.getElementById('hero-crudo'), { quieto: reducido }));
+  // El fondo fijo de toda la página. Mientras el hero (que tiene el suyo) llena la pantalla, se pausa
+  const fondo = probar('fondo', () => crearCrudo(document.getElementById('fondo-crudo'),
+    { quieto: reducido, brillo: 1.8, tiempoInicial: 80 }));
+  const hero = document.getElementById('hero');
+  if (fondo && !reducido && hero) {
+    new IntersectionObserver(([e]) => {
+      fondo.ocultar(e.intersectionRatio >= 0.85 && e.boundingClientRect.height >= window.innerHeight * 0.85);
+    }, { threshold: [0, 0.5, 0.85, 1] }).observe(hero);
+  }
   probar('cinta', () => iniciarCinta(d));
   probar('hero', () => iniciarHero(d, { crudo, reducido }));
   probar('prevision', () => iniciarPrevision(d, { reducido }));
   probar('hallazgos', () => iniciarHallazgos(d));
+  probar('ciclo', () => iniciarCiclo(d));
   probar('calma', () => iniciarCalma(d, { reducido }));
   probar('espejismo', () => iniciarEspejismo(d));
   probar('metodo', () => iniciarMetodo(d));
   probar('tabla', () => iniciarTabla(d));
+  probar('examen', () => iniciarExamen(d));
   probar('relieve', () => iniciarRelieve());
   probar('movimiento', () => iniciarMovimiento(d, { reducido }));
 

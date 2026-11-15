@@ -3,7 +3,7 @@
 // Lo que aún no existe (la previsión de la red, la previsión en vivo) se muestra como pendiente.
 
 import { nodo, vaciar, medir, escala, linea, banda, marcas, extremos, idUnico, alRedimensionar } from './graficos.js';
-import { numero, dolares, porcentaje, fecha, mesAño } from './formato.js';
+import { numero, dolares, porcentaje, variacion, fecha, mesAño } from './formato.js';
 
 const ORDEN = ['corto', 'medio', 'largo'];
 const NOMBRE = { corto: '1 semana', medio: '3 meses', largo: '1 año' };
@@ -42,16 +42,35 @@ export function iniciarPrevision(d, { reducido }) {
     el('pv-red-nombre').textContent = `${p.red}, la elegida para este plazo`;
     const red = el('pv-red');
     red.classList.toggle('pendiente', p.prevision_red === null);
-    red.textContent = p.prevision_red === null ? 'Pendiente · tras el examen final' : dolares(p.prevision_red);
-    el('pv-cob-periodo').textContent = `${medido.años[0]}-${medido.años.at(-1)} · debería ser el 80 %`;
-    el('pv-cobertura').textContent = `${porcentaje(p.cobertura)} ± ${puntos(p.margen)}`;
+    // El precio previsto y la variación esperada respecto al último precio (lo pide el enunciado)
+    red.textContent = p.prevision_red === null ? 'Pendiente · tras el examen final'
+      : `${dolares(p.prevision_red)} · ${variacion(100 * (p.prevision_red / pv.precio - 1), 1)}`;
+    const examen = d.test.estado === 'hecho' ? d.test.plazos[plazo] : null;
+    if (examen) {
+      el('pv-cob-periodo').textContent = `en el examen final, ${d.test.periodo} · debería ser el 80 %`;
+      el('pv-cobertura').textContent = `${porcentaje(examen.rango.cobertura)} ± ${puntos(examen.rango.margen)}`;
+    } else {
+      el('pv-cob-periodo').textContent = `${medido.años[0]}-${medido.años.at(-1)} · debería ser el 80 %`;
+      el('pv-cobertura').textContent = `${porcentaje(p.cobertura)} ± ${puntos(p.margen)}`;
+    }
 
     const avisos = [];
     if (p.orientativo) {
-      avisos.push(`A ${NOMBRE[plazo]}, el rango ha cubierto el ${porcentaje(p.cobertura)} de las veces, no el 80 %: es orientativo.`);
+      avisos.push(examen
+        ? `A ${NOMBRE[plazo]} hay muy pocos movimientos independientes para comprobar el rango: acertó el ${porcentaje(p.cobertura)} en las pruebas `
+          + `año a año y el ${porcentaje(examen.rango.cobertura)} en el examen final, con márgenes de ±${puntos(p.margen)} y ±${puntos(examen.rango.margen)} puntos. Es orientativo.`
+        : `A ${NOMBRE[plazo]}, el rango ha cubierto el ${porcentaje(p.cobertura)} de las veces, no el 80 %: es orientativo.`);
     }
     if (pv.estado === 'provisional') {
       avisos.push(`Rango provisional: su anchura está ajustada solo con datos hasta el ${fecha(pv.ajuste_hasta)}, para no usar nada del periodo del examen final. El definitivo se publicará junto a la previsión de la red.`);
+    }
+    if (examen && p.prevision_red !== null) {
+      const diferencia = 100 * (examen.modelos[p.red].nota - 1);   // % más (o menos) error que el ingenuo
+      const cuanto = Math.abs(diferencia) < 2
+        ? `prácticamente lo mismo que el ingenuo (un ${numero(Math.abs(diferencia), 1)} % ${diferencia > 0 ? 'más' : 'menos'})`
+        : `un ${numero(Math.abs(diferencia), 0)} % ${diferencia > 0 ? 'más' : 'menos'} que el ingenuo`;
+      avisos.push(`En el examen final (${d.test.periodo}), la ${p.red} a ${NOMBRE[plazo]} se equivocó ${cuanto}: ${examen.conclusion}. `
+        + 'Su previsión es orientativa; lo que ha cumplido es el rango.');
     }
     const aviso = el('pv-provisional');
     aviso.hidden = avisos.length === 0;
@@ -185,8 +204,147 @@ export function iniciarPrevision(d, { reducido }) {
 }
 
 // -------------------------------------------------------------------- previsión en vivo (D34)
+const crear = (etiqueta, clase, texto) => {
+  const el = document.createElement(etiqueta);
+  if (clase) el.className = clase;
+  if (texto !== undefined) el.textContent = texto;
+  return el;
+};
+
+/** Gráfico del historial: el precio reciente, y en cada día previsto el rango del 80 %, la previsión
+    de la red y, si ya se conoce, el precio real */
+function graficoEnVivo(svg, v, historico) {
+  vaciar(svg);
+  const { ancho: W, alto: H } = medir(svg);
+  if (W < 40) return;
+  const ms = (iso) => Date.parse(`${iso}T00:00:00Z`);
+  const DIA = 86400000;
+  const lista = v.previsiones;
+  const inicio = Math.min(...lista.map((x) => ms(x.fecha_origen))) - 21 * DIA;
+  const fin = Math.max(...lista.map((x) => ms(x.fecha_objetivo))) + 3 * DIA;
+  const tramo = historico.fechas.map((f, i) => [ms(f), historico.precios[i]]).filter(([t]) => t >= inicio && t <= fin);
+  const reales = lista.filter((x) => x.precio_real !== null);
+  let [yMin, yMax] = extremos(tramo.map(([, p]) => p), lista.map((x) => x.bajo), lista.map((x) => x.alto), reales.map((x) => x.precio_real));
+  const holgura = (yMax - yMin) * 0.08;
+  yMin -= holgura;
+  yMax += holgura;
+  const m = { izq: 6, der: 12, arriba: 12, abajo: 24 };
+  const x = escala(inicio, fin, m.izq, W - m.der);
+  const y = escala(yMin, yMax, H - m.abajo, m.arriba);
+
+  marcas(yMin, yMax, 4).forEach((valor) => {
+    nodo('line', { class: 'rejilla', x1: m.izq, x2: W - m.der, y1: y(valor), y2: y(valor) }, svg);
+    nodo('text', { class: 'eje', x: m.izq, y: y(valor) - 5 }, svg, numero(valor, 0));
+  });
+  nodo('path', { d: linea(tramo.map(([t]) => x(t)), tramo.map(([, p]) => y(p))), fill: 'none', stroke: HUESO, 'stroke-width': 1.4,
+    'stroke-linejoin': 'round' }, svg);
+  let ultimaEtiqueta = -Infinity;   // las fechas de días seguidos no caben: se escribe una sí y otra no
+  lista.forEach((p) => {
+    const cx = x(ms(p.fecha_objetivo));
+    nodo('line', { x1: cx, x2: cx, y1: y(p.alto), y2: y(p.bajo), stroke: AMBAR, 'stroke-opacity': 0.4, 'stroke-width': 7,
+      'stroke-linecap': 'round' }, svg);
+    nodo('circle', { cx, cy: y(p.prevision_red), r: 3.4, fill: AMBAR }, svg);
+    if (cx - ultimaEtiqueta > 44) {
+      nodo('text', { class: 'eje', x: cx, y: H - 6, 'text-anchor': 'middle' }, svg, diaMes(p.fecha_objetivo));
+      ultimaEtiqueta = cx;
+    }
+    if (p.precio_real !== null) {
+      const ry = y(p.precio_real);
+      nodo('path', { d: `M${cx - 5},${ry - 5}L${cx + 5},${ry + 5}M${cx - 5},${ry + 5}L${cx + 5},${ry - 5}`, stroke: HUESO, 'stroke-width': 2 }, svg);
+    }
+  });
+  svg.setAttribute('aria-label', `Precio del Brent y previsiones en vivo a 1 semana: ${lista.length} previsiones, `
+    + `${reales.length} comprobadas, ${reales.filter((p) => p.dentro).length} dentro de su rango.`);
+}
+
+/** Historial: todas las previsiones en vivo, también las que fallaron, con el commit que las guardó */
+function historialEnVivo(v, historico) {
+  const tarjeta = document.getElementById('vivo');
+  const lista = v.previsiones;
+  const comprobadas = lista.filter((x) => x.estado === 'comprobada');
+  const dentro = comprobadas.filter((x) => x.dentro).length;
+  const pendientes = lista.length - comprobadas.length;
+
+  // Distintivo del hero
+  document.getElementById('vivo-etiqueta').textContent = 'En vivo';
+  document.getElementById('vivo-resumen').textContent = `${lista.length} previsiones guardadas antes de conocer el precio · `
+    + `${comprobadas.length} comprobada${comprobadas.length === 1 ? '' : 's'}, ${pendientes} pendiente${pendientes === 1 ? '' : 's'}`;
+
+  // Izquierda: qué es y qué ha pasado
+  const cabecera = crear('div');
+  const titulo = crear('h3', 'vivo-titulo', 'Previsiones en vivo · a 1 semana ');
+  titulo.appendChild(crear('span', 'chip', `${comprobadas.length} de ${lista.length} comprobadas`));
+  cabecera.appendChild(titulo);
+  const texto = crear('p', 'vivo-texto', `Cada previsión de la ${v.red} se guarda con fecha en el repositorio antes de descargar `
+    + 'el precio que prevé, y se comprueba cuando se publica. Se muestran todas, también las que fallan.');
+  texto.style.marginTop = '10px';
+  cabecera.appendChild(texto);
+  comprobadas.forEach((x) => {
+    const errorRed = Math.abs(x.prevision_red - x.precio_real);
+    const errorIngenuo = Math.abs(x.precio_origen - x.precio_real);
+    const cambio = 100 * (x.precio_real / x.precio_origen - 1);
+    const p = crear('p', 'vivo-texto', `${fecha(x.fecha_objetivo)}: el precio ${cambio < 0 ? 'cayó' : 'subió'} un `
+      + `${numero(Math.abs(cambio), 1)} % en una semana y quedó ${x.dentro ? 'dentro' : 'fuera'} del rango. `
+      + `La red se equivocó en ${dolares(errorRed)} y el ingenuo en ${dolares(errorIngenuo)}.`
+      + (x.dentro ? '' : ' Un rango del 80 % debe dejar fuera el precio una de cada cinco veces.'));
+    p.style.marginTop = '10px';
+    cabecera.appendChild(p);
+  });
+  if (comprobadas.length > 1) {
+    cabecera.appendChild(crear('p', 'vivo-texto', `Dentro del rango: ${dentro} de ${comprobadas.length}.`));
+  }
+  tarjeta.appendChild(cabecera);
+
+  // Derecha: la tabla de previsiones
+  const tabla = crear('table', 'tabla');
+  const fila = (padre, celdas, etiqueta = 'td') => {
+    const tr = crear('tr');
+    celdas.forEach((c) => {
+      const celda = crear(etiqueta);
+      if (typeof c === 'string') celda.textContent = c; else celda.append(...c);
+      tr.appendChild(celda);
+    });
+    padre.appendChild(tr);
+    return tr;
+  };
+  fila(tabla.appendChild(crear('thead')), ['Día previsto', `Red (${v.red})`, 'Ingenuo', 'Rango del 80 %', 'Precio real'], 'th');
+  const cuerpo = tabla.appendChild(crear('tbody'));
+  lista.forEach((x) => {
+    const dia = [crear('span', null, fecha(x.fecha_objetivo)), crear('small', null, `desde el ${diaMes(x.fecha_origen)}`)];
+    const real = x.estado === 'comprobada'
+      ? [crear('span', null, numero(x.precio_real, 2)), crear('small', x.dentro ? null : 'ambar', x.dentro ? 'dentro' : 'fuera')]
+      : [crear('span', 'pendiente', 'Pendiente')];
+    fila(cuerpo, [dia, numero(x.prevision_red, 2), numero(x.precio_origen, 2),
+      `${numero(x.bajo, 2)} – ${numero(x.alto, 2)}`, real]);
+  });
+  const caja = crear('div');
+  caja.style.overflowX = 'auto';
+  caja.appendChild(tabla);
+  tarjeta.appendChild(caja);
+
+  // Debajo, a todo el ancho: el gráfico del historial y su leyenda
+  const bloque = crear('div');
+  bloque.style.gridColumn = '1 / -1';
+  const contenedor = crear('div');
+  contenedor.style.height = '230px';
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'grafico');
+  svg.setAttribute('role', 'img');
+  contenedor.appendChild(svg);
+  const leyenda = crear('div', 'leyenda-grafico');
+  leyenda.style.padding = '8px 0 0';
+  leyenda.setAttribute('aria-hidden', 'true');
+  leyenda.innerHTML = '<span><i></i>Precio real del Brent</span><span class="ambar"><i class="relleno"></i>Rango del 80 % del día previsto</span>'
+    + '<span class="ambar">● Previsión de la red</span><span>✕ Precio real comprobado</span>';
+  bloque.append(contenedor, leyenda);
+  tarjeta.appendChild(bloque);
+  graficoEnVivo(svg, v, historico);
+  alRedimensionar(contenedor, () => graficoEnVivo(svg, v, historico));
+}
+
 function previsionEnVivo(d) {
   const v = d.en_vivo;
+  if (Array.isArray(v.previsiones)) { historialEnVivo(v, d.historico); return; }
   const tarjeta = document.getElementById('vivo');
   const objetivo = fecha(v.fecha_objetivo);
   const hecha = v.estado !== 'pendiente' && v.bajo !== null && v.alto !== null;

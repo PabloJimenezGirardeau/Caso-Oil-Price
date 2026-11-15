@@ -151,6 +151,11 @@ export function iniciarCalma(d, { reducido }) {
     const año = '2020';
     el('cb-resumen').innerHTML = `La marca vertical es el 80 % prometido. En ${año}, el año del desplome, nuestro rango acertó el `
       + `<strong>${porcentaje(p.elegido.por_año[año])}</strong> de las veces; el fijo, el <strong>${porcentaje(p.fijo.por_año[año])}</strong>.`;
+    const examen = d.test.estado === 'hecho' ? d.test.plazos[plazo].rango : null;
+    if (examen) {
+      el('cb-resumen').innerHTML += ` En el examen final (${d.test.periodo}) acertó el <strong>${porcentaje(examen.cobertura)}</strong> y fue `
+        + (examen.mejora_pct > 0 ? `un ${examen.mejora_pct} % más preciso que el fijo.` : 'tan preciso como el fijo, no más.');
+    }
   }
 
   /** Día de más volatilidad: donde empieza la lectura si no hay scroll */

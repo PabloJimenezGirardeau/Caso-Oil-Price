@@ -184,6 +184,7 @@ export function crearCrudo(lienzo, { quieto = false, brillo = 1, tiempoInicial =
   let tiempo = tiempoInicial;
   let anterior = 0;
   let visible = false;
+  let oculto = false;   // lo pide quien lo usa (p. ej. cuando otro fondo lo tapa por completo)
   let perdido = false;
   let cuadro = 0;
 
@@ -212,7 +213,7 @@ export function crearCrudo(lienzo, { quieto = false, brillo = 1, tiempoInicial =
 
   function bucle(ahora) {
     cuadro = 0;
-    if (!visible || perdido || document.hidden) return;
+    if (!visible || oculto || perdido || document.hidden) return;
     cuadro = requestAnimationFrame(bucle);
     const dt = Math.min((ahora - anterior) / 1000, 0.1);
     if (dt < 0.03) return;   // ~30 fotogramas por segundo: el movimiento es lento
@@ -249,5 +250,11 @@ export function crearCrudo(lienzo, { quieto = false, brillo = 1, tiempoInicial =
   new ResizeObserver(() => { if (!perdido && (quieto || !visible)) pintar(); }).observe(lienzo);
   pintar();
 
-  return { estado, pintar };
+  /** Pausa o reanuda la animación sin cambiar lo que ya está pintado */
+  function ocultar(valor) {
+    oculto = valor;
+    if (!oculto && visible) arrancar();
+  }
+
+  return { estado, pintar, ocultar };
 }

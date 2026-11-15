@@ -52,9 +52,26 @@ def _particion(base, comb, fin_train):
     return pp.por_horizonte(train, comb["horizonte"]), preparador
 
 
+def _entrenar_horizonte(h, celda, intento, hiperparametros, comb, bases, fin_train, semillas, dispositivo, registrar):
+    """Entrena las redes de un horizonte (una por semilla) con todo lo que tiene respuesta hasta `fin_train`."""
+    train, preparador = _particion(bases[comb["nivel"]], comb, pd.Timestamp(fin_train))
+    ajustes = {"sin_tendencia": True}
+    if h in exa.CON_TODO:
+        ajustes["epocas_fijas"] = config.EPOCAS_FIJAS[h][celda]
+    redes = {}
+    for semilla in semillas:
+        redes[semilla] = ent.entrenar_red(celda, train, hiperparametros, semilla=semilla, dispositivo=dispositivo,
+                                          ajustes=ajustes)
+        registrar(f"[{h} {celda}] hasta {pd.Timestamp(fin_train).date()} · semilla {semilla} · "
+                  f"{len(redes[semilla].historial)} épocas · {redes[semilla].segundos:.0f} s")
+    return ModeloHorizonte(h, celda, intento, hiperparametros, comb["ventana"], comb["recorte"], comb["nivel"],
+                           list(train.variables), preparador, redes, pd.Timestamp(fin_train))
+
+
 def entrenar(fin_train, bases, horizontes=None, semillas=None, dir_salida=config.DIR_RESULTADOS,
              hilos=config.HILOS_CPU, registrar=print):
-    """{horizonte: ModeloHorizonte} entrenados con todo lo que tiene respuesta hasta `fin_train`."""
+    """{horizonte: ModeloHorizonte} entrenados con todo lo que tiene respuesta hasta `fin_train`, con las
+    configuraciones elegidas en la fase B (resultados/)."""
     horizontes = horizontes or list(config.HORIZONTES)
     semillas = semillas or config.SEMILLAS_ESTABILIDAD[:config.N_SEMILLAS_PROMEDIO]
     torch.set_num_threads(hilos)
@@ -62,20 +79,24 @@ def entrenar(fin_train, bases, horizontes=None, semillas=None, dir_salida=config
     eleg = es.elegidas(dir_salida)
     salida = {}
     for h in horizontes:
-        comb, celda = bu.combinacion(h), ELEGIDA[h]
+        celda = ELEGIDA[h]
         intento, params = eleg[(h, celda)]
-        train, preparador = _particion(bases[comb["nivel"]], comb, pd.Timestamp(fin_train))
-        ajustes = {"sin_tendencia": True}
-        if h in exa.CON_TODO:
-            ajustes["epocas_fijas"] = config.EPOCAS_FIJAS[h][celda]
-        redes = {}
-        for semilla in semillas:
-            redes[semilla] = ent.entrenar_red(celda, train, bu.hiperparametros(params), semilla=semilla,
-                                              dispositivo=dispositivo, ajustes=ajustes)
-            registrar(f"[{h} {celda}] hasta {pd.Timestamp(fin_train).date()} · semilla {semilla} · "
-                      f"{len(redes[semilla].historial)} épocas · {redes[semilla].segundos:.0f} s")
-        salida[h] = ModeloHorizonte(h, celda, intento, bu.hiperparametros(params), comb["ventana"], comb["recorte"],
-                                    comb["nivel"], list(train.variables), preparador, redes, pd.Timestamp(fin_train))
+        salida[h] = _entrenar_horizonte(h, celda, intento, bu.hiperparametros(params), bu.combinacion(h), bases,
+                                        fin_train, semillas, dispositivo, registrar)
+    return salida
+
+
+def reentrenar(modelos, bases, fin_train, semillas=None, hilos=config.HILOS_CPU, registrar=print):
+    """Los mismos modelos (misma red y misma configuración, leídas de sus fichas) reentrenados con los datos
+    hasta `fin_train`. No necesita los resultados de la fase B: es lo que usa la aplicación."""
+    semillas = semillas or config.SEMILLAS_ESTABILIDAD[:config.N_SEMILLAS_PROMEDIO]
+    torch.set_num_threads(hilos)
+    dispositivo = ent.dispositivo_disponible()
+    salida = {}
+    for h, m in modelos.items():
+        comb = {"horizonte": h, "ventana": m.ventana, "recorte": m.recorte, "nivel": m.nivel}
+        salida[h] = _entrenar_horizonte(h, m.celda, m.intento, m.hiperparametros, comb, bases, fin_train, semillas,
+                                        dispositivo, registrar)
     return salida
 
 

@@ -1,0 +1,10 @@
+# Dependencias del Space (Gradio lo pone Hugging Face según sdk_version, en el README)
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+numpy
+pandas>=3.0
+yfinance
+optuna
+matplotlib
+plotly
+huggingface_hub

@@ -172,7 +172,10 @@ def previsiones_examen(dir_salida=config.DIR_RESULTADOS, semillas=None):
         raise ValueError("Hay fichas sin todas las semillas: el examen no ha terminado")
     redes = redes[ha.COLUMNAS]
     lineal = p.loc[p["modelo"] == LINEAL, ha.COLUMNAS]
-    return pd.concat([redes, ha.media_de_las_redes(redes)[ha.COLUMNAS], lineal], ignore_index=True)
+    todo = pd.concat([redes, ha.media_de_las_redes(redes)[ha.COLUMNAS], lineal], ignore_index=True)
+    # En el orden de siempre (1 semana, 3 meses, 1 año), no en el que se ejecutó el examen
+    orden = todo["horizonte"].map({h: k for k, h in enumerate(config.HORIZONTES)})
+    return todo.iloc[orden.argsort(kind="stable")].reset_index(drop=True)
 
 
 # --- Medidas y conclusiones ------------------------------------------------------------------------

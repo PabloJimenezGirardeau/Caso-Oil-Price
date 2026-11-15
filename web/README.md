@@ -29,24 +29,18 @@ Tarda menos de un minuto y no entrena nada. Escribe en `web/data/`:
 | `validacion.json` | Nota de cada modelo en 2010-2021, por años y con todos juntos, y veredicto de la regla |
 | `rango.json` | Cobertura, anchura y nota del rango del 80 %, y su serie diaria de 2019-2021 |
 | `espejismo.json` | Control con precios (D15): serie de 2018-2019 y medidas |
-| `prevision.json` | Precio de hoy y rango del 80 % de cada plazo |
-| `test.json` | Examen final (D33) |
-| `en_vivo.json` | Previsión del 10/11/2026 (D34) |
+| `prevision.json` | La previsión publicada: la de los modelos finales desde el último día de origen con los tres plazos (`resultados/en_vivo.csv`), con su rango del 80 % |
+| `test.json` | Examen final (D33): nota, MAE, RMSE y p de cada modelo, conclusión de la red elegida y rango de cada plazo |
+| `en_vivo.json` | Historial de previsiones en vivo a 1 semana (D34), todas, cada una con el commit que la guardó y su precio real cuando existe |
 
-### Lo que está pendiente
+Si hay datos descargados en `data/actual/` (`python -c "from oil_price import descarga; descarga.actualizar()"`), el histórico y las cotizaciones llegan hasta el último Brent publicado. Las cifras del estudio salen siempre de la foto del estudio.
 
-La web enseña como «pendiente» lo que aún no existe; nunca un número inventado.
+### Cómo se añade una previsión en vivo
 
-- **`prevision.json`**. La previsión de cada red (`prevision_red`) está en `null` hasta que existan las redes finales. El rango es **provisional** (`"estado": "provisional"`): el elegido en cada plazo, centrado en el precio de hoy, con la anchura ajustada solo con lo conocido antes del 1/1/2022, para no usar ninguna respuesta del periodo de test. Cuando se haga D34 hay que ampliar la función `prevision()` del exportador para que lea las previsiones finales y el rango definitivo, y poner otro estado (por ejemplo, `"definitiva"`): la web quita entonces el rótulo «provisional».
-- **`test.json`**. Mientras diga `{"estado": "pendiente"}`, la columna «Examen final» de la tabla queda pendiente. El exportador no lo pisa si tiene otro estado. Formato que espera la web:
-
-  ```json
-  {"estado": "hecho", "periodo": "2022-2026",
-   "plazos": {"corto": {"modelos": {"RNN": {"nota": 1.0}, "LSTM": {"nota": 1.0}, "GRU": {"nota": 1.0}, "Lineal": {"nota": 1.0}}},
-              "medio": {"modelos": {}}, "largo": {"modelos": {}}}}
-  ```
-
-- **`en_vivo.json`**. Tampoco se pisa si ya no está pendiente. Al guardar la previsión: `"estado": "guardada"`, con `guardada` (fecha, `AAAA-MM-DD`), `commit` (el hash del commit que la guardó; la web lo enlaza), `prevision_red`, `bajo` y `alto`. Al comprobarla: `"estado": "comprobada"` y `precio_real`. El distintivo del hero y la tarjeta «Previsión en vivo» cambian solos.
+1. Descargar datos nuevos (comando de arriba).
+2. `python scripts/prever.py --desde AAAA-MM-DD` con el día de origen (el último con Brent): la añade a `resultados/en_vivo.csv`.
+3. **Commit y push antes de que se publique el precio que prevé.** El exportador busca en la historia de git el commit que guardó cada previsión y la web lo enlaza; sin commit, sale como «sin guardar».
+4. Cuando se publique, añadir el precio real a `resultados/en_vivo_comprobacion.csv` y volver a exportar.
 
 Si un JSON lleva `"ejemplo": true`, la web lo avisa en una esquina («Datos de ejemplo»).
 
@@ -66,13 +60,14 @@ web/
     │   ├── datos.js      Lectura de los JSON
     │   ├── formato.js    Cifras y fechas en formato español
     │   ├── graficos.js   Utilidades para los gráficos en SVG (escalas, trazos, ejes)
-    │   ├── crudo.js      El fondo de crudo: shader en WebGL
+    │   ├── crudo.js      El flujo de crudo (shader en WebGL): hero, tarjeta de «Calma y tormenta» y fondo fijo de toda la página
     │   ├── hero.js       La línea del Brent y el abanico del 80 %
     │   ├── cinta.js      Cinta de cotizaciones
-    │   ├── prevision.js  Panel de la previsión y previsión en vivo
+    │   ├── prevision.js  Panel de la previsión e historial de previsiones en vivo (tabla y gráfico)
+    │   ├── ciclo.js      «El ciclo del petróleo»: picos y caídas del Brent, buscados en los datos, y su explicación
     │   ├── calma.js      «Calma y tormenta»
     │   ├── espejismo.js  «El espejismo»
-    │   ├── secciones.js  Hallazgos, eje del tiempo del método y tabla comparativa
+    │   ├── secciones.js  Hallazgos, eje del tiempo del método, tabla comparativa y examen final en dólares
     │   ├── relieve.js    Curvas de nivel de fondo
     │   └── movimiento.js Scroll suave, entradas y contadores
     ├── fonts/            Geist, Geist Mono e Instrument Serif (woff2)
@@ -121,7 +116,7 @@ Los gráficos son SVG propio y el fondo de crudo es WebGL directo: no usan libre
 
 ## Antes de enseñarla
 
-- En el pie de `index.html` quedan por rellenar `[Nombre del autor]` y `[Universidad]`.
+- La aplicación en Python no se aloja en línea (Hugging Face exige PRO para Gradio): el pie de la web enlaza al repositorio, a los modelos en Hugging Face y a cómo ejecutarla.
 - Las etiquetas `og:url` y `og:image` de `index.html` llevan la dirección de GitHub Pages: hay que cambiarlas si cambia el nombre del repositorio o del usuario.
 - Con «reducir movimiento» activado en el sistema, la web se ve sin animaciones. Sin WebGL, el fondo es una imagen fija (`assets/img/crudo.jpg`).
 - Es una web de escritorio: no tiene versión para móvil. Por debajo de 1.024 px de ancho no se recoloca; aparece una barra de desplazamiento horizontal.

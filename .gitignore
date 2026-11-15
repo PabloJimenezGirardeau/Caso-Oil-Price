@@ -224,3 +224,6 @@ herramientas/
 
 # Datos descargados para la previsión en vivo y la aplicación (la foto del estudio sí se versiona)
 data/actual/
+
+# Space de Hugging Face montado por scripts/preparar_space.py
+hf/space/
