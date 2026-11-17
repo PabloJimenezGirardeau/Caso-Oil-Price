@@ -1,7 +1,7 @@
 // Carga de los datos. La web no calcula resultados: lee los JSON que genera
-// scripts/exportar_web.py en web/data/ y, como mucho, redondea o resta dos cifras.
+// scripts/inference/exportar_web.py en web/data/ y, como mucho, redondea o resta dos cifras.
 
-const ARCHIVOS = ['historico', 'cotizaciones', 'validacion', 'rango', 'espejismo', 'prevision', 'test', 'en_vivo'];
+const ARCHIVOS = ['historico', 'cotizaciones', 'validacion', 'rango', 'espejismo', 'prevision', 'test', 'en_vivo', 'acierto'];
 
 async function leerJSON(nombre) {
   const respuesta = await fetch(`data/${nombre}.json`, { cache: 'no-cache' });
@@ -11,14 +11,9 @@ async function leerJSON(nombre) {
 
 const cambio = (p) => (p.prevision_red === null ? null : 100 * (p.prevision_red / p.ingenuo - 1));
 
-export async function cargarDatos() {
-  const lista = await Promise.all(ARCHIVOS.map(leerJSON));
-  const d = Object.fromEntries(ARCHIVOS.map((nombre, i) => [nombre, lista[i]]));
-
-  // Archivos marcados como de ejemplo: la web lo avisa
-  d.ejemplo = ARCHIVOS.filter((nombre) => d[nombre].ejemplo === true);
-
-  // Cifras derivadas que se repiten en los textos (todas salen de los JSON)
+/** Cifras derivadas que se repiten en los textos (todas salen de los JSON). Se rehacen si la aplicación
+    trae datos nuevos (actualizar.js). */
+export function calcular(d) {
   const plazos = d.rango.plazos;
   d.calc = {
     sesiones: d.historico.fechas.length,
@@ -35,4 +30,13 @@ export async function cargarDatos() {
     cambio_largo: cambio(d.prevision.plazos.largo),
   };
   return d;
+}
+
+export async function cargarDatos() {
+  const lista = await Promise.all(ARCHIVOS.map(leerJSON));
+  const d = Object.fromEntries(ARCHIVOS.map((nombre, i) => [nombre, lista[i]]));
+
+  // Archivos marcados como de ejemplo: la web lo avisa
+  d.ejemplo = ARCHIVOS.filter((nombre) => d[nombre].ejemplo === true);
+  return calcular(d);
 }

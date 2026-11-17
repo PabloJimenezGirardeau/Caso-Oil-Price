@@ -1,8 +1,11 @@
 # Web del proyecto
 
-Web estática que presenta el proyecto: «No sabemos adónde irá el Brent. Sabemos cuánto puede moverse.» Se publica en GitHub Pages desde esta carpeta.
+La web que presenta el proyecto: «No sabemos adónde irá el Brent. Sabemos cuánto puede moverse.» Es también la interfaz de la aplicación. Se usa de dos formas:
 
-No calcula nada: lee los JSON de `data/`, que genera `scripts/inference/exportar_web.py` a partir de `resultados/`. Todas las cifras que se ven salen de ahí.
+- **Publicada en GitHub Pages**, desde esta carpeta: lee los JSON de `data/`, que genera `scripts/inference/exportar_web.py` a partir de `resultados/`, y enseña el estudio y la previsión publicada. No calcula nada.
+- **Servida por la aplicación** (`python app/app.py`, desde la raíz del repositorio): la misma página, y además funciona el botón **Actualizar datos** de «La previsión». Python descarga los datos de FRED y Yahoo Finance, los pasa por los modelos finales (sin reentrenar) y devuelve la previsión, el histórico y la cinta en el mismo formato que los JSON, de modo que la web los pinta con su propio código.
+
+En GitHub Pages, en lugar del botón aparece un enlace a cómo ejecutar la aplicación en local. Todas las cifras salen de los JSON o de los modelos.
 
 ## Verla en local
 
@@ -32,6 +35,9 @@ Tarda menos de un minuto y no entrena nada. Escribe en `web/data/`:
 | `prevision.json` | La previsión publicada: la de los modelos finales desde el último día de origen con los tres plazos (`resultados/en_vivo.csv`), con su rango del 80 % |
 | `test.json` | Examen final (D33): nota, MAE, RMSE y p de cada modelo, conclusión de la red elegida y rango de cada plazo |
 | `en_vivo.json` | Historial de previsiones en vivo a 1 semana (D34), todas, cada una con el commit que la guardó y su precio real cuando existe |
+| `acierto.json` | «¿Acierta el modelo?»: la red elegida frente al precio real en cada ficha del examen (2022-2026), su R² y cuándo acierta y cuándo falla |
+
+`prevision.json` lleva también la explicación en lenguaje sencillo de cada plazo (qué significa, qué fiabilidad tiene, qué puede invalidarla), la misma que da la aplicación. Y `test.json`, el R² de cada modelo.
 
 Si hay datos descargados en `data/actual/` (`python -c "from oil_price.data import descarga; descarga.actualizar()"`), el histórico y las cotizaciones llegan hasta el último Brent publicado. Las cifras del estudio salen siempre de la foto del estudio.
 
@@ -63,7 +69,9 @@ web/
     │   ├── crudo.js      El flujo de crudo (shader en WebGL): hero, tarjeta de «Calma y tormenta» y fondo fijo de toda la página
     │   ├── hero.js       La línea del Brent y el abanico del 80 %
     │   ├── cinta.js      Cinta de cotizaciones
-    │   ├── prevision.js  Panel de la previsión e historial de previsiones en vivo (tabla y gráfico)
+    │   ├── prevision.js  Panel de la previsión, su explicación e historial de previsiones en vivo (tabla y gráfico)
+    │   ├── actualizar.js El botón «Actualizar datos» (solo con la aplicación en marcha) o el enlace a cómo ejecutarla
+    │   ├── acierto.js    «¿Acierta el modelo?»: real frente a previsto en el examen, R² y cuándo acierta y cuándo falla
     │   ├── ciclo.js      «El ciclo del petróleo»: picos y caídas del Brent, buscados en los datos, y su explicación
     │   ├── calma.js      «Calma y tormenta»
     │   ├── espejismo.js  «El espejismo»
@@ -116,8 +124,8 @@ Los gráficos son SVG propio y el fondo de crudo es WebGL directo: no usan libre
 
 ## Antes de enseñarla
 
-- La aplicación en Python no se aloja en línea (Hugging Face exige PRO para Gradio): el pie de la web enlaza al repositorio, a los modelos en Hugging Face y a cómo ejecutarla.
+- El botón «Actualizar datos» solo funciona con la aplicación en marcha (`python app/app.py`): GitHub Pages no ejecuta Python. Alojar la aplicación en línea con Python exigiría un servidor (en Hugging Face, la suscripción PRO).
 - Las etiquetas `og:url` y `og:image` de `index.html` llevan la dirección de GitHub Pages: hay que cambiarlas si cambia el nombre del repositorio o del usuario.
 - Con «reducir movimiento» activado en el sistema, la web se ve sin animaciones. Sin WebGL, el fondo es una imagen fija (`assets/img/crudo.jpg`).
-- Es una web de escritorio: no tiene versión para móvil. Por debajo de 1.024 px de ancho no se recoloca; aparece una barra de desplazamiento horizontal.
+- Es una web de escritorio: no tiene versión para móvil. Por debajo de 1.200 px se oculta el botón «Ver la previsión» de la barra (repite el primer enlace); por debajo de 1.024 px no se recoloca y aparece una barra de desplazamiento horizontal.
 - No se ha medido con Lighthouse.

@@ -239,6 +239,10 @@
   .boton-linea:hover {
     border-color: rgb(255 244 230 / 0.34);
   }
+  .boton[disabled] {
+    opacity: 0.6;
+    cursor: progress;
+  }
 
   /* Tarjeta de cristal oscuro */
   .tarjeta {
@@ -376,10 +380,20 @@
     color: var(--color-gris);
   }
   .barra-enlaces a {
+    white-space: nowrap;
     transition: color 0.25s var(--ease-suave);
   }
   .barra-enlaces a:hover {
     color: var(--color-hueso);
+  }
+  /* En pantallas estrechas no caben todos los enlaces y el botón: el botón repite «La previsión» y se oculta */
+  @media (max-width: 1199px) {
+    .barra-enlaces {
+      gap: 20px;
+    }
+    .barra-fila > .boton {
+      display: none;
+    }
   }
 
   /* 5.2 Hero */
@@ -606,6 +620,28 @@
     background: var(--color-hueso);
     color: #000;
   }
+  /* Estado de los datos y botón «Actualizar datos» (solo con la aplicación en marcha) */
+  .pv-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+  .pv-estado {
+    margin-top: 8px;
+    max-width: 64ch;
+    color: var(--color-gris-2);
+    font-size: 0.8125rem;
+    text-wrap: pretty;
+  }
+  .pv-estado:empty {
+    display: none;
+  }
+  .pv-estado strong {
+    color: var(--color-gris);
+    font-weight: 500;
+  }
   .panel-cuerpo {
     display: grid;
     gap: 8px;
@@ -682,6 +718,18 @@
     min-height: 430px;
     padding: 28px 22px 20px 8px;
   }
+  /* La previsión explicada: qué significa, qué fiabilidad tiene, qué puede invalidarla */
+  .explicacion {
+    display: grid;
+    gap: 28px;
+    padding: 24px 22px 26px;
+    border-top: 1px solid var(--color-linea);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .explicacion .vivo-texto {
+    margin-top: 10px;
+    font-size: 0.875rem;
+  }
   .panel-pie {
     padding: 22px;
     border-top: 1px solid var(--color-linea);
@@ -738,6 +786,9 @@
   .bento-2 {
     grid-column: span 2;
   }
+  .bento-3 {
+    grid-column: span 3;
+  }
   .hallazgo {
     display: flex;
     flex-direction: column;
@@ -788,6 +839,36 @@
     height: 96px;
     margin-top: auto;
     padding-top: 22px;
+  }
+
+  /* 5.6b ¿Acierta el modelo? */
+  .calma-lectura.acierto-lectura {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.5fr);
+  }
+  .acierto-metricas {
+    display: flex;
+    flex-direction: column;
+  }
+  .acierto-metricas .tabla-notas {
+    margin-top: auto;
+  }
+  .acierto-metricas .tabla th,
+  .acierto-metricas .tabla td {
+    padding-inline: 12px;
+  }
+  .acierto-metricas .tabla th {
+    white-space: normal;
+  }
+  .acierto-metricas .tabla th:first-child,
+  .acierto-metricas .tabla td:first-child {
+    padding-left: 22px;
+  }
+  .acierto-metricas .tabla th:last-child,
+  .acierto-metricas .tabla td:last-child {
+    padding-right: 22px;
+  }
+  .acierto-grupos {
+    height: 240px;
   }
   .ambar {
     color: var(--color-ambar);
@@ -896,6 +977,10 @@
     border-radius: 2px;
     background: linear-gradient(90deg, var(--color-frio), var(--color-ambar));
     opacity: 0.6;
+  }
+  .leyenda-grafico i.relleno.solo-ambar {
+    background: var(--color-ambar);
+    opacity: 0.35;
   }
   .cobertura {
     display: flex;
@@ -1217,6 +1302,13 @@
     font-size: 0.8125rem;
     text-wrap: pretty;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .tabla-notas.una {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tabla-notas strong {
+    color: var(--color-hueso);
+    font-weight: 500;
   }
 
   /* 5.11 Para qué sirve */

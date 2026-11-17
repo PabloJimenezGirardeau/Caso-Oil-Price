@@ -54,6 +54,7 @@
       </a>
       <nav class="barra-enlaces" aria-label="Secciones">
         <a href="#prevision">La previsión</a>
+        <a href="#acierto">¿Acierta?</a>
         <a href="#hallazgos">Hallazgos</a>
         <a href="#ciclo">El ciclo</a>
         <a href="#calma">Calma y tormenta</a>
@@ -137,11 +138,17 @@
             <div>
               <p class="leyenda">Brent · último dato · <span data-d="prevision.fecha" data-f="fecha">—</span></p>
               <p class="panel-precio"><span data-d="prevision.precio" data-f="numero2">—</span><span class="unidad">$ por barril</span></p>
+              <p class="pv-estado" id="pv-estado" aria-live="polite"></p>
             </div>
-            <div class="pestanas" role="tablist" aria-label="Plazo de la previsión" id="pv-pestanas">
-              <button type="button" role="tab" id="pv-tab-corto" data-plazo="corto" aria-selected="true" aria-controls="pv-panel">1 semana</button>
-              <button type="button" role="tab" id="pv-tab-medio" data-plazo="medio" aria-selected="false" aria-controls="pv-panel" tabindex="-1">3 meses</button>
-              <button type="button" role="tab" id="pv-tab-largo" data-plazo="largo" aria-selected="false" aria-controls="pv-panel" tabindex="-1">1 año</button>
+            <div class="pv-acciones">
+              <!-- Con la aplicación en marcha (python app/app.py), descarga datos nuevos y los pasa por los modelos (actualizar.js) -->
+              <button type="button" class="boton boton-ambar boton-s" id="pv-actualizar" hidden>Actualizar datos</button>
+              <a class="boton boton-linea boton-s" id="pv-local" href="https://github.com/PabloJimenezGirardeau/Caso-Oil-Price#puesta-en-marcha" rel="noopener" hidden>Actualizar en local</a>
+              <div class="pestanas" role="tablist" aria-label="Plazo de la previsión" id="pv-pestanas">
+                <button type="button" role="tab" id="pv-tab-corto" data-plazo="corto" aria-selected="true" aria-controls="pv-panel">1 semana</button>
+                <button type="button" role="tab" id="pv-tab-medio" data-plazo="medio" aria-selected="false" aria-controls="pv-panel" tabindex="-1">3 meses</button>
+                <button type="button" role="tab" id="pv-tab-largo" data-plazo="largo" aria-selected="false" aria-controls="pv-panel" tabindex="-1">1 año</button>
+              </div>
             </div>
           </div>
 
@@ -171,11 +178,73 @@
             </div>
           </div>
 
+          <!-- La previsión explicada en lenguaje sencillo, del plazo elegido (prevision.js) -->
+          <div class="explicacion" id="pv-explicacion" hidden></div>
+
           <div class="panel-pie">
             <!-- Previsión en vivo (D34): la rellena prevision.js según data/en_vivo.json -->
             <article class="vivo" id="vivo" aria-live="polite"></article>
             <p class="aviso-legal">Proyecto académico. No es asesoramiento financiero ni una recomendación de inversión.</p>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= 3b. ¿Acierta el modelo? ========================= -->
+    <section id="acierto" class="seccion" aria-labelledby="acierto-titulo" style="padding-top:0">
+      <div class="contenedor">
+        <header class="cabecera">
+          <span class="etiqueta" data-revela>¿Acierta el modelo?</span>
+          <h2 class="titulo" id="acierto-titulo" data-titulo>Lo que previó, <em>frente a lo que pasó</em></h2>
+          <p class="entradilla" data-revela>En el examen final, las redes se entrenaron solo con datos hasta 2021 y previeron cada día de 2022 a 2026 sin ver el resultado. Cada previsión aparece en la fecha a la que se refería, junto al precio que llegó después.</p>
+        </header>
+
+        <div class="tarjeta" data-revela>
+          <div class="calma-cab">
+            <p class="leyenda">Examen final <span data-d="acierto.periodo">—</span> · cada previsión en la fecha prevista</p>
+            <div class="pestanas" role="group" aria-label="Plazo" id="ac-plazos">
+              <button type="button" data-plazo="corto" aria-pressed="true">1 semana</button>
+              <button type="button" data-plazo="medio" aria-pressed="false">3 meses</button>
+              <button type="button" data-plazo="largo" aria-pressed="false">1 año</button>
+            </div>
+          </div>
+          <dl class="calma-lectura acierto-lectura">
+            <div><dt class="leyenda">Fecha prevista</dt><dd id="ac-fecha">—</dd></div>
+            <div><dt class="leyenda">Precio real</dt><dd id="ac-real">—</dd></div>
+            <div><dt class="leyenda" id="ac-red-nombre">Red</dt><dd id="ac-red" class="ambar">—</dd></div>
+            <div><dt class="leyenda">Ingenuo</dt><dd id="ac-ingenuo">—</dd></div>
+            <div><dt class="leyenda">Rango del 80&nbsp;%</dt><dd id="ac-rango">—</dd></div>
+          </dl>
+          <div class="calma-grafico">
+            <svg class="grafico" id="ac-grafico" role="img" aria-label="Precio real del Brent de 2022 a 2026 frente a la previsión de la red, la del ingenuo y el rango del 80 %"></svg>
+          </div>
+          <div class="leyenda-grafico" aria-hidden="true">
+            <span><i></i>Precio real</span>
+            <span class="ambar"><i></i>Previsión de la red</span>
+            <span><i class="discontinua"></i>Ingenuo (el precio del día en que se hizo la previsión)</span>
+            <span><i class="relleno solo-ambar"></i>Rango del 80&nbsp;%</span>
+          </div>
+        </div>
+
+        <div class="bento" style="margin-top:16px">
+          <article class="tarjeta bento-3 acierto-metricas" data-revela>
+            <div class="calma-cab" style="padding:24px 22px 4px">
+              <p class="leyenda">01 · Las métricas · <span id="ac-metricas-plazo">—</span></p>
+            </div>
+            <table class="tabla" id="ac-tabla"></table>
+            <div class="tabla-notas una">
+              <p><strong>R² del precio:</strong> cuánto se parece el precio previsto al real (1 es acertar siempre). Sale alto incluso para el ingenuo, porque el precio de dentro de unos días se parece mucho al de hoy: no dice si el modelo aporta algo.</p>
+              <p><strong>R² de la variación:</strong> si el modelo anticipa cuánto se va a mover el precio. 0 es no anticipar nada; por debajo de 0, peor que prever siempre el movimiento medio. <strong>Frente al ingenuo:</strong> cuánto reduce el error del ingenuo; negativo es equivocarse más que él.</p>
+            </div>
+          </article>
+          <article class="tarjeta hallazgo bento-3" data-revela>
+            <p class="leyenda">02 · Cuándo acierta y cuándo falla</p>
+            <h3 id="ac-cuando-titulo">—</h3>
+            <p id="ac-cuando-texto"></p>
+            <div class="hallazgo-grafico acierto-grupos">
+              <svg class="grafico" id="ac-grupos" role="img" aria-label="Error de la red frente al ingenuo según el mercado y según el movimiento posterior"></svg>
+            </div>
+          </article>
         </div>
       </div>
     </section>

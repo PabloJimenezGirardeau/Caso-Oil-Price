@@ -50,10 +50,12 @@ Comparativa de tres redes neuronales recurrentes (RNN simple, LSTM y GRU) para p
 │   │   ├── comprobaciones.py    Robustez: bootstrap por bloques, otras métricas, Diebold-Mariano
 │   │   ├── controles.py         Controles del procedimiento: sin señal y con una señal plantada
 │   │   ├── control_precios.py   Experimento de control (D15): prever el precio en vez de la variación
-│   │   └── examen_final.py      Examen final en test (D33): entrenamiento, tabla comparativa y conclusiones
+│   │   ├── examen_final.py      Examen final en test (D33): entrenamiento, tabla comparativa y conclusiones
+│   │   └── analisis_examen.py   Tras el examen: R², real frente a previsto, cuándo acierta y cuándo falla
 │   ├── inference/               Modelos finales y aplicación
 │   │   ├── modelo_final.py      Entrenar, reentrenar, guardar, cargar y prever con su rango del 80 % (D34)
-│   │   └── aplicacion.py        Lógica de la aplicación: datos, previsión, explicación, ciclo económico y gráficos
+│   │   ├── aplicacion.py        Lógica de la aplicación: datos, previsión (sin reentrenar) y explicación
+│   │   └── datos_web.py         Los datos en el formato de la web: los usan el exportador y el botón de la aplicación
 │   └── utils/
 │       ├── config.py            Parámetros: fechas, variables, horizontes, partición…
 │       └── graficos.py          Estilo de los gráficos
@@ -62,15 +64,15 @@ Comparativa de tres redes neuronales recurrentes (RNN simple, LSTM y GRU) para p
 │   ├── training/                fase_a.py, fase_a_semillas.py, tendencia.py, fase_b.py, estabilidad.py, entreno_completo.py
 │   ├── evaluation/              importancia.py, hacia_atras.py, rango_redes.py, controles.py, control_precios.py, examen_final.py
 │   └── inference/               prevision_en_vivo.py, prever.py, exportar_web.py, subir_modelo_hf.py
-├── app/                         Aplicación de previsión en Python (Gradio): se ejecuta en local y calcula con los modelos
-├── web/                         Web del proyecto (HTML estático, GitHub Pages): solo muestra resultados ya calculados; ver web/README.md
+├── app/                         La aplicación: sirve la web con Python y hace funcionar «Actualizar datos»
+├── web/                         La web del proyecto (GitHub Pages y aplicación); ver web/README.md
 ├── tests/                       Pruebas automáticas (pytest)
 ├── pyproject.toml               Dependencias (Poetry)
 ├── poetry.lock                  Versiones exactas de las dependencias
 └── poetry.toml                  Configuración local de Poetry (entorno en .venv)
 ```
 
-`app/` y `web/` son cosas distintas: `app/` es el programa en Python que ejecuta los modelos (previsión, datos nuevos, reentrenamiento) y `web/` es una página estática que enseña los resultados del estudio y las previsiones congeladas.
+**La web y la aplicación son la misma página.** Publicada en GitHub Pages (<https://pablojimenezgirardeau.github.io/Caso-Oil-Price/>), enseña el estudio y la previsión publicada. Servida por Python (`python app/app.py`), además funciona el botón **Actualizar datos**: descarga los datos de FRED y Yahoo Finance y los pasa por los modelos finales, ya entrenados (no se reentrena nada), y la página se actualiza en su sitio con la previsión de hoy, su rango del 80 % y su explicación.
 
 Los pesos de los modelos entrenados (`modelos/`) no están en el repositorio: se publican en Hugging Face (<https://huggingface.co/PabloJimenezGirardeau/brent-rnn-lstm-gru>) y la aplicación los descarga sola si no los encuentra en local. En el código y los notebooks, `D27`, `D30`… son las decisiones numeradas del diario de trabajo, que no se sube.
 
@@ -92,14 +94,14 @@ poetry run pytest       # comprueba que todo funciona
 
 Los datos con los que se obtuvieron los resultados ya están en `data/`, así que no hace falta descargarlos. Para descargar datos actualizados: `poetry run python scripts/data/download_data.py`. Esto cambia las cifras, porque el periodo llega hasta el día de la descarga.
 
-**La aplicación** (previsión, ciclo del petróleo, actualización de datos y reentrenamiento) usa tres paquetes que no necesita el resto del proyecto:
+**La aplicación** abre la web del proyecto con el botón **Actualizar datos** funcionando (los datos nuevos pasan por los modelos, sin reentrenar). Solo usa Python estándar más el entorno del proyecto:
 
 ```bash
-pip install -r app/requirements.txt           # gradio, plotly y huggingface_hub (dentro del entorno .venv)
-python app/app.py                              # http://127.0.0.1:7860
+pip install huggingface_hub     # dentro del entorno .venv; para descargar los modelos si no están en modelos/final
+python app/app.py               # abre http://127.0.0.1:8765 en el navegador (Ctrl + C para cerrarla)
 ```
 
-Si no encuentra los modelos en `modelos/final/`, los descarga de Hugging Face (<https://huggingface.co/PabloJimenezGirardeau/brent-rnn-lstm-gru>). Con `python app/app.py --compartir` genera además un enlace público temporal.
+Si no encuentra los modelos en `modelos/final/`, los descarga de Hugging Face (<https://huggingface.co/PabloJimenezGirardeau/brent-rnn-lstm-gru>). Si la descarga de datos falla (sin conexión, o Yahoo bloquea), usa los últimos datos descargados o la foto del estudio, y lo dice. En un entorno nuevo, todo lo necesario está en `app/requirements.txt`.
 
 Para trabajar con los notebooks, selecciona el kernel del entorno `.venv` en VS Code o Jupyter.
 
@@ -145,8 +147,7 @@ python scripts/inference/prevision_en_vivo.py                     # modelos fina
 python -c "from oil_price.data import descarga; descarga.actualizar()"   # datos nuevos en data/actual/
 python scripts/inference/prever.py --desde 2026-11-11             # previsión con los modelos guardados desde ese día
 python scripts/inference/exportar_web.py                          # datos de la web (web/data/), sin entrenar nada
-python app/app.py                                       # la aplicación en local: http://127.0.0.1:7860 (necesita gradio y plotly)
-python app/app.py --compartir                           # lo mismo, con un enlace público temporal para enseñarla
+python app/app.py                                       # la aplicación: la web con «Actualizar datos», en http://127.0.0.1:8765
 python scripts/inference/subir_modelo_hf.py                       # sube los modelos a Hugging Face (con la sesión iniciada o HF_TOKEN)
 ```
 

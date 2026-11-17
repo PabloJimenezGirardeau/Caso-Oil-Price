@@ -1,205 +1,142 @@
-"""Aplicación de previsión del Brent (Gradio): elige el plazo y mira el precio previsto, su variación, el rango
-del 80 %, una explicación en lenguaje sencillo y el ciclo económico. Descarga datos nuevos y reentrena.
+"""La aplicación de previsión del Brent: la web del proyecto, servida por Python para que funcione el botón
+«Actualizar datos».
 
-Uso local:    python app/app.py
-Enlace público temporal (para enseñarla; dura unos días y solo mientras el programa siga abierto):
-              python app/app.py --compartir
+Al pulsarlo, descarga los datos más recientes de FRED y Yahoo Finance y los pasa por los modelos finales,
+ya entrenados (no se reentrena nada). La web se actualiza en su sitio: precio de hoy, previsión de la red a
+1 semana, 3 meses y 1 año, rango del 80 %, gráfico y explicación en lenguaje sencillo.
+
+Es la misma web que se publica en GitHub Pages. Allí, sin Python detrás, enseña la previsión publicada.
+
+Uso:
+    python app/app.py                      # abre http://127.0.0.1:8765 en el navegador
+    python app/app.py --puerto 8000 --sin-navegador
 """
+import argparse
+import json
 import sys
 import threading
-import time
+import webbrowser
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ / "src"))                    # funciona sin instalar el paquete
+WEB = RAIZ / "web"
 
-import gradio as gr
+from oil_price.inference import aplicacion as ap        # noqa: E402
+from oil_price.inference import datos_web as dw         # noqa: E402
 
-from oil_price.inference import aplicacion as ap
-
-ESTUDIO = RAIZ / "web" / "data"                          # resultados del estudio (los lee también la web)
-WEB = "https://pablojimenezgirardeau.github.io/Caso-Oil-Price/"
-GITHUB = "https://github.com/PabloJimenezGirardeau/Caso-Oil-Price"
-MODELO = f"https://huggingface.co/{ap.REPO_MODELO}"
-
-CSS = """
-.gradio-container { max-width: 1180px !important; margin: auto; }
-.cab h1 { font-weight: 300; font-size: 2.1rem; letter-spacing: -0.02em; margin: 0 0 4px; color: #f4efe6; }
-.cab h1 em { font-family: 'Instrument Serif', Georgia, serif; font-style: italic; font-weight: 400; color: #e6dfd2; font-size: 1.15em; }
-.cab p { color: #a39c90; margin: 0; }
-.estado { color: #8a8378; font-family: ui-monospace, Consolas, monospace; font-size: 0.78rem; letter-spacing: 0.02em; }
-.estado b { color: #f2921d; font-weight: 500; }
-.aviso { border: 1px solid rgba(242,146,29,0.45); background: rgba(242,146,29,0.07); color: #e6dfd2; border-radius: 12px;
-         padding: 10px 14px; font-size: 0.86rem; }
-.cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-.cifra { border: 1px solid rgba(255,244,230,0.09); background: rgba(20,17,14,0.9); border-radius: 16px; padding: 16px 18px; }
-.cifra .t { font-family: ui-monospace, Consolas, monospace; font-size: 0.68rem; letter-spacing: 0.07em; text-transform: uppercase; color: #8a8378; }
-.cifra .n { font-family: ui-monospace, Consolas, monospace; font-size: 1.55rem; font-weight: 300; color: #f4efe6; margin-top: 6px; letter-spacing: -0.03em; }
-.cifra .n.ambar { color: #f2921d; }
-.cifra .s { color: #a39c90; font-size: 0.8rem; margin-top: 4px; }
-.fiab { margin-top: 12px; color: #a39c90; font-size: 0.86rem; }
-.chip { display: inline-block; border: 1px solid rgba(242,146,29,0.45); color: #f2921d; border-radius: 999px; padding: 1px 9px;
-        font-family: ui-monospace, Consolas, monospace; font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; margin-left: 6px; }
-table, th, td { border-color: rgba(255,244,230,0.13) !important; }
-.pie { color: #8a8378; font-size: 0.82rem; text-align: center; }
-.pie a { color: #f4efe6; }
-@media (max-width: 800px) { .cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-"""
-
-TEMA = gr.themes.Base(primary_hue="orange", neutral_hue="stone", font=[gr.themes.GoogleFont("Geist"), "system-ui", "sans-serif"],
-                      font_mono=["ui-monospace", "Consolas", "monospace"]).set(
-    body_background_fill="#000000", body_background_fill_dark="#000000",
-    body_text_color="#f4efe6", body_text_color_dark="#f4efe6",
-    block_background_fill="#0a0908", block_background_fill_dark="#0a0908",
-    block_border_color="rgba(255,244,230,0.09)", block_border_color_dark="rgba(255,244,230,0.09)",
-    input_background_fill="#14110e", input_background_fill_dark="#14110e",
-    button_primary_background_fill="#f2921d", button_primary_background_fill_dark="#f2921d",
-    button_primary_text_color="#000000", button_primary_text_color_dark="#000000",
-    button_secondary_background_fill="#14110e", button_secondary_background_fill_dark="#14110e",
-    button_secondary_text_color="#f4efe6", button_secondary_text_color_dark="#f4efe6")
-
-# Siempre en oscuro, sea cual sea el tema del navegador
-FORZAR_OSCURO = "() => { document.body.classList.add('dark'); }"
-
-APP = ap.Aplicacion(ESTUDIO)
-ARRANQUE = {"hecho": False}
+PUERTO = 8765
 
 
-def asegurar_datos():
-    """La primera vez que se pide algo, descarga los datos más recientes y calcula las previsiones."""
-    if not ARRANQUE["hecho"]:
-        APP.cargar(descargar=True)
-        ARRANQUE["hecho"] = True
+class Servicio:
+    """Lo que hay detrás de la web: los modelos se cargan una vez al arrancar; los datos, al pulsar el botón."""
+
+    def __init__(self, web=WEB, descargar=True, **opciones):
+        self.web = Path(web)
+        self.descargar = descargar
+        self.app = ap.Aplicacion(self.web / "data", **opciones)
+        self.cerrojo = threading.Lock()
+
+    def estado(self):
+        return {"servidor": True, "modelos_hasta": dw.fecha_iso(self.app.modelos_hasta)}
+
+    def actualizar(self):
+        """Descarga los datos (si se puede), los pasa por los modelos y lo devuelve en el formato de la web."""
+        with self.cerrojo:
+            self.app.cargar(descargar=self.descargar)
+            publicada = json.loads((self.web / "data" / "prevision.json").read_text(encoding="utf-8"))
+            return dw.actualizacion(self.app, publicada)
 
 
-def estado_html():
-    entrenado = min(m.fin_train for m in APP.modelos.values())
-    texto = (f"<p class='estado'>Datos hasta el <b>{ap.fecha(APP.ultimo_dia)}</b> · {APP.origen} · modelos entrenados hasta el "
-             f"<b>{ap.fecha(entrenado)}</b></p>")
-    for aviso in APP.avisos:
-        texto += f"<div class='aviso' style='margin-top:8px'>{aviso}</div>"
-    return texto
+class Manejador(SimpleHTTPRequestHandler):
+    """Sirve la carpeta web/ tal cual y responde a las dos rutas de la API."""
 
+    protocol_version = "HTTP/1.1"   # conexiones reutilizables: la web pide unos treinta archivos al abrirse
 
-def cifras_html(h):
-    f = APP.fila(h)
-    est = ap.fiabilidad(APP.estudio, h, f["red"])
-    cambio = 100 * (f["precio previsto"] / f["precio hoy"] - 1)
-    orient = "<span class='chip'>Orientativo</span>" if h == "largo" else ""
-    return (
-        "<div class='cifras'>"
-        f"<div class='cifra'><div class='t'>Brent · {ap.fecha(f['fecha origen'])}</div><div class='n'>{ap.dolares(f['precio hoy'])}</div>"
-        f"<div class='s'>último precio</div></div>"
-        f"<div class='cifra'><div class='t'>Previsión de la {f['red']}</div><div class='n'>{ap.dolares(f['precio previsto'])}</div>"
-        f"<div class='s'>{ap.variacion(cambio)} · hacia el {ap.fecha(f['fecha objetivo (estimada)'])}</div></div>"
-        f"<div class='cifra'><div class='t'>Rango del 80 %{orient}</div><div class='n ambar'>{ap.num(f['rango bajo'])} – {ap.num(f['rango alto'])} $</div>"
-        f"<div class='s'>{ap.variacion(100 * (f['rango bajo'] / f['precio hoy'] - 1))} a {ap.variacion(100 * (f['rango alto'] / f['precio hoy'] - 1))}</div></div>"
-        f"<div class='cifra'><div class='t'>Ingenuo</div><div class='n'>{ap.dolares(f['precio hoy'])}</div>"
-        f"<div class='s'>el precio de hoy, sin cambios</div></div>"
-        "</div>"
-        f"<p class='fiab'>Examen final {est['periodo']}, frente al ingenuo: <b>{est['conclusion']}</b>; "
-        f"el rango acertó el <b>{ap.num(100 * est['cobertura'], 0)} %</b> de las veces (promete el 80 %).</p>")
+    # Tipos fijos: en Windows, el registro puede dar otro tipo a .js y el navegador no cargaría los módulos
+    extensions_map = {**SimpleHTTPRequestHandler.extensions_map, ".js": "text/javascript", ".mjs": "text/javascript",
+                      ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".woff2": "font/woff2",
+                      ".png": "image/png", ".jpg": "image/jpeg", ".html": "text/html"}
 
+    def __init__(self, *args, servicio=None, **kwargs):
+        self.servicio = servicio
+        super().__init__(*args, directory=str(servicio.web), **kwargs)
 
-def vista(h):
-    asegurar_datos()
-    return estado_html(), cifras_html(h), APP.grafico_prevision(h), APP.explicacion(h)
+    def _ruta(self):
+        return self.path.split("?")[0].split("#")[0]
 
+    def _json(self, codigo, contenido):
+        cuerpo = json.dumps(contenido, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        self.send_response(codigo)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(cuerpo)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(cuerpo)
 
-def actualizar(h):
-    """Descarga datos nuevos y recalcula."""
-    APP.cargar(descargar=True)
-    ARRANQUE["hecho"] = True
-    return vista(h)
+    def end_headers(self):
+        if not self._ruta().startswith("/api/"):
+            self.send_header("Cache-Control", "no-cache")   # la web siempre la última versión de sus archivos
+        super().end_headers()
 
+    def do_GET(self):
+        if self._ruta() == "/api/estado":
+            self._json(200, self.servicio.estado())
+        else:
+            super().do_GET()
 
-def reentrenar(n_semillas, h):
-    """Reentrena con los datos de hoy (en segundo plano) y enseña el registro mientras tanto."""
-    asegurar_datos()
-    registro, fin = [], threading.Event()
-    semillas = list(range(42, 42 + int(n_semillas)))
-
-    def trabajo():
+    def do_POST(self):
+        if self._ruta() != "/api/actualizar":
+            self._json(404, {"error": "no existe"})
+            return
         try:
-            APP.reentrenar(semillas, registrar=registro.append)
-            registro.append("Listo: los modelos se han reentrenado con los datos hasta " + ap.fecha(APP.ultimo_dia) + ".")
-        except Exception as error:
-            registro.append(f"Error al reentrenar: {error}")
-        finally:
-            fin.set()
+            self._json(200, self.servicio.actualizar())
+        except Exception as error:                        # la web lo enseña como aviso, sin romperse
+            self._json(500, {"error": str(error)})
 
-    hilo = threading.Thread(target=trabajo, daemon=True)
-    hilo.start()
-    inicio = time.time()
-    while not fin.wait(2):
-        yield "\n".join(registro) + f"\n… {time.time() - inicio:.0f} s", *(gr.update(),) * 4
-    hilo.join()
-    yield ("\n".join(registro), *vista(h))
+    def log_message(self, formato, *args):
+        if self._ruta().startswith("/api/"):
+            sys.stderr.write(f"  {self.command} {self._ruta()} → {args[1] if len(args) > 1 else ''}\n")
 
 
-def ciclo():
-    asegurar_datos()
-    lista = ap.episodios(APP.precios)
-    texto = "\n\n".join(f"**{n + 1:02d} · {e['fecha'].year} · {'pico' if e['tipo'] == 'max' else 'caída'} · {e['titulo']}.** {e['texto']}"
-                        for n, e in enumerate(lista))
-    return APP.grafico_ciclo(), texto
+class Servidor(ThreadingHTTPServer):
+    daemon_threads = True
+    request_queue_size = 64         # la cola por defecto (5) se llena al abrir la web y el navegador ve fallos
+
+    def handle_error(self, request, client_address):
+        # Si el navegador se cierra o recarga a mitad de una respuesta, no es un error de la aplicación
+        if isinstance(sys.exc_info()[1], (ConnectionResetError, ConnectionAbortedError, BrokenPipeError)):
+            return
+        super().handle_error(request, client_address)
 
 
-def estudio_md():
-    t = APP.estudio["test"]
-    partes = ["La comparativa del **examen final** (" + t["periodo"] + "), hecho una sola vez con todo decidido de antemano. "
-              "Cada red es el promedio de cinco entrenamientos; en negrita, la elegida para cada plazo.\n"]
-    for h in ap.ORDEN:
-        p = t["plazos"][h]
-        partes.append(f"### {ap.NOMBRE[h]}\n\n{ap.tabla_comparativa(APP.estudio, h)}\n\n"
-                      f"Conclusión fijada antes de calcular: *{p['conclusion']}*. El rango del 80 % acertó el "
-                      f"{ap.num(100 * p['rango']['cobertura'], 0)} % (±{ap.num(100 * p['rango']['margen'], 0)} puntos).")
-    partes.append("**Ninguna red mejora de forma fiable al ingenuo** (suponer que el precio no cambia), ni en 12 años de pruebas "
-                  "año a año ni en el examen final. Lo que sí funciona es el rango: dice cuánto puede moverse el precio.")
-    return "\n\n".join(partes)
+def crear_servidor(servicio, puerto=PUERTO, anfitrion="127.0.0.1"):
+    return Servidor((anfitrion, puerto), partial(Manejador, servicio=servicio))
 
 
-def construir():
-    with gr.Blocks(title="Previsión del Brent") as demo:
-        gr.HTML("<div class='cab'><h1>No sabemos adónde irá el Brent. <em>Sabemos cuánto puede moverse.</em></h1>"
-                "<p>Previsión del precio del Brent a 1 semana, 3 meses y 1 año con redes neuronales (RNN, LSTM y GRU), "
-                "siempre con su rango del 80 % y su fiabilidad.</p></div>")
-        estado = gr.HTML()
-        with gr.Tab("La previsión"):
-            with gr.Row():
-                plazo = gr.Radio([("1 semana", "corto"), ("3 meses", "medio"), ("1 año", "largo")], value="corto", label="Plazo",
-                                 scale=3)
-                boton = gr.Button("Actualizar datos", variant="secondary", scale=1)
-            cifras = gr.HTML()
-            grafico = gr.Plot(show_label=False)
-            explicacion = gr.Markdown()
-        with gr.Tab("El ciclo del petróleo"):
-            gr.Markdown("Los grandes picos y caídas del Brent y lo que los provocó. El petróleo sigue al ciclo económico "
-                        "mundial, pero sus movimientos más bruscos los desatan las sorpresas.")
-            g_ciclo = gr.Plot(show_label=False)
-            t_ciclo = gr.Markdown()
-        with gr.Tab("Reentrenar"):
-            gr.Markdown("Reentrena las tres redes con los datos hasta hoy, con la misma configuración elegida en el estudio. "
-                        "**Tarda varios minutos** (a 1 semana, una red por semilla): en un servidor gratuito, más. "
-                        "Con menos semillas es más rápido, pero la previsión varía algo más de una vez a otra. "
-                        "Los modelos reentrenados duran mientras el servidor esté encendido.")
-            semillas = gr.Slider(1, 5, value=2, step=1, label="Semillas (cuántas veces se entrena cada red; el resultado es la media)")
-            entrenar = gr.Button("Reentrenar con los datos de hoy", variant="primary")
-            registro = gr.Textbox(label="Registro", lines=8, interactive=False)
-        with gr.Tab("El estudio"):
-            gr.Markdown(estudio_md)
-        gr.HTML(f"<p class='pie'>Proyecto académico. No es asesoramiento financiero ni una recomendación de inversión. · "
-                f"<a href='{WEB}' target='_blank'>La web del proyecto</a> · <a href='{GITHUB}' target='_blank'>Código</a> · "
-                f"<a href='{MODELO}' target='_blank'>Modelos</a></p>")
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--puerto", type=int, default=PUERTO)
+    parser.add_argument("--sin-navegador", action="store_true", help="no abre el navegador")
+    args = parser.parse_args()
 
-        salidas = [estado, cifras, grafico, explicacion]
-        demo.load(vista, plazo, salidas)
-        plazo.change(vista, plazo, salidas)
-        boton.click(actualizar, plazo, salidas)
-        entrenar.click(reentrenar, [semillas, plazo], [registro, *salidas])
-        demo.load(ciclo, None, [g_ciclo, t_ciclo])
-    return demo
+    print("Cargando los modelos finales…")
+    servicio = Servicio()
+    servidor = crear_servidor(servicio, args.puerto)
+    url = f"http://127.0.0.1:{servidor.server_address[1]}/"
+    print(f"Modelos entrenados hasta el {ap.fecha(servicio.app.modelos_hasta)}.")
+    print(f"La aplicación está en {url}  (Ctrl + C para cerrarla)")
+    if not args.sin_navegador:
+        threading.Timer(0.6, webbrowser.open, args=(url,)).start()
+    try:
+        servidor.serve_forever()
+    except KeyboardInterrupt:
+        print("\nCerrada.")
+    finally:
+        servidor.server_close()
 
 
 if __name__ == "__main__":
-    construir().launch(theme=TEMA, css=CSS, js=FORZAR_OSCURO, share="--compartir" in sys.argv)
+    main()

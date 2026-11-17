@@ -11,6 +11,8 @@ import { iniciarCalma } from './calma.js';
 import { iniciarEspejismo } from './espejismo.js';
 import { iniciarHallazgos, iniciarMetodo, iniciarTabla, iniciarExamen } from './secciones.js';
 import { iniciarCiclo } from './ciclo.js';
+import { iniciarAcierto } from './acierto.js';
+import { iniciarActualizar } from './actualizar.js';
 import { iniciarRelieve } from './relieve.js';
 import { iniciarMovimiento } from './movimiento.js';
 
@@ -65,7 +67,8 @@ async function iniciar() {
   }
   probar('cinta', () => iniciarCinta(d));
   probar('hero', () => iniciarHero(d, { crudo, reducido }));
-  probar('prevision', () => iniciarPrevision(d, { reducido }));
+  const prevision = probar('prevision', () => iniciarPrevision(d, { reducido }));
+  probar('acierto', () => iniciarAcierto(d));
   probar('hallazgos', () => iniciarHallazgos(d));
   probar('ciclo', () => iniciarCiclo(d));
   probar('calma', () => iniciarCalma(d, { reducido }));
@@ -77,6 +80,9 @@ async function iniciar() {
   probar('movimiento', () => iniciarMovimiento(d, { reducido }));
 
   window.__webLista = true;
+
+  // Con la aplicación en marcha (python app/app.py), el botón «Actualizar datos»
+  probar('actualizar', () => iniciarActualizar(d, { prevision }));
 }
 
 iniciar();

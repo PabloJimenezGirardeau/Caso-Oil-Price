@@ -1,6 +1,7 @@
-// Panel de la previsión: pestañas por plazo, cifras, gráfico de abanico y la tarjeta de la
-// previsión en vivo. Regla de la web: ninguna previsión sin su rango del 80 % y sin el ingenuo.
-// Lo que aún no existe (la previsión de la red, la previsión en vivo) se muestra como pendiente.
+// Panel de la previsión: pestañas por plazo, cifras, gráfico de abanico, la explicación en lenguaje
+// sencillo y la tarjeta de la previsión en vivo. Regla de la web: ninguna previsión sin su rango del 80 %
+// y sin el ingenuo. Lo que aún no existe (la previsión de la red, la previsión en vivo) se muestra como
+// pendiente. Con la aplicación en marcha, `refrescar` vuelve a pintarlo con los datos nuevos (actualizar.js).
 
 import { nodo, vaciar, medir, escala, linea, banda, marcas, extremos, idUnico, alRedimensionar } from './graficos.js';
 import { numero, dolares, porcentaje, variacion, fecha, mesAño } from './formato.js';
@@ -18,8 +19,8 @@ const diaMes = (iso) => fecha(iso).split('/').slice(0, 2).join('/');
 const puntos = (margen) => numero(100 * margen, 100 * margen < 10 ? 1 : 0);
 
 export function iniciarPrevision(d, { reducido }) {
-  const pv = d.prevision;
-  const { precios } = d.historico;
+  let pv = d.prevision;
+  let precios = d.historico.precios;
   const panel = document.getElementById('pv-panel');
   const svg = document.getElementById('pv-grafico');
   const pestañas = [...document.querySelectorAll('#pv-pestanas [role="tab"]')];
@@ -54,8 +55,10 @@ export function iniciarPrevision(d, { reducido }) {
       el('pv-cobertura').textContent = `${porcentaje(p.cobertura)} ± ${puntos(p.margen)}`;
     }
 
+    // Con la explicación (qué significa, qué fiabilidad tiene, qué la invalida), la fiabilidad va en ella
+    const conExplicacion = Boolean(pv.explicaciones);
     const avisos = [];
-    if (p.orientativo) {
+    if (p.orientativo && !conExplicacion) {
       avisos.push(examen
         ? `A ${NOMBRE[plazo]} hay muy pocos movimientos independientes para comprobar el rango: acertó el ${porcentaje(p.cobertura)} en las pruebas `
           + `año a año y el ${porcentaje(examen.rango.cobertura)} en el examen final, con márgenes de ±${puntos(p.margen)} y ±${puntos(examen.rango.margen)} puntos. Es orientativo.`
@@ -64,7 +67,7 @@ export function iniciarPrevision(d, { reducido }) {
     if (pv.estado === 'provisional') {
       avisos.push(`Rango provisional: su anchura está ajustada solo con datos hasta el ${fecha(pv.ajuste_hasta)}, para no usar nada del periodo del examen final. El definitivo se publicará junto a la previsión de la red.`);
     }
-    if (examen && p.prevision_red !== null) {
+    if (examen && p.prevision_red !== null && !conExplicacion) {
       const diferencia = 100 * (examen.modelos[p.red].nota - 1);   // % más (o menos) error que el ingenuo
       const cuanto = Math.abs(diferencia) < 2
         ? `prácticamente lo mismo que el ingenuo (un ${numero(Math.abs(diferencia), 1)} % ${diferencia > 0 ? 'más' : 'menos'})`
@@ -75,6 +78,28 @@ export function iniciarPrevision(d, { reducido }) {
     const aviso = el('pv-provisional');
     aviso.hidden = avisos.length === 0;
     aviso.textContent = avisos.join(' ');
+    explicacion();
+  }
+
+  // ---------------------------------------------------------------- explicación
+  /** Los tres apartados del plazo elegido, escritos por la aplicación (aplicacion.explicar) */
+  function explicacion() {
+    const caja = el('pv-explicacion');
+    const partes = pv.explicaciones ? pv.explicaciones[plazo] : null;
+    caja.hidden = !partes;
+    if (!partes) return;
+    caja.textContent = '';
+    partes.forEach(({ titulo, texto }) => {
+      const bloque = document.createElement('div');
+      const nombre = document.createElement('p');
+      nombre.className = 'leyenda';
+      nombre.textContent = titulo;
+      const parrafo = document.createElement('p');
+      parrafo.className = 'vivo-texto';
+      parrafo.textContent = texto;
+      bloque.append(nombre, parrafo);
+      caja.appendChild(bloque);
+    });
   }
 
   // ---------------------------------------------------------------- gráfico
@@ -201,6 +226,16 @@ export function iniciarPrevision(d, { reducido }) {
   grafico();
   alRedimensionar(svg.parentElement, grafico);
   previsionEnVivo(d);
+
+  return {
+    /** Vuelve a pintar el panel con lo que haya ahora en d.prevision y d.historico */
+    refrescar() {
+      pv = d.prevision;
+      precios = d.historico.precios;
+      cifras();
+      grafico();
+    },
+  };
 }
 
 // -------------------------------------------------------------------- previsión en vivo (D34)

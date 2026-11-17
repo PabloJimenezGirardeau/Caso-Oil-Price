@@ -1,40 +1,25 @@
-"""Pruebas de la aplicación: formato, ciclo económico, abanico del rango y una ejecución completa con los modelos
-locales y la foto de los datos (sin descargar nada). Ejecutar con: python -m pytest"""
-import numpy as np
+"""Pruebas de la aplicación: formato, descarga, previsión con la foto de los datos (sin descargar nada), datos en
+el formato de la web y el servidor con su botón «Actualizar datos». Ejecutar con: python -m pytest"""
+import importlib.util
+import json
+import threading
+import urllib.error
+import urllib.request
+
 import pandas as pd
 import pytest
 
 from oil_price.inference import aplicacion as ap
+from oil_price.inference import datos_web as dw
 from oil_price.utils import config
-from oil_price.data import datos
+
+WEB = config.RAIZ / "web"
 
 
 def test_formato_espanol():
     assert ap.num(107.03) == "107,03" and ap.num(6501, 0) == "6.501" and ap.num(-0.5, 1) == "−0,5"
-    assert ap.dolares(9.12) == "9,12 $" and ap.variacion(3.54) == "+3,5 %" and ap.variacion(-12.14) == "−12,1 %"
+    assert ap.dolares(9.12) == "9,12\u00a0$" and ap.variacion(3.54) == "+3,5\u00a0%" and ap.variacion(-12.14) == "−12,1\u00a0%"
     assert ap.fecha("2026-11-03") == "3/11/2026" and ap.mes_año("2008-12-26") == "diciembre de 2008"
-
-
-def test_episodios_del_ciclo_buscados_en_los_datos():
-    precios = datos.cargar_datos_limpios()["brent"]
-    lista = ap.episodios(precios)
-    assert [e["titulo"] for e in lista] == ["Máximo histórico", "Crisis financiera", "Exceso de oferta", "Pandemia",
-                                            "Invasión de Ucrania", "Lo más reciente"]
-    assert [e["tipo"] for e in lista] == ["max", "min", "min", "min", "max", "max"]
-    for e in lista:                                           # fecha y precio salen de la serie, no del texto
-        assert precios.loc[e["fecha"]] == pytest.approx(e["precio"])
-    assert lista[0]["fecha"] == pd.Timestamp("2008-07-03") and lista[3]["precio"] == pytest.approx(9.12)
-    assert "9,12 $" in lista[3]["texto"] and "toda la serie" in lista[3]["texto"]
-    assert lista[1]["precio"] < lista[0]["precio"] and "77 %" in lista[1]["texto"]
-
-
-def test_limite_del_abanico_empieza_en_cero_y_pasa_por_los_rangos():
-    nudos = [(5, {"bajo": 95.0, "alto": 105.0}), (63, {"bajo": 70.0, "alto": 140.0})]
-    assert ap._limite(nudos, 100.0, 0, "alto") == 0
-    assert 100 * np.exp(ap._limite(nudos, 100.0, 5, "alto")) == pytest.approx(105.0)
-    assert 100 * np.exp(ap._limite(nudos, 100.0, 63, "bajo")) == pytest.approx(70.0)
-    crece = [ap._limite(nudos, 100.0, s, "alto") for s in range(0, 64)]
-    assert all(b >= a for a, b in zip(crece, crece[1:]))      # el abanico solo se abre
 
 
 def test_la_descarga_incompleta_no_se_guarda(tmp_path, monkeypatch):
@@ -50,31 +35,89 @@ def test_la_descarga_incompleta_no_se_guarda(tmp_path, monkeypatch):
 
 
 @pytest.fixture(scope="module")
-def app(tmp_path_factory):
-    vacia = tmp_path_factory.mktemp("sin_datos")              # sin datos descargados: usa la foto del estudio
-    return ap.Aplicacion(config.RAIZ / "web" / "data", directorio_datos=vacia).cargar(descargar=False)
+def vacia(tmp_path_factory):
+    return tmp_path_factory.mktemp("sin_datos")               # sin datos descargados: usa la foto del estudio
+
+
+@pytest.fixture(scope="module")
+def app(vacia):
+    return ap.Aplicacion(WEB / "data", directorio_datos=vacia).cargar(descargar=False)
 
 
 def test_aplicacion_completa_con_la_foto_del_estudio(app):
     assert app.origen.startswith("la foto del estudio") and app.ultimo_dia == config.FECHA_CORTE
-    assert list(app.tabla.index) == ["corto", "largo", "medio"] or set(app.tabla.index) == set(ap.ORDEN)
+    assert set(app.tabla.index) == set(ap.ORDEN) and app.modelos_hasta == config.FECHA_CORTE
     for h in ap.ORDEN:
         f = app.fila(h)
         assert f["rango bajo"] < f["precio hoy"] < f["rango alto"] and f["fecha origen"] == config.FECHA_CORTE.date()
-        texto = app.explicacion(h)
-        assert all(k in texto for k in ("Qué significa", "Qué fiabilidad tiene", "Qué puede invalidarla"))
-        assert ap.dolares(f["precio previsto"]) in texto and ap.NOMBRE[h] in texto
-    assert "orientativo" in app.explicacion("largo").lower() and "orientativo" not in app.explicacion("corto").lower().split("rango")[0]
-    # Las previsiones coinciden con las congeladas en resultados/en_vivo.csv desde el 3/11/2026
+        partes = app.explicacion(h)
+        assert [p["titulo"] for p in partes] == ["Qué significa", "Qué fiabilidad tiene", "Qué puede invalidarla"]
+        texto = " ".join(p["texto"] for p in partes)
+        assert ap.dolares(f["precio previsto"]) in texto and ap.NOMBRE[h] in texto and "*" not in texto
+    assert "orientativo" in app.explicacion("largo")[1]["texto"] and "orientativo." not in app.explicacion("corto")[1]["texto"]
+    # Los datos solo pasan por los modelos: las previsiones son las congeladas en resultados/en_vivo.csv desde el 3/11/2026
     v = pd.read_csv(config.DIR_RESULTADOS / "en_vivo.csv")
     v = v[v["version"].str.startswith("modelos finales") & (v["fecha origen"] == "2026-11-03")].set_index("horizonte")
     for h in ap.ORDEN:
         assert app.fila(h)["precio previsto"] == pytest.approx(v.loc[h, "precio previsto"], abs=1e-3)
 
 
-def test_graficos_y_tabla_del_estudio(app):
-    fig = app.grafico_prevision("medio")
-    assert [t.name for t in fig.data][0] == "Brent" and any(t.name and t.name.startswith("Previsión") for t in fig.data)
-    assert len(app.grafico_ciclo().data[1].x) == 6
-    tabla = ap.tabla_comparativa(app.estudio, "corto")
-    assert tabla.count("\n") == 6 and "**LSTM**" in tabla and "Ingenuo (precio de hoy)" in tabla
+def test_actualizacion_en_el_formato_de_la_web(app):
+    """Lo que devuelve el botón tiene la misma forma que los JSON publicados, y la web lo pinta igual."""
+    publicada = json.loads((WEB / "data" / "prevision.json").read_text(encoding="utf-8"))
+    a = dw.actualizacion(app, publicada)
+    pv = a["prevision"]
+    assert set(pv) == set(publicada) and pv["estado"] == "al momento" and pv["fecha"] == "2026-11-03"
+    for h in ap.ORDEN:
+        assert set(pv["plazos"][h]) == set(publicada["plazos"][h])
+        assert pv["plazos"][h]["prevision_red"] == pytest.approx(app.fila(h)["precio previsto"], abs=0.006)
+        assert pv["plazos"][h]["cobertura"] == publicada["plazos"][h]["cobertura"]      # lo que dijo el estudio
+        assert [p["titulo"] for p in pv["explicaciones"][h]] == [p["titulo"] for p in publicada["explicaciones"][h]]
+    assert a["historico"]["fechas"][-1] == pv["fecha"] and a["historico"]["precios"][-1] == pv["precio"]
+    assert set(a["cotizaciones"]) == {"fecha", "valores"} and len(a["cotizaciones"]["valores"]) == len(dw.COTIZACIONES)
+    assert a["estado"]["modelos_hasta"] == "2026-11-03" and a["estado"]["origen"].startswith("la foto")
+
+
+# --- El servidor --------------------------------------------------------------------------------------
+
+def _cargar_app_py():
+    spec = importlib.util.spec_from_file_location("app_brent", config.RAIZ / "app" / "app.py")
+    modulo = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(modulo)
+    return modulo
+
+
+@pytest.fixture(scope="module")
+def servidor(vacia):
+    modulo = _cargar_app_py()
+    srv = modulo.crear_servidor(modulo.Servicio(descargar=False, directorio_datos=vacia), puerto=0)
+    hilo = threading.Thread(target=srv.serve_forever, daemon=True)
+    hilo.start()
+    yield f"http://127.0.0.1:{srv.server_address[1]}"
+    srv.shutdown()
+    srv.server_close()
+
+
+def _pedir(url, metodo="GET"):
+    with urllib.request.urlopen(urllib.request.Request(url, method=metodo, data=b"" if metodo == "POST" else None),
+                                timeout=120) as r:
+        return r.status, r.headers.get("Content-Type", ""), r.read()
+
+
+def test_el_servidor_sirve_la_web_tal_cual(servidor):
+    estado, tipo, cuerpo = _pedir(servidor + "/")
+    assert estado == 200 and "text/html" in tipo and cuerpo == (WEB / "index.html").read_bytes()
+    estado, tipo, _ = _pedir(servidor + "/assets/js/principal.js")
+    assert estado == 200 and tipo.startswith("text/javascript")          # si no, el navegador no carga los módulos
+    estado, tipo, cuerpo = _pedir(servidor + "/api/estado")
+    assert estado == 200 and json.loads(cuerpo) == {"servidor": True, "modelos_hasta": "2026-11-03"}
+
+
+def test_el_boton_actualizar_datos(servidor):
+    estado, tipo, cuerpo = _pedir(servidor + "/api/actualizar", "POST")
+    datos = json.loads(cuerpo)
+    assert estado == 200 and "application/json" in tipo
+    assert set(datos) == {"prevision", "historico", "cotizaciones", "estado"} and datos["prevision"]["fecha"] == "2026-11-03"
+    with pytest.raises(urllib.error.HTTPError) as error:
+        _pedir(servidor + "/api/otra", "POST")
+    assert error.value.code == 404

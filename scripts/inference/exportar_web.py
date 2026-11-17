@@ -14,7 +14,12 @@ Archivos:
                       con los tres plazos (resultados/en_vivo.csv), con su rango del 80 % (D34);
 - test.json           examen final (D33): nota de cada modelo, conclusiones y rango;
 - en_vivo.json        historial de previsiones en vivo a 1 semana, cada una con el commit que la
-                      guardó antes de conocer el precio, y su comprobación cuando existe (D34).
+                      guardó antes de conocer el precio, y su comprobación cuando existe (D34);
+- acierto.json        «¿Acierta el modelo?»: la red elegida frente al precio real en cada ficha del examen,
+                      su R² y cuándo acierta y cuándo falla (analisis_examen).
+
+La previsión publicada lleva su explicación en lenguaje sencillo, la misma que da la aplicación (app/app.py),
+que con el botón «Actualizar datos» rellena estos mismos formatos con datos nuevos (inference/datos_web.py).
 
 Precios recientes. Si hay datos descargados (data/actual/, con `descarga.actualizar`), el histórico
 y las cotizaciones llegan hasta el último Brent publicado; si no, hasta el 3/11/2026 (la foto del
@@ -42,6 +47,10 @@ from oil_price.training import estabilidad as es
 from oil_price.training import experimentos as ex
 from oil_price.evaluation import hacia_atras as ha
 from oil_price.evaluation import incertidumbre as inc
+from oil_price.evaluation import analisis_examen as ae
+from oil_price.inference import datos_web as dw
+from oil_price.inference.datos_web import brent_real, cotizaciones, historico
+from oil_price.inference.datos_web import fecha_iso as _fecha, lista as _lista, redondear as _num
 
 DIR_WEB = config.RAIZ / "web" / "data"
 
@@ -55,23 +64,9 @@ ORIENTATIVO = {"corto": False, "medio": False, "largo": True}
 EN_VIVO = config.DIR_RESULTADOS / "en_vivo.csv"
 COMPROBACION = config.DIR_RESULTADOS / "en_vivo_comprobacion.csv"
 FINALES = "modelos finales"   # comienzo del nombre de la versión de los modelos finales en en_vivo.csv
-COTIZACIONES = {"brent": "Brent", "wti": "WTI", "gas_natural": "Gas natural", "oro": "Oro",
-                "cobre": "Cobre", "vix": "VIX"}
 SERIE_RANGO = ("2019-01-01", "2021-12-31")        # sección «Calma y tormenta»
 SERIE_ESPEJISMO = ("2018-07-01", "2019-12-31")    # sección «El espejismo»
 VENTANA_ESPEJISMO = ("2018-10-01", "2019-02-28")  # tramo que la web enseña al abrir (el desplome de finales de 2018)
-
-
-def _fecha(valor):
-    return pd.Timestamp(valor).strftime("%Y-%m-%d")
-
-
-def _num(valor, decimales=4):
-    return None if valor is None or pd.isna(valor) else round(float(valor), decimales)
-
-
-def _lista(valores, decimales=2):
-    return [_num(v, decimales) for v in valores]
 
 
 def guardar(nombre, contenido):
@@ -91,30 +86,6 @@ def guardar_pendiente(nombre, contenido):
 
 
 # --- Datos --------------------------------------------------------------------------------------
-
-def brent_real():
-    """Tabla del CSV solo en los días en que cotizó el Brent, hasta el último dato real. Con datos
-    descargados (data/actual/), esos, hasta el último Brent publicado; si no, la foto del estudio."""
-    if (descarga.DIR_ACTUAL / "petroleo_dataset.csv").exists():
-        tabla = datos.cargar_dataset(descarga.DIR_ACTUAL / "petroleo_dataset.csv")
-        dias = datos.cargar_dias_brent(descarga.DIR_ACTUAL / "dias_brent.csv")
-        return tabla.loc[tabla.index.isin(dias)].dropna(subset=["brent"])
-    tabla = datos.cargar_dataset()
-    tabla = tabla.loc[tabla.index.isin(datos.cargar_dias_brent())]
-    return tabla.loc[:config.FECHA_CORTE].dropna(subset=["brent"])
-
-
-def historico(tabla):
-    return {"fechas": [_fecha(f) for f in tabla.index], "precios": _lista(tabla["brent"])}
-
-
-def cotizaciones(tabla):
-    ultimo, anterior = tabla.iloc[-1], tabla.iloc[-2]
-    return {"fecha": _fecha(tabla.index[-1]),
-            "valores": [{"clave": c, "nombre": n, "valor": _num(ultimo[c], 2),
-                         "variacion": _num(100 * (ultimo[c] / anterior[c] - 1), 2)}
-                        for c, n in COTIZACIONES.items()]}
-
 
 # --- Previsiones de 2010-2021 --------------------------------------------------------------------
 
@@ -201,28 +172,22 @@ def rango(finales, ctx):
     return salida
 
 
-def prevision(datos_rango, tabla):
+def prevision(datos_rango, tabla, estudio):
     """La previsión publicada (D34): la de los modelos finales desde el último día de origen que tiene
     los tres plazos en resultados/en_vivo.csv (guardada allí antes de conocer los precios), con su
-    rango del 80 %, el elegido en cada plazo centrado en el precio de ese día (D30, D32)."""
+    rango del 80 %, el elegido en cada plazo centrado en el precio de ese día (D30, D32), y su explicación
+    en lenguaje sencillo (la misma que da la aplicación)."""
     v = pd.read_csv(EN_VIVO, parse_dates=["fecha origen", "fecha objetivo (estimada)"])
     v = v[v["version"].str.startswith(FINALES)]
     completos = v.groupby("fecha origen")["horizonte"].nunique()
     dia = completos[completos == len(HORIZONTES)].index.max()
     filas = v[v["fecha origen"] == dia].drop_duplicates("horizonte", keep="last").set_index("horizonte")
-    precio = float(filas["precio hoy"].iloc[0])
-    r = np.log(tabla["brent"].loc[:dia]).diff().iloc[-config.DIAS_VOLATILIDAD:]
-    plazos = {}
-    for h in HORIZONTES:
-        f, medido = filas.loc[h], datos_rango["plazos"][h]["elegido"]
-        plazos[h] = {"sesiones": config.HORIZONTES[h], "fecha_objetivo": _fecha(f["fecha objetivo (estimada)"]),
-                     # días laborables: exacta a 1 semana salvo festivo; aproximada a 3 meses y a 1 año
-                     "fecha_aproximada": h != "corto", "red": RED_ELEGIDA[h],
-                     "prevision_red": _num(f["precio previsto"], 2), "ingenuo": _num(precio, 2),
-                     "bajo": _num(f["rango bajo"], 2), "alto": _num(f["rango alto"], 2),
-                     "cobertura": medido["cobertura"], "margen": medido["margen"], "orientativo": ORIENTATIVO[h]}
-    return {"estado": "definitiva", "fecha": _fecha(dia), "precio": _num(precio, 2),
-            "volatilidad": _num(r.std() * np.sqrt(252), 3), "ajuste_hasta": _fecha(dia), "plazos": plazos}
+    filas = filas.assign(red=[RED_ELEGIDA[h] for h in filas.index])
+    plazos_estudio = {h: {"cobertura": datos_rango["plazos"][h]["elegido"]["cobertura"],
+                          "margen": datos_rango["plazos"][h]["elegido"]["margen"], "orientativo": ORIENTATIVO[h]}
+                      for h in HORIZONTES}
+    precios = tabla["brent"]
+    return dw.prevision(filas, plazos_estudio, precios, explicaciones=dw.explicaciones(filas, estudio, precios))
 
 
 def test(ctx):
@@ -233,6 +198,7 @@ def test(ctx):
     concl = exa.conclusiones(p)
     rangos = exa.resumen_rangos(exa.rangos_examen(p, ctx))
     por_año = ha.notas_por_año(ha.sumas_por_año(p))
+    r2 = ae.tabla_r2(p)
     plazos = {}
     for h in HORIZONTES:
         modelos = {}
@@ -241,7 +207,10 @@ def test(ctx):
             modelos[m] = {"nota": _num(f["MAE / ingenuo"]), "mae": _num(f["MAE ($)"], 2), "rmse": _num(f["RMSE ($)"], 2),
                           "mejora": _num(f["mejora frente al ingenuo (MAE)"]),
                           "parametros": None if pd.isna(f["parámetros"]) else int(f["parámetros"]),
-                          "segundos": _num(f["segundos por entrenamiento"], 1)}
+                          "segundos": _num(f["segundos por entrenamiento"], 1),
+                          "r2_precio": _num(r2.loc[(h, m), "R² precio"], 3),
+                          "r2_variacion": _num(r2.loc[(h, m), "R² variación"], 3),
+                          "r2_frente": _num(r2.loc[(h, m), "R² frente al ingenuo"], 3)}
             if m != "ingenuo":
                 modelos[m] |= {"p": _num(concl.loc[(h, m), "p (dos colas)"], 3), "conclusion": concl.loc[(h, m), "en el test"],
                                "por_año": {str(a): _num(v, 3) for a, v in por_año.loc[(h, m)].dropna().items()}}
@@ -253,6 +222,39 @@ def test(ctx):
                                "tercios": {t_: _num(r[t_]) for t_ in inc.TERCIOS}, "mejora": _num(mejora),
                                "mejora_pct": int(round(100 * mejora)), "veredicto": r["veredicto"]}}
     return {"estado": "hecho", "periodo": "2022-2026", "plazos": plazos}
+
+
+def acierto(ctx):
+    """«¿Acierta el modelo?» (análisis del examen, 17/11/2026): en cada plazo, la red elegida frente al precio
+    real en cada ficha del examen, colocada en la fecha prevista (con el ingenuo y el rango del 80 %), su R²
+    y cuándo acierta y cuándo falla. Sale de las previsiones guardadas del examen: no entrena nada."""
+    p = exa.previsiones_examen()
+    rangos = exa.rangos_examen(p, ctx)
+    r2 = ae.tabla_r2(p)
+    grupos = ae.por_grupos(p, rangos)
+    plazos = {}
+    for h in HORIZONTES:
+        red = RED_ELEGIDA[h]
+        s = ae.serie(p, rangos, h)
+        g = grupos[(grupos["horizonte"] == h) & (grupos["modelo"] == red)]
+        f = p[(p["horizonte"] == h) & (p["modelo"] == red)]
+        plazos[h] = {
+            "red": red, "fechas": [_fecha(x) for x in s.index], "origen": [_fecha(x) for x in s["fecha origen"]],
+            "real": _lista(s["precio real"]), "red_precios": _lista(s["precio previsto"]),
+            "ingenuo": _lista(s["precio hoy"]), "bajo": _lista(s["rango bajo"]), "alto": _lista(s["rango alto"]),
+            "cobertura": _num(s["dentro del rango"].mean()),
+            "subidas_previstas": _num((f["variación prevista"] > 0).mean(), 3),
+            "subidas_reales": _num((f["variación real"] > 0).mean(), 3),
+            "r2": {quien: {"precio": _num(r2.loc[(h, quien), "R² precio"], 3),
+                           "variacion": _num(r2.loc[(h, quien), "R² variación"], 3),
+                           "frente": _num(r2.loc[(h, quien), "R² frente al ingenuo"], 3)} for quien in (red, ae.INGENUO)},
+            "grupos": [{"criterio": "mercado" if x["criterio"] == "mercado ese día" else "movimiento",
+                        "grupo": str(x["grupo"]), "fichas": int(x["fichas"]), "nota": _num(x["MAE / ingenuo"], 3),
+                        "direccion": _num(x["acierto de dirección"], 3),
+                        "prevista": _num(np.expm1(x["variación prevista media"])),
+                        "real": _num(np.expm1(x["variación real media"]))} for _, x in g.iterrows()],
+        }
+    return {"periodo": "2022-2026", "plazos": plazos}
 
 
 def _commits(ruta):
@@ -325,16 +327,18 @@ def main():
     ctx = inc.contexto(bases)
     finales = previsiones_finales(bases)
     datos_rango = rango(finales, ctx)
-    datos_prevision = prevision(datos_rango, tabla)
+    datos_test, datos_validacion = test(ctx), validacion(finales)
+    datos_prevision = prevision(datos_rango, tabla, {"test": datos_test, "validacion": datos_validacion})
 
     guardar("historico.json", historico(tabla))
     guardar("cotizaciones.json", cotizaciones(tabla))
-    guardar("validacion.json", validacion(finales))
+    guardar("validacion.json", datos_validacion)
     guardar("rango.json", datos_rango)
     guardar("espejismo.json", espejismo())
     guardar("prevision.json", datos_prevision)
-    guardar("test.json", test(ctx))
+    guardar("test.json", datos_test)
     guardar("en_vivo.json", en_vivo())
+    guardar("acierto.json", acierto(ctx))
     print("Hecho.")
 
 

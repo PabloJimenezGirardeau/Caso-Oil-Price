@@ -1,5 +1,6 @@
-# Dependencias de la aplicación, además de las del proyecto: pip install -r app/requirements.txt
-gradio
+# Dependencias de la aplicación. Dentro del entorno del proyecto (poetry install) solo falta huggingface_hub,
+# para descargar los modelos de Hugging Face si no están en modelos/final:  pip install huggingface_hub
+# En un entorno nuevo, todo:  pip install -r app/requirements.txt
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch
 numpy
@@ -7,5 +8,4 @@ pandas>=3.0
 yfinance
 optuna
 matplotlib
-plotly
 huggingface_hub
