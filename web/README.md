@@ -5,7 +5,7 @@ La web que presenta el proyecto: «No sabemos adónde irá el Brent. Sabemos cu�
 - **Publicada en GitHub Pages**, desde esta carpeta: lee los JSON de `data/`, que genera `scripts/inference/exportar_web.py` a partir de `resultados/`, y enseña el estudio y la previsión publicada. No calcula nada.
 - **Servida por la aplicación** (`python app/app.py`, desde la raíz del repositorio): la misma página, y además funciona el botón **Actualizar datos** de «La previsión». Python descarga los datos de FRED y Yahoo Finance, los pasa por los modelos finales (sin reentrenar) y devuelve la previsión, el histórico y la cinta en el mismo formato que los JSON, de modo que la web los pinta con su propio código.
 
-En GitHub Pages, en lugar del botón aparece un enlace a cómo ejecutar la aplicación en local. Todas las cifras salen de los JSON o de los modelos.
+En GitHub Pages no hay botón: hasta el 30/11/2026, la web publicada se actualiza sola cada mañana (`.github/workflows/actualizar.yml`): si FRED ha publicado un día nuevo, se guarda una previsión nueva, se comprueban las pendientes, se regeneran los JSON y se vuelve a publicar. Todas las cifras salen de los JSON o de los modelos.
 
 ## Verla en local
 
@@ -43,6 +43,8 @@ Si hay datos descargados en `data/actual/` (`python -c "from oil_price.data impo
 
 ### Cómo se añade una previsión en vivo
 
+Hasta el 30/11/2026 lo hace sola la actualización diaria (`scripts/inference/actualizar_diario.py`, desde GitHub Actions). A mano:
+
 1. Descargar datos nuevos (comando de arriba).
 2. `python scripts/inference/prever.py --desde AAAA-MM-DD` con el día de origen (el último con Brent): la añade a `resultados/en_vivo.csv`.
 3. **Commit y push antes de que se publique el precio que prevé.** El exportador busca en la historia de git el commit que guardó cada previsión y la web lo enlaza; sin commit, sale como «sin guardar».
@@ -70,7 +72,7 @@ web/
     │   ├── hero.js       La línea del Brent y el abanico del 80 %
     │   ├── cinta.js      Cinta de cotizaciones
     │   ├── prevision.js  Panel de la previsión, su explicación e historial de previsiones en vivo (tabla y gráfico)
-    │   ├── actualizar.js El botón «Actualizar datos» (solo con la aplicación en marcha) o el enlace a cómo ejecutarla
+    │   ├── actualizar.js El botón «Actualizar datos» (solo con la aplicación en marcha) y el estado de los datos
     │   ├── acierto.js    «¿Acierta el modelo?»: real frente a previsto en el examen, R² y cuándo acierta y cuándo falla
     │   ├── ciclo.js      «El ciclo del petróleo»: picos y caídas del Brent, buscados en los datos, y su explicación
     │   ├── calma.js      «Calma y tormenta»

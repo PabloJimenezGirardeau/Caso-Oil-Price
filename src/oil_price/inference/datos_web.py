@@ -83,7 +83,9 @@ def prevision(filas, plazos_estudio, precios, estado="definitiva", explicaciones
                      "bajo": redondear(f["rango bajo"], 2), "alto": redondear(f["rango alto"], 2),
                      "cobertura": e["cobertura"], "margen": e["margen"], "orientativo": e["orientativo"]}
     salida = {"estado": estado, "fecha": fecha_iso(dia), "precio": redondear(precio, 2),
-              "volatilidad": redondear(r.std() * np.sqrt(252), 3), "ajuste_hasta": fecha_iso(dia), "plazos": plazos}
+              "volatilidad": redondear(r.std() * np.sqrt(252), 3), "ajuste_hasta": fecha_iso(dia), "plazos": plazos,
+              # hasta cuándo se actualiza sola la web publicada (GitHub Actions, cada mañana)
+              "automatico_hasta": fecha_iso(config.ACTUALIZACION_HASTA)}
     if explicaciones is not None:
         salida["explicaciones"] = explicaciones
     return salida

@@ -1,8 +1,8 @@
 // El botón «Actualizar datos». Solo funciona con la aplicación en marcha (python app/app.py): Python sirve
 // esta misma web y, al pulsarlo, descarga los datos de FRED y Yahoo Finance y los pasa por los modelos
 // finales, ya entrenados (no se reentrena nada). La web se vuelve a pintar con su propio código: mismo
-// diseño, datos nuevos. En GitHub Pages no hay Python detrás: se enseña la previsión publicada y un enlace
-// a cómo ejecutar la aplicación en local.
+// diseño, datos nuevos. En GitHub Pages no hay Python detrás: la previsión publicada se actualiza sola cada
+// mañana (GitHub Actions, hasta prevision.automatico_hasta) y aquí solo se dice.
 
 import { calcular } from './datos.js';
 import { enlazar, fecha } from './formato.js';
@@ -22,16 +22,17 @@ async function preguntarServidor() {
 
 export async function iniciarActualizar(d, { prevision }) {
   const boton = document.getElementById('pv-actualizar');
-  const enlaceLocal = document.getElementById('pv-local');
   const estado = document.getElementById('pv-estado');
   if (!boton || !estado) return;
   const entrenados = (iso) => `modelos entrenados hasta el ${fecha(iso)}`;
 
   const servidor = await preguntarServidor();
   if (!servidor) {
-    enlaceLocal.hidden = false;
-    estado.textContent = `Previsión publicada con los datos hasta el ${fecha(d.prevision.fecha)}. `
-      + 'Para descargar los de hoy y pasarlos por los modelos, ejecuta la aplicación en local.';
+    const hasta = d.prevision.automatico_hasta;
+    const sigue = Boolean(hasta) && Date.now() <= Date.parse(`${hasta}T23:59:59`);
+    estado.textContent = `Previsión con los datos hasta el ${fecha(d.prevision.fecha)}, el último día publicado por FRED.`
+      + (sigue ? ` Hasta el ${fecha(hasta)} se actualiza sola cada mañana: en cuanto FRED publica un día nuevo, `
+        + 'los datos pasan por los modelos, sin reentrenarlos, y la previsión se guarda.' : '');
     return;
   }
 

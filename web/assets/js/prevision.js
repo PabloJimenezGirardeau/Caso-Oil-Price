@@ -292,11 +292,15 @@ function graficoEnVivo(svg, v, historico) {
     + `${reales.length} comprobadas, ${reales.filter((p) => p.dentro).length} dentro de su rango.`);
 }
 
-/** Historial: todas las previsiones en vivo, también las que fallaron, con el commit que las guardó */
-function historialEnVivo(v, historico) {
+const RECIENTES = 6;   // filas de la tabla y del gráfico: las últimas ya comprobadas; el resumen cuenta todas
+
+/** Historial de previsiones en vivo, también las que fallaron. La tabla y el gráfico enseñan las últimas que
+    ya tienen su precio publicado (se van corriendo); las que lo esperan no se enseñan, solo se cuentan */
+function historialEnVivo(v, historico, automaticoHasta) {
   const tarjeta = document.getElementById('vivo');
   const lista = v.previsiones;
   const comprobadas = lista.filter((x) => x.estado === 'comprobada');
+  const recientes = comprobadas.slice(-RECIENTES);
   const dentro = comprobadas.filter((x) => x.dentro).length;
   const pendientes = lista.length - comprobadas.length;
 
@@ -310,23 +314,36 @@ function historialEnVivo(v, historico) {
   const titulo = crear('h3', 'vivo-titulo', 'Previsiones en vivo · a 1 semana ');
   titulo.appendChild(crear('span', 'chip', `${comprobadas.length} de ${lista.length} comprobadas`));
   cabecera.appendChild(titulo);
+  const sigue = Boolean(automaticoHasta) && Date.now() <= Date.parse(`${automaticoHasta}T23:59:59`);
   const texto = crear('p', 'vivo-texto', `Cada previsión de la ${v.red} se guarda con fecha en el repositorio antes de descargar `
-    + 'el precio que prevé, y se comprueba cuando se publica. Se muestran todas, también las que fallan.');
+    + 'el precio que prevé, y se comprueba cuando se publica, también si falla. FRED publica los precios por tandas, '
+    + 'con alrededor de una semana de retraso: con cada tanda se guarda una previsión desde cada día nuevo cuya fecha '
+    + 'aún no ha llegado, y se comprueba en cuanto se publica su precio. '
+    + `En la tabla y el gráfico, las ${RECIENTES} últimas ya comprobadas`
+    + (pendientes ? `; ${pendientes === 1 ? 'otra espera' : `otras ${pendientes} esperan`} su precio.` : '.')
+    + (sigue ? ` Hasta el ${fecha(automaticoHasta)}, todo esto se hace solo cada mañana.` : ''));
   texto.style.marginTop = '10px';
   cabecera.appendChild(texto);
-  comprobadas.forEach((x) => {
-    const errorRed = Math.abs(x.prevision_red - x.precio_real);
-    const errorIngenuo = Math.abs(x.precio_origen - x.precio_real);
-    const cambio = 100 * (x.precio_real / x.precio_origen - 1);
-    const p = crear('p', 'vivo-texto', `${fecha(x.fecha_objetivo)}: el precio ${cambio < 0 ? 'cayó' : 'subió'} un `
-      + `${numero(Math.abs(cambio), 1)} % en una semana y quedó ${x.dentro ? 'dentro' : 'fuera'} del rango. `
-      + `La red se equivocó en ${dolares(errorRed)} y el ingenuo en ${dolares(errorIngenuo)}.`
-      + (x.dentro ? '' : ' Un rango del 80 % debe dejar fuera el precio una de cada cinco veces.'));
+  // El resumen de todas las comprobadas y el detalle de la última
+  const errorRed = (x) => Math.abs(x.prevision_red - x.precio_real);
+  const errorIngenuo = (x) => Math.abs(x.precio_origen - x.precio_real);
+  if (comprobadas.length > 1) {
+    const redMejor = comprobadas.filter((x) => errorRed(x) < errorIngenuo(x)).length;
+    const resumen = crear('p', 'vivo-texto', `Comprobadas hasta ahora: ${comprobadas.length}. Dentro del rango, ${dentro} `
+      + `(un rango del 80 % debería acertar unas ${numero(0.8 * comprobadas.length, 0)}). La red se equivocó menos que el `
+      + `ingenuo en ${redMejor}.`);
+    resumen.style.marginTop = '10px';
+    cabecera.appendChild(resumen);
+  }
+  const ultima = comprobadas.at(-1);
+  if (ultima) {
+    const cambio = 100 * (ultima.precio_real / ultima.precio_origen - 1);
+    const p = crear('p', 'vivo-texto', `${comprobadas.length > 1 ? 'La última, el ' : ''}${fecha(ultima.fecha_objetivo)}: el precio `
+      + `${cambio < 0 ? 'cayó' : 'subió'} un ${numero(Math.abs(cambio), 1)} % en una semana y quedó ${ultima.dentro ? 'dentro' : 'fuera'} `
+      + `del rango. La red se equivocó en ${dolares(errorRed(ultima))} y el ingenuo en ${dolares(errorIngenuo(ultima))}.`
+      + (ultima.dentro ? '' : ' Un rango del 80 % debe dejar fuera el precio una de cada cinco veces.'));
     p.style.marginTop = '10px';
     cabecera.appendChild(p);
-  });
-  if (comprobadas.length > 1) {
-    cabecera.appendChild(crear('p', 'vivo-texto', `Dentro del rango: ${dentro} de ${comprobadas.length}.`));
   }
   tarjeta.appendChild(cabecera);
 
@@ -344,7 +361,7 @@ function historialEnVivo(v, historico) {
   };
   fila(tabla.appendChild(crear('thead')), ['Día previsto', `Red (${v.red})`, 'Ingenuo', 'Rango del 80 %', 'Precio real'], 'th');
   const cuerpo = tabla.appendChild(crear('tbody'));
-  lista.forEach((x) => {
+  recientes.forEach((x) => {
     const dia = [crear('span', null, fecha(x.fecha_objetivo)), crear('small', null, `desde el ${diaMes(x.fecha_origen)}`)];
     const real = x.estado === 'comprobada'
       ? [crear('span', null, numero(x.precio_real, 2)), crear('small', x.dentro ? null : 'ambar', x.dentro ? 'dentro' : 'fuera')]
@@ -373,13 +390,14 @@ function historialEnVivo(v, historico) {
     + '<span class="ambar">● Previsión de la red</span><span>✕ Precio real comprobado</span>';
   bloque.append(contenedor, leyenda);
   tarjeta.appendChild(bloque);
-  graficoEnVivo(svg, v, historico);
-  alRedimensionar(contenedor, () => graficoEnVivo(svg, v, historico));
+  const vista = { ...v, previsiones: recientes };
+  graficoEnVivo(svg, vista, historico);
+  alRedimensionar(contenedor, () => graficoEnVivo(svg, vista, historico));
 }
 
 function previsionEnVivo(d) {
   const v = d.en_vivo;
-  if (Array.isArray(v.previsiones)) { historialEnVivo(v, d.historico); return; }
+  if (Array.isArray(v.previsiones)) { historialEnVivo(v, d.historico, d.prevision.automatico_hasta); return; }
   const tarjeta = document.getElementById('vivo');
   const objetivo = fecha(v.fecha_objetivo);
   const hecha = v.estado !== 'pendiente' && v.bajo !== null && v.alto !== null;

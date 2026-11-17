@@ -143,7 +143,6 @@
             <div class="pv-acciones">
               <!-- Con la aplicación en marcha (python app/app.py), descarga datos nuevos y los pasa por los modelos (actualizar.js) -->
               <button type="button" class="boton boton-ambar boton-s" id="pv-actualizar" hidden>Actualizar datos</button>
-              <a class="boton boton-linea boton-s" id="pv-local" href="https://github.com/PabloJimenezGirardeau/Caso-Oil-Price#puesta-en-marcha" rel="noopener" hidden>Actualizar en local</a>
               <div class="pestanas" role="tablist" aria-label="Plazo de la previsión" id="pv-pestanas">
                 <button type="button" role="tab" id="pv-tab-corto" data-plazo="corto" aria-selected="true" aria-controls="pv-panel">1 semana</button>
                 <button type="button" role="tab" id="pv-tab-medio" data-plazo="medio" aria-selected="false" aria-controls="pv-panel" tabindex="-1">3 meses</button>
@@ -346,6 +345,7 @@
                 <span><i class="relleno"></i>Nuestro rango (de calma a tormenta)</span>
                 <span><i class="discontinua"></i>Rango fijo</span>
               </div>
+              <p class="calma-nota" id="cl-nota" hidden>A 3 meses, cada rango aparece en la fecha a la que se refiere: los calculados en pleno desplome de abril de 2020, con el mercado en pánico y el Brent hundido, se ven en julio, enormes y centrados en aquel precio. Se cortan en el borde del gráfico.</p>
             </div>
 
             <aside class="tarjeta cobertura" data-revela aria-label="Cobertura del rango en calma, normal y tormenta">

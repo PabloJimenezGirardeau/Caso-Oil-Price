@@ -17,6 +17,9 @@ DIR_RESULTADOS = RAIZ / "resultados"               # resultados de los experimen
 # --- Periodo de estudio --------------------------------------------------------
 FECHA_INICIO = pd.Timestamp("2000-08-30")  # primer día con oro y cobre (D5)
 FECHA_CORTE = pd.Timestamp("2026-11-03")   # último Brent real de la foto de datos (D3, D12)
+# La actualización automática diaria (GitHub Actions: datos, previsión en vivo y comprobación) se para después
+# de este día (decisión de Pablo, 17/11/2026)
+ACTUALIZACION_HASTA = pd.Timestamp("2026-11-30")
 
 # --- Variables (D5) --------------------------------------------------------------
 OBJETIVO = "brent"

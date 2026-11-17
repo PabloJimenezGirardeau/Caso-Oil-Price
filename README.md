@@ -55,7 +55,8 @@ Comparativa de tres redes neuronales recurrentes (RNN simple, LSTM y GRU) para p
 │   ├── inference/               Modelos finales y aplicación
 │   │   ├── modelo_final.py      Entrenar, reentrenar, guardar, cargar y prever con su rango del 80 % (D34)
 │   │   ├── aplicacion.py        Lógica de la aplicación: datos, previsión (sin reentrenar) y explicación
-│   │   └── datos_web.py         Los datos en el formato de la web: los usan el exportador y el botón de la aplicación
+│   │   ├── datos_web.py         Los datos en el formato de la web: los usan el exportador y el botón de la aplicación
+│   │   └── en_vivo.py           Previsiones en vivo automáticas: cuándo se guarda una nueva y cómo se comprueba
 │   └── utils/
 │       ├── config.py            Parámetros: fechas, variables, horizontes, partición…
 │       └── graficos.py          Estilo de los gráficos
@@ -63,7 +64,7 @@ Comparativa de tres redes neuronales recurrentes (RNN simple, LSTM y GRU) para p
 │   ├── data/                    download_data.py (datos del curso: FRED + Yahoo), generar_dias_brent.py
 │   ├── training/                fase_a.py, fase_a_semillas.py, tendencia.py, fase_b.py, estabilidad.py, entreno_completo.py
 │   ├── evaluation/              importancia.py, hacia_atras.py, rango_redes.py, controles.py, control_precios.py, examen_final.py
-│   └── inference/               prevision_en_vivo.py, prever.py, exportar_web.py, subir_modelo_hf.py
+│   └── inference/               prevision_en_vivo.py, prever.py, actualizar_diario.py, exportar_web.py, subir_modelo_hf.py
 ├── app/                         La aplicación: sirve la web con Python y hace funcionar «Actualizar datos»
 ├── web/                         La web del proyecto (GitHub Pages y aplicación); ver web/README.md
 ├── tests/                       Pruebas automáticas (pytest)
@@ -71,6 +72,8 @@ Comparativa de tres redes neuronales recurrentes (RNN simple, LSTM y GRU) para p
 ├── poetry.lock                  Versiones exactas de las dependencias
 └── poetry.toml                  Configuración local de Poetry (entorno en .venv)
 ```
+
+**Actualización automática (hasta el 30/11/2026).** Cada mañana, GitHub Actions (`.github/workflows/actualizar.yml`) descarga los datos; si FRED ha publicado un día nuevo de Brent, pasa los datos por los modelos finales (sin reentrenar), guarda la previsión con un commit antes de que llegue la fecha prevista, comprueba las pendientes y vuelve a publicar la web. Se lanza también a mano desde la pestaña **Actions** (*Run workflow*). Los commits los firma `github-actions[bot]`.
 
 **La web y la aplicación son la misma página.** Publicada en GitHub Pages (<https://pablojimenezgirardeau.github.io/Caso-Oil-Price/>), enseña el estudio y la previsión publicada. Servida por Python (`python app/app.py`), además funciona el botón **Actualizar datos**: descarga los datos de FRED y Yahoo Finance y los pasa por los modelos finales, ya entrenados (no se reentrena nada), y la página se actualiza en su sitio con la previsión de hoy, su rango del 80 % y su explicación.
 
@@ -146,6 +149,7 @@ python scripts/evaluation/examen_final.py --ejecutar               # el examen f
 python scripts/inference/prevision_en_vivo.py                     # modelos finales y previsión desde el 3/11/2026 (unos 12 min)
 python -c "from oil_price.data import descarga; descarga.actualizar()"   # datos nuevos en data/actual/
 python scripts/inference/prever.py --desde 2026-11-11             # previsión con los modelos guardados desde ese día
+python scripts/inference/actualizar_diario.py                     # lo que hace cada mañana GitHub Actions: datos, previsión nueva y comprobaciones
 python scripts/inference/exportar_web.py                          # datos de la web (web/data/), sin entrenar nada
 python app/app.py                                       # la aplicación: la web con «Actualizar datos», en http://127.0.0.1:8765
 python scripts/inference/subir_modelo_hf.py                       # sube los modelos a Hugging Face (con la sesión iniciada o HF_TOKEN)

@@ -1,0 +1,90 @@
+# Actualización automática de los datos y de las previsiones en vivo, cada mañana hasta el 30/11/2026
+# (config.ACTUALIZACION_HASTA; después no hace nada). También se lanza a mano: Actions → «Actualizar datos y
+# previsiones» → Run workflow.
+#
+# 1. Descarga los datos de FRED y Yahoo Finance.
+# 2. Si FRED ha publicado un día nuevo de Brent, prevé desde él con los modelos finales (sin reentrenar) y lo
+#    guarda con un commit ANTES de que llegue la fecha prevista; comprueba las previsiones pendientes.
+# 3. Regenera los datos de la web, los guarda y publica la web.
+#
+# Los commits los firma github-actions[bot] (autorizado por Pablo el 17/11/2026), solo con resultados/en_vivo*.csv
+# y web/data/. Si no hay nada nuevo (FRED publica con retraso, por tandas), no hace commit ni publica.
+name: Actualizar datos y previsiones
+
+on:
+  schedule:
+    - cron: "15 7 * * *"   # cada día a las 7:15 UTC (8:15 en España)
+  workflow_dispatch:       # a mano, desde la pestaña Actions
+
+permissions:
+  contents: write          # para guardar las previsiones y comprobaciones con un commit
+  pages: write
+  id-token: write
+
+concurrency:
+  group: actualizar
+  cancel-in-progress: false
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    env:
+      PYTHONPATH: src
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # la web enlaza el commit que guardó cada previsión: hace falta la historia
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: |
+          pip install --quiet --extra-index-url https://download.pytorch.org/whl/cpu \
+            torch numpy "pandas>=3.1" yfinance matplotlib optuna huggingface_hub
+
+      - name: Datos nuevos, previsión en vivo y comprobaciones
+        id: diario
+        run: python scripts/inference/actualizar_diario.py
+
+      - name: Guardar las previsiones y comprobaciones (commit, antes de publicar)
+        if: steps.diario.outputs.cambios == 'si'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add resultados/en_vivo.csv resultados/en_vivo_comprobacion.csv
+          git commit -m "datos: previsión en vivo y comprobaciones del $(date -u +%F) (automático)"
+          git pull --rebase
+          git push
+
+      - name: Regenerar los datos de la web
+        if: steps.diario.outputs.cambios == 'si'
+        run: |
+          python scripts/inference/exportar_web.py
+          git add web/data
+          git diff --cached --quiet || git commit -m "web: datos del $(date -u +%F) (automático)"
+          git pull --rebase
+          git push
+
+      - name: Preparar GitHub Pages
+        if: steps.diario.outputs.cambios == 'si'
+        uses: actions/configure-pages@v5
+
+      - name: Subir la carpeta web/
+        if: steps.diario.outputs.cambios == 'si'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+      - name: Publicar
+        if: steps.diario.outputs.cambios == 'si'
+        id: despliegue
+        uses: actions/deploy-pages@v4

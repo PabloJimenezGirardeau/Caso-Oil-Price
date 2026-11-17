@@ -978,6 +978,13 @@
     background: linear-gradient(90deg, var(--color-frio), var(--color-ambar));
     opacity: 0.6;
   }
+  .calma-nota {
+    max-width: 96ch;
+    padding: 0 20px 16px;
+    color: var(--color-gris-2);
+    font-size: 0.75rem;
+    text-wrap: pretty;
+  }
   .leyenda-grafico i.relleno.solo-ambar {
     background: var(--color-ambar);
     opacity: 0.35;

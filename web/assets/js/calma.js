@@ -164,6 +164,7 @@ export function iniciarCalma(d, { reducido }) {
   function elegir(nuevo) {
     plazo = nuevo;
     botones.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.plazo === plazo)));
+    el('cl-nota').hidden = plazo !== 'medio';   // a 3 meses, el desplome de 2020 se ve desplazado: se explica
     preparar();
     if (!conScroll) indice = diaDeTormenta();
     dibujar();
