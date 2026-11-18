@@ -57,7 +57,6 @@ Si un JSON lleva `"ejemplo": true`, la web lo avisa en una esquina («Datos de e
 ```
 web/
 ├── index.html
-├── favicon.svg
 ├── data/                 Los JSON (los genera scripts/inference/exportar_web.py)
 └── assets/
     ├── css/
