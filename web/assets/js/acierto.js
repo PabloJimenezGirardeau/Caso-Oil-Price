@@ -3,9 +3,10 @@
 //
 // - El gráfico coloca cada previsión de la red elegida en la fecha a la que se refería, con el precio real,
 //   el ingenuo y el rango del 80 %. Se recorre con el ratón, como el de «Calma y tormenta».
+// - Debajo, el error de la red en cada uno de esos puntos (previsión menos precio real), con el mismo eje de fechas.
 // - La tabla da el R² de cada modelo; la tarjeta de al lado, la nota frente al ingenuo según el mercado
 //   (calma, normal, tormenta) y según lo que pasó después.
-// Todo sale de data/acierto.json y data/test.json: aquí no se calcula nada.
+// Todo sale de data/acierto.json y data/test.json: aquí solo se resta para obtener el error de cada punto.
 
 import { nodo, vaciar, medir, escala, linea, banda, marcas, extremos, idUnico, alRedimensionar, iniciosDeAño } from './graficos.js';
 import { numero, dolares, porcentaje, variacion, fechaCorta } from './formato.js';
@@ -15,12 +16,16 @@ const AMBAR = '#f2921d';
 const HUESO = '#f4efe6';
 const GRIS = '#a39c90';
 const TALLO = '#8a8378';
+const FRIO = '#7c96a3';
 const MODELOS = [['RNN', 'RNN'], ['LSTM', 'LSTM'], ['GRU', 'GRU'], ['Lineal', 'Lineal (referencia)'], ['ingenuo', 'Ingenuo (precio de hoy)']];
 const MERCADO = ['calma', 'normal', 'tormenta'];
 const MOVIMIENTO = ['bajada fuerte', 'sin gran cambio', 'subida fuerte'];
 const ROTULO = { 'bajada fuerte': ['bajada', 'fuerte'], 'sin gran cambio': ['sin', 'cambio'], 'subida fuerte': ['subida', 'fuerte'] };
 
 const parecida = (nota) => Math.abs(nota - 1) < 0.02;
+
+/** 1.39 → «+1,39 $»; −2.02 → «−2,02 $» */
+const conSigno = (valor) => (valor >= 0.005 ? '+' : '') + dolares(Math.abs(valor) < 0.005 ? 0 : valor);
 
 /** «un 23 % menos que el ingenuo», o «prácticamente lo mismo que el ingenuo» si la diferencia es menor del 2 % */
 function frenteAlIngenuo(nota) {
@@ -34,11 +39,13 @@ export function iniciarAcierto(d) {
   if (!a || !a.plazos) return;
   const el = (id) => document.getElementById(id);
   const svg = el('ac-grafico');
+  const svgErrores = el('ac-errores');
   const svgGrupos = el('ac-grupos');
   const botones = [...document.querySelectorAll('#ac-plazos [data-plazo]')];
   let plazo = 'corto';
   let indice = null;   // el punto que se está leyendo (null: el último)
   let geo = null;
+  let geoErrores = null;
 
   // ---------------------------------------------------------------- real frente a previsto
   function dibujar() {
@@ -90,7 +97,50 @@ export function iniciarAcierto(d) {
 
     svg.setAttribute('aria-label', `Examen final a ${NOMBRE[plazo]}: ${numero(n, 0)} previsiones de la ${s.red} frente al precio real. `
       + `El precio quedó dentro del rango del 80 % el ${porcentaje(s.cobertura)} de las veces.`);
+    dibujarErrores(s, x);
     fijar(indice === null ? n - 1 : indice);
+  }
+
+  /** El error de la red en cada punto, alineado con las fechas del gráfico de arriba */
+  function dibujarErrores(s, x) {
+    vaciar(svgErrores);
+    geoErrores = null;
+    const { ancho: W, alto: H } = medir(svgErrores);
+    if (W < 40) return;
+    const m = { izq: 6, der: 8, arriba: 8, abajo: 22 };
+    const errores = s.red_precios.map((p, i) => p - s.real[i]);
+    const tope = Math.max(...errores.map(Math.abs)) * 1.08;
+    const y = escala(-tope, tope, H - m.abajo, m.arriba);
+    const rotulos = nodo('g', {});
+
+    marcas(-tope, tope, 4).forEach((v) => {
+      nodo('line', { class: 'rejilla', x1: m.izq, x2: W - m.der, y1: y(v), y2: y(v) }, svgErrores);
+      nodo('text', { class: 'eje', x: m.izq, y: y(v) - 5 }, rotulos, `${v > 0 ? '+' : ''}${numero(v, 0)}`);
+    });
+    iniciosDeAño(s.fechas).forEach(([año, i]) => {
+      if (i > 0) nodo('line', { class: 'rejilla', x1: x(i), x2: x(i), y1: m.arriba, y2: H - m.abajo }, svgErrores);
+      nodo('text', { class: 'eje', x: x(i) + (i > 0 ? 6 : 0), y: H - 6 }, rotulos, String(año));
+    });
+
+    // Una barra por previsión: hacia arriba si previó de más, hacia abajo si previó de menos
+    const grosor = Math.min(2.5, Math.max(0.8, (W - m.izq - m.der) / errores.length));
+    const trazos = { mas: '', menos: '' };
+    errores.forEach((e, i) => { trazos[e >= 0 ? 'mas' : 'menos'] += `M${x(i).toFixed(1)},${y(0).toFixed(1)}V${y(e).toFixed(1)}`; });
+    nodo('path', { d: trazos.mas, fill: 'none', stroke: AMBAR, 'stroke-width': grosor, 'stroke-opacity': 0.8 }, svgErrores);
+    nodo('path', { d: trazos.menos, fill: 'none', stroke: FRIO, 'stroke-width': grosor, 'stroke-opacity': 0.8 }, svgErrores);
+    nodo('line', { x1: m.izq, x2: W - m.der, y1: y(0), y2: y(0), stroke: HUESO, 'stroke-opacity': 0.4 }, svgErrores);
+    svgErrores.appendChild(rotulos);
+
+    const cursor = nodo('g', {}, svgErrores);
+    const vertical = nodo('line', { y1: m.arriba, y2: H - m.abajo, stroke: HUESO, 'stroke-opacity': 0.35 }, cursor);
+    const punto = nodo('circle', { r: 3.4, fill: '#000', stroke: HUESO, 'stroke-width': 1.5 }, cursor);
+    geoErrores = { x, y, vertical, punto, errores };
+
+    const mae = d.test.plazos[plazo].modelos[s.red].mae;
+    const peor = errores.reduce((k, e, i) => (Math.abs(e) > Math.abs(errores[k]) ? i : k), 0);
+    el('ac-mae').textContent = dolares(mae);
+    svgErrores.setAttribute('aria-label', `Error de la ${s.red} en cada fecha del examen a ${NOMBRE[plazo]}: de media ${dolares(mae)}; `
+      + `el mayor, ${conSigno(errores[peor])} el ${fechaCorta(s.fechas[peor])}.`);
   }
 
   function fijar(i) {
@@ -114,13 +164,23 @@ export function iniciarAcierto(d) {
     el('ac-red').textContent = dolares(s.red_precios[k]);
     el('ac-ingenuo').textContent = dolares(s.ingenuo[k]);
     el('ac-rango').textContent = `${numero(s.bajo[k], 2)} – ${dolares(s.alto[k])}${fuera ? ' · fuera' : ''}`;
+    el('ac-error-red').textContent = `error ${conSigno(s.red_precios[k] - s.real[k])}`;
+    el('ac-error-ingenuo').textContent = `error ${conSigno(s.ingenuo[k] - s.real[k])}`;
+
+    if (geoErrores) {
+      geoErrores.vertical.setAttribute('x1', px);
+      geoErrores.vertical.setAttribute('x2', px);
+      geoErrores.punto.setAttribute('cx', px);
+      geoErrores.punto.setAttribute('cy', geoErrores.y(geoErrores.errores[k]));
+    }
   }
 
-  svg.addEventListener('pointermove', (evento) => {
+  // Los dos gráficos comparten el cursor: se puede leer cualquier punto desde cualquiera de ellos
+  [svg, svgErrores].forEach((grafico) => grafico.addEventListener('pointermove', (evento) => {
     if (!geo) return;
-    const caja = svg.getBoundingClientRect();
+    const caja = grafico.getBoundingClientRect();
     fijar(Math.round(geo.x.inversa(evento.clientX - caja.left)));
-  });
+  }));
 
   // ---------------------------------------------------------------- las métricas
   function tabla() {

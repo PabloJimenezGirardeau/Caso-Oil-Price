@@ -206,8 +206,8 @@
           <dl class="calma-lectura acierto-lectura">
             <div><dt class="leyenda">Fecha prevista</dt><dd id="ac-fecha">—</dd></div>
             <div><dt class="leyenda">Precio real</dt><dd id="ac-real">—</dd></div>
-            <div><dt class="leyenda" id="ac-red-nombre">Red</dt><dd id="ac-red" class="ambar">—</dd></div>
-            <div><dt class="leyenda">Ingenuo</dt><dd id="ac-ingenuo">—</dd></div>
+            <div><dt class="leyenda" id="ac-red-nombre">Red</dt><dd id="ac-red" class="ambar">—</dd><dd class="acierto-error" id="ac-error-red">—</dd></div>
+            <div><dt class="leyenda">Ingenuo</dt><dd id="ac-ingenuo">—</dd><dd class="acierto-error" id="ac-error-ingenuo">—</dd></div>
             <div><dt class="leyenda">Rango del 80&nbsp;%</dt><dd id="ac-rango">—</dd></div>
           </dl>
           <div class="calma-grafico">
@@ -218,6 +218,19 @@
             <span class="ambar"><i></i>Previsión de la red</span>
             <span><i class="discontinua"></i>Ingenuo (el precio del día en que se hizo la previsión)</span>
             <span><i class="relleno solo-ambar"></i>Rango del 80&nbsp;%</span>
+          </div>
+          <div class="acierto-errores">
+            <div class="acierto-errores-cab">
+              <p class="leyenda">Error de la red en cada fecha · previsión menos precio real, en dólares</p>
+              <p class="leyenda">Error medio <span class="acierto-mae" id="ac-mae">—</span></p>
+            </div>
+            <div class="acierto-errores-grafico">
+              <svg class="grafico" id="ac-errores" role="img" aria-label="Error de la red en cada fecha del examen final"></svg>
+            </div>
+            <div class="leyenda-grafico" aria-hidden="true">
+              <span class="ambar"><i class="barra"></i>Previó de más</span>
+              <span class="acierto-frio"><i class="barra"></i>Previó de menos</span>
+            </div>
           </div>
         </div>
 

@@ -870,6 +870,40 @@
   .acierto-grupos {
     height: 240px;
   }
+  .calma-lectura dd.acierto-error {
+    margin-top: 2px;
+    color: var(--color-gris);
+    font-size: 0.75rem;
+  }
+  .acierto-errores {
+    border-top: 1px solid var(--color-linea);
+  }
+  .acierto-errores-cab {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 4px 18px;
+    padding: 16px 20px 0;
+  }
+  .acierto-mae {
+    color: var(--color-hueso);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .acierto-errores-grafico {
+    height: clamp(150px, 22vh, 200px);
+    padding: 8px 12px 8px;
+  }
+  .acierto-frio {
+    color: var(--color-frio);
+  }
+  .leyenda-grafico i.barra {
+    width: 9px;
+    height: 9px;
+    border: 0;
+    border-radius: 2px;
+    background: currentColor;
+  }
   .ambar {
     color: var(--color-ambar);
   }
