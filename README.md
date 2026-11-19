@@ -66,6 +66,7 @@ Las previsiones en vivo y la aplicación usan datos descargados después, en `da
 ├── data/                    Foto de los datos del estudio y días reales de cotización del Brent
 ├── docs/assignment/         Enunciado del caso
 ├── notebooks/               01 EDA · 02 Preprocesamiento · 03 Modelado, examen final y previsiones en vivo
+├── presentacion/            Presentación del caso (PDF y PowerPoint)
 ├── src/oil_price/           Código reutilizable, por funcionalidad
 │   ├── data/                Carga, limpieza, preprocesado, validaciones y descarga de datos nuevos
 │   ├── training/            Las tres redes, entrenamiento y búsqueda de datos y configuración
@@ -184,6 +185,7 @@ python scripts/inference/subir_modelo_hf.py               # sube los modelos a H
 ## Documentación
 
 - [Enunciado del caso](docs/assignment/ENUNCIADO.pdf)
+- [Presentación (PDF)](presentacion/Prevision_Brent_presentacion.pdf) y su [versión editable en PowerPoint](presentacion/Prevision_Brent_presentacion.pptx)
 - Notebooks: [01 · EDA](notebooks/01_eda.ipynb), [02 · Preprocesamiento](notebooks/02_preprocesamiento.ipynb), [03 · Modelado, examen final y previsiones en vivo](notebooks/03_modelado.ipynb)
 - [La web: cómo verla, actualizarla y publicarla](web/README.md)
 - [Ficha de los modelos en Hugging Face](https://huggingface.co/PabloJimenezGirardeau/brent-rnn-lstm-gru)
